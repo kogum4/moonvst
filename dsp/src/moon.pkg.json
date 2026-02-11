@@ -1,0 +1,23 @@
+{
+  "import": [
+    "webvst/dsp/src/utils"
+  ],
+  "targets": {
+    "wasm": {
+      "exports": [
+        "init",
+        "process_block",
+        "get_param_count",
+        "get_param_name",
+        "get_param_name_len",
+        "get_param_default",
+        "get_param_min",
+        "get_param_max",
+        "set_param",
+        "get_param"
+      ],
+      "export-memory-name": "memory",
+      "heap-start-address": 65536
+    }
+  }
+}

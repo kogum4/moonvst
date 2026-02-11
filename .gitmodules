@@ -1,0 +1,7 @@
+[submodule "libs/juce"]
+	path = libs/juce
+	url = https://github.com/juce-framework/JUCE.git
+
+[submodule "libs/wamr"]
+	path = libs/wamr
+	url = https://github.com/bytecodealliance/wasm-micro-runtime.git

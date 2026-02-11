@@ -1,0 +1,46 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+  color: #ccc;
+}
+
+.value {
+  font-variant-numeric: tabular-nums;
+  color: #8888ff;
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  background: #333;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #6666cc;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #6666cc;
+  border: none;
+  cursor: pointer;
+}

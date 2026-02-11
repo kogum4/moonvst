@@ -1,0 +1,25 @@
+import { useRuntime } from './runtime/useRuntime'
+import { GainSlider } from './components/GainSlider'
+import { LevelMeter } from './components/LevelMeter'
+import styles from './App.module.css'
+
+export default function App() {
+  const runtime = useRuntime()
+
+  if (!runtime) {
+    return <div className={styles.loading}>Loading audio runtime...</div>
+  }
+
+  return (
+    <div className={styles.container}>
+      <h1 className={styles.title}>WebVST</h1>
+      <div className={styles.controls}>
+        <GainSlider runtime={runtime} />
+        <LevelMeter />
+      </div>
+      <div className={styles.info}>
+        Runtime: {runtime.type}
+      </div>
+    </div>
+  )
+}

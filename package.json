@@ -1,0 +1,20 @@
+{
+  "name": "webvst-boilerplate",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:dsp dev:ui",
+    "dev:dsp": "cd dsp && moon build --watch --target wasm",
+    "dev:ui": "cd ui && npx vite",
+    "build:dsp": "node -e \"process.platform === 'win32' ? require('child_process').execSync('powershell -File scripts/build-dsp.ps1', {stdio:'inherit'}) : require('child_process').execSync('bash scripts/build-dsp.sh', {stdio:'inherit'})\"",
+    "build:ui": "cd ui && cross-env VITE_BUILD_TARGET=juce npx vite build",
+    "build:ui:web": "cd ui && npx vite build",
+    "build:plugin": "cmake --build build --config Release",
+    "configure:plugin": "cmake -B build -DCMAKE_BUILD_TYPE=Release",
+    "release:vst": "npm run build:dsp && npm run build:ui && npm run build:plugin"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "cross-env": "^7.0.3"
+  }
+}
