@@ -28,28 +28,71 @@ cmake .. `
     -DWAMR_BUILD_LIBC_WASI=0
 cmake --build . --config Release
 
-# 3. Build wamrc (AOT compiler)
-# Note: Requires LLVM. Install with: choco install llvm
-Write-Host "=== Building wamrc ==="
-$llvmCmd = Get-Command clang -ErrorAction SilentlyContinue
-if (-not $llvmCmd) {
-    Write-Host "WARNING: LLVM not found. wamrc requires LLVM to build."
-    Write-Host "Install LLVM with: choco install llvm"
-    Write-Host "Skipping wamrc build..."
+# 3. Download LLVM libraries (required for wamrc AOT compiler)
+$LlvmBuildDir = "$RootDir/libs/wamr/core/deps/llvm/build"
+$LlvmVersion = "18.1.8"
+$LlvmArchive = "clang+llvm-$LlvmVersion-x86_64-pc-windows-msvc.tar.xz"
+$LlvmUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LlvmVersion/$LlvmArchive"
+
+if (-not (Test-Path "$LlvmBuildDir/lib/cmake/llvm/LLVMConfig.cmake")) {
+    Write-Host "=== Downloading LLVM $LlvmVersion development libraries ==="
+    $LlvmDepsDir = "$RootDir/libs/wamr/core/deps"
+    New-Item -ItemType Directory -Force -Path $LlvmDepsDir | Out-Null
+    $ArchivePath = "$LlvmDepsDir/$LlvmArchive"
+
+    if (-not (Test-Path $ArchivePath)) {
+        Write-Host "Downloading $LlvmArchive (~936MB, this may take several minutes)..."
+        Invoke-WebRequest -Uri $LlvmUrl -OutFile $ArchivePath -UseBasicParsing
+    }
+
+    Write-Host "Extracting LLVM..."
+    Set-Location $LlvmDepsDir
+    tar xf $LlvmArchive
+
+    $ExtractedDir = "$LlvmDepsDir/clang+llvm-$LlvmVersion-x86_64-pc-windows-msvc"
+    if (Test-Path $LlvmBuildDir) { Remove-Item -Recurse -Force $LlvmBuildDir }
+    New-Item -ItemType Directory -Force -Path "$LlvmDepsDir/llvm" | Out-Null
+    Move-Item $ExtractedDir $LlvmBuildDir
+
+    Remove-Item $ArchivePath -Force
+
+    # Patch LLVM cmake config for local environment
+    $ExportsFile = "$LlvmBuildDir/lib/cmake/llvm/LLVMExports.cmake"
+    $content = (Get-Content $ExportsFile -Raw)
+    # Remove LibXml2 dependency (not bundled with LLVM, not needed for wamrc)
+    $content = $content.Replace('"LibXml2::LibXml2;LLVMSupport"', '"LLVMSupport"')
+    # Fix DIA SDK path (pre-built LLVM hardcodes VS 2019 path)
+    $DiaGuids = Get-ChildItem -Path "C:/Program Files (x86)/Microsoft Visual Studio" -Recurse -Filter "diaguids.lib" -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match "amd64" } | Select-Object -First 1
+    if ($DiaGuids) {
+        $DiaPath = $DiaGuids.FullName.Replace('\', '/')
+        $content = $content -replace 'C:/Program Files \(x86\)/Microsoft Visual Studio/[^;"]*/DIA SDK/lib/amd64/diaguids\.lib', $DiaPath
+    }
+    Set-Content $ExportsFile $content -NoNewline
+    $ConfigFile = "$LlvmBuildDir/lib/cmake/llvm/LLVMConfig.cmake"
+    $content = (Get-Content $ConfigFile -Raw)
+    $content = $content.Replace('set(LLVM_ENABLE_LIBXML2 1)', 'set(LLVM_ENABLE_LIBXML2 0)')
+    Set-Content $ConfigFile $content -NoNewline
+
+    Write-Host "LLVM $LlvmVersion installed."
 } else {
-    $WamrcDir = "$RootDir/libs/wamr/wamr-compiler"
-    New-Item -ItemType Directory -Force -Path "$WamrcDir/build" | Out-Null
-    Set-Location "$WamrcDir/build"
-    cmake ..
-    cmake --build . --config Release
+    Write-Host "LLVM already available at $LlvmBuildDir"
 }
 
-# 4. Install UI dependencies
+# 4. Build wamrc (AOT compiler)
+Write-Host "=== Building wamrc ==="
+$WamrcDir = "$RootDir/libs/wamr/wamr-compiler"
+New-Item -ItemType Directory -Force -Path "$WamrcDir/build" | Out-Null
+Set-Location "$WamrcDir/build"
+cmake ..
+cmake --build . --config Release
+
+# 5. Install UI dependencies
 Write-Host "=== Installing UI dependencies ==="
 Set-Location "$RootDir/ui"
 npm install
 
-# 5. Install root dependencies
+# 6. Install root dependencies
 Write-Host "=== Installing root dependencies ==="
 Set-Location "$RootDir"
 npm install

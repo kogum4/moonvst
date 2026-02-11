@@ -1,5 +1,5 @@
 // Parameter definition struct
-struct ParamDef {
+priv struct ParamDef {
   name : String
   min : Float
   max : Float

@@ -35,21 +35,22 @@ DAW → JUCE PluginProcessor → WASM DSP (WAMR AOT) → Audio Output
 - [Node.js](https://nodejs.org/) 20+
 - CMake 3.22+
 - C++17 対応コンパイラ (MSVC / Clang / GCC)
-- LLVM (wamrc ビルドに必要)
 
 ### Windows 追加要件
 - Visual Studio 2022 (MSVC)
-- LLVM (`choco install llvm`)
 
 ### macOS 追加要件
 - Xcode Command Line Tools
+- [Homebrew](https://brew.sh/)
+
+> LLVM (wamrc ビルドに必要) はセットアップスクリプトが自動でインストールします。
 
 ## セットアップ
 
 ```bash
 # 1. リポジトリクローン (サブモジュール含む)
 git clone --recursive https://github.com/kogum4/moonvst
-cd webvst-boilerplate
+cd moonvst
 
 # 2. プラットフォームセットアップ
 # macOS:

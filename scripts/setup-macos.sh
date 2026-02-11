@@ -28,20 +28,29 @@ cmake .. \
     -DWAMR_BUILD_LIBC_WASI=0
 make -j$(sysctl -n hw.ncpu)
 
-# 3. Build wamrc (AOT compiler)
+# 3. Install LLVM (required for wamrc AOT compiler)
+if ! brew list llvm@18 &>/dev/null; then
+    echo "=== Installing LLVM 18 via Homebrew ==="
+    brew install llvm@18
+else
+    echo "LLVM 18 already installed via Homebrew"
+fi
+LLVM_DIR="$(brew --prefix llvm@18)/lib/cmake/llvm"
+
+# 4. Build wamrc (AOT compiler)
 echo "=== Building wamrc ==="
 WAMRC_DIR="$ROOT_DIR/libs/wamr/wamr-compiler"
 mkdir -p "$WAMRC_DIR/build"
 cd "$WAMRC_DIR/build"
-cmake ..
+cmake .. -DWAMR_BUILD_WITH_CUSTOM_LLVM=1 -DLLVM_DIR="$LLVM_DIR"
 make -j$(sysctl -n hw.ncpu)
 
-# 4. Install UI dependencies
+# 5. Install UI dependencies
 echo "=== Installing UI dependencies ==="
 cd "$ROOT_DIR/ui"
 npm install
 
-# 5. Install root dependencies
+# 6. Install root dependencies
 echo "=== Installing root dependencies ==="
 cd "$ROOT_DIR"
 npm install

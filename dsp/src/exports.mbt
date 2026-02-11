@@ -1,5 +1,5 @@
 /// Initialize DSP — reset all parameter values to defaults
-pub fn init() -> Unit {
+fn init {
   for i = 0; i < param_defs.length(); i = i + 1 {
     if i < param_values.length() {
       param_values[i] = param_defs[i].default_val

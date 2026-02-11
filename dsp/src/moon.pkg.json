@@ -2,10 +2,9 @@
   "import": [
     "webvst/dsp/src/utils"
   ],
-  "targets": {
+  "link": {
     "wasm": {
       "exports": [
-        "init",
         "process_block",
         "get_param_count",
         "get_param_name",

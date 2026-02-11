@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install LLVM
+        run: brew install llvm@18
+
       - name: Setup WAMR
         run: |
           # Build libiwasm
@@ -33,9 +36,10 @@ jobs:
           make -j$(sysctl -n hw.ncpu)
 
           # Build wamrc
+          LLVM_DIR="$(brew --prefix llvm@18)/lib/cmake/llvm"
           cd ${{ github.workspace }}/libs/wamr/wamr-compiler
           mkdir -p build && cd build
-          cmake ..
+          cmake .. -DWAMR_BUILD_WITH_CUSTOM_LLVM=1 -DLLVM_DIR="$LLVM_DIR"
           make -j$(sysctl -n hw.ncpu)
 
       - name: Build DSP
@@ -79,8 +83,33 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install LLVM
-        run: choco install llvm -y
+      - name: Download LLVM
+        shell: pwsh
+        run: |
+          $LlvmVersion = "18.1.8"
+          $LlvmArchive = "clang+llvm-$LlvmVersion-x86_64-pc-windows-msvc.tar.xz"
+          $LlvmUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LlvmVersion/$LlvmArchive"
+          $DepsDir = "libs/wamr/core/deps"
+
+          mkdir -Force $DepsDir | Out-Null
+          Write-Host "Downloading $LlvmArchive..."
+          Invoke-WebRequest -Uri $LlvmUrl -OutFile "$DepsDir/$LlvmArchive" -UseBasicParsing
+          cd $DepsDir
+          tar xf $LlvmArchive
+          mkdir -Force llvm | Out-Null
+          Move-Item "clang+llvm-$LlvmVersion-x86_64-pc-windows-msvc" "llvm/build"
+          Remove-Item $LlvmArchive -Force
+          # Patch LLVM cmake config for local environment
+          $exports = "llvm/build/lib/cmake/llvm/LLVMExports.cmake"
+          $c = (Get-Content $exports -Raw)
+          $c = $c.Replace('"LibXml2::LibXml2;LLVMSupport"', '"LLVMSupport"')
+          $dia = Get-ChildItem "C:/Program Files/Microsoft Visual Studio" -Recurse -Filter "diaguids.lib" -EA SilentlyContinue | Where-Object { $_.FullName -match "amd64" } | Select-Object -First 1
+          if (-not $dia) { $dia = Get-ChildItem "C:/Program Files (x86)/Microsoft Visual Studio" -Recurse -Filter "diaguids.lib" -EA SilentlyContinue | Where-Object { $_.FullName -match "amd64" } | Select-Object -First 1 }
+          if ($dia) { $c = $c -replace 'C:/Program Files \(x86\)/Microsoft Visual Studio/[^;"]*/DIA SDK/lib/amd64/diaguids\.lib', $dia.FullName.Replace('\', '/') }
+          Set-Content $exports $c -NoNewline
+          $cfg = "llvm/build/lib/cmake/llvm/LLVMConfig.cmake"
+          $c = (Get-Content $cfg -Raw).Replace('set(LLVM_ENABLE_LIBXML2 1)', 'set(LLVM_ENABLE_LIBXML2 0)')
+          Set-Content $cfg $c -NoNewline
 
       - name: Setup WAMR
         shell: pwsh
