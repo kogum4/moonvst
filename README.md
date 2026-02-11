@@ -48,7 +48,7 @@ DAW → JUCE PluginProcessor → WASM DSP (WAMR AOT) → Audio Output
 
 ```bash
 # 1. リポジトリクローン (サブモジュール含む)
-git clone --recursive <repo-url>
+git clone --recursive https://github.com/kogum4/moonvst
 cd webvst-boilerplate
 
 # 2. プラットフォームセットアップ
