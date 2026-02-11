@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm-run-all --parallel dev:dsp dev:ui",
-    "dev:dsp": "cd dsp && moon build --watch --target wasm",
+    "dev:dsp": "node scripts/dev-dsp.js",
     "dev:ui": "cd ui && npx vite",
     "build:dsp": "node -e \"process.platform === 'win32' ? require('child_process').execSync('powershell -File scripts/build-dsp.ps1', {stdio:'inherit'}) : require('child_process').execSync('bash scripts/build-dsp.sh', {stdio:'inherit'})\"",
     "build:ui": "cd ui && cross-env VITE_BUILD_TARGET=juce npx vite build",

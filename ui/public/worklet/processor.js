@@ -25,7 +25,7 @@ class WebVSTProcessor extends AudioWorkletProcessor {
         const instance = await WebAssembly.instantiate(module)
         this.wasmInstance = instance
         this.wasmMemory = instance.exports.memory
-        instance.exports.init()
+        instance.exports.dsp_init()
         this.ready = true
         this.port.postMessage({ type: 'ready' })
       } catch (err) {

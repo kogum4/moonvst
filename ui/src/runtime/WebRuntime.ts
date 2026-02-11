@@ -2,7 +2,7 @@ import type { AudioRuntime, ParamInfo } from './types'
 
 interface WasmExports {
   memory: WebAssembly.Memory
-  init(): void
+  dsp_init(): void
   process_block(n: number): void
   get_param_count(): number
   get_param_name(index: number): number
@@ -28,7 +28,7 @@ export async function createWebRuntime(): Promise<AudioRuntime> {
   // Also instantiate WASM on main thread for parameter queries
   const instance = await WebAssembly.instantiate(wasmModule)
   const exports = instance.exports as unknown as WasmExports
-  exports.init()
+  exports.dsp_init()
 
   // Build parameter info
   const count = exports.get_param_count()

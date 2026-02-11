@@ -1,5 +1,14 @@
-/// Initialize DSP — reset all parameter values to defaults
+/// Module init — auto-called on load
 fn init {
+  for i = 0; i < param_defs.length(); i = i + 1 {
+    if i < param_values.length() {
+      param_values[i] = param_defs[i].default_val
+    }
+  }
+}
+
+/// Explicit init for host to call
+pub fn dsp_init() -> Unit {
   for i = 0; i < param_defs.length(); i = i + 1 {
     if i < param_values.length() {
       param_values[i] = param_defs[i].default_val
