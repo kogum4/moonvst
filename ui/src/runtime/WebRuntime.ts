@@ -1,4 +1,4 @@
-import type { AudioRuntime, ParamInfo } from './types'
+import type { ParamInfo, WebAudioRuntime } from './types'
 
 interface WasmExports {
   memory: WebAssembly.Memory
@@ -14,7 +14,7 @@ interface WasmExports {
   get_param(index: number): number
 }
 
-export async function createWebRuntime(): Promise<AudioRuntime> {
+export async function createWebRuntime(): Promise<WebAudioRuntime> {
   const ctx = new AudioContext()
 
   // Load WASM binary
@@ -62,6 +62,79 @@ export async function createWebRuntime(): Promise<AudioRuntime> {
   // Connect to destination
   workletNode.connect(ctx.destination)
 
+  let audioElement: HTMLAudioElement | null = null
+  let mediaSourceNode: MediaElementAudioSourceNode | null = null
+  let audioUrl: string | null = null
+  let hasAudio = false
+  let isPlaying = false
+
+  const ensureAudioGraph = () => {
+    if (!audioElement) {
+      audioElement = new Audio()
+      audioElement.loop = true
+      audioElement.crossOrigin = 'anonymous'
+      audioElement.preload = 'auto'
+      audioElement.addEventListener('play', () => {
+        isPlaying = true
+      })
+      audioElement.addEventListener('pause', () => {
+        isPlaying = false
+      })
+      mediaSourceNode = ctx.createMediaElementSource(audioElement)
+      mediaSourceNode.connect(workletNode)
+    }
+  }
+
+  const resetPlaybackState = () => {
+    hasAudio = false
+    isPlaying = false
+    if (!audioElement) return
+    audioElement.pause()
+    audioElement.currentTime = 0
+  }
+
+  const validateAudioData = async (bytes: ArrayBuffer) => {
+    await ctx.decodeAudioData(bytes.slice(0))
+  }
+
+  const loadAudioDataInternal = async (bytes: ArrayBuffer, mimeType?: string) => {
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl)
+      audioUrl = null
+    }
+
+    resetPlaybackState()
+    ensureAudioGraph()
+    await validateAudioData(bytes)
+
+    if (!audioElement) {
+      throw new Error('Audio element is not ready')
+    }
+
+    const blob = mimeType ? new Blob([bytes], { type: mimeType }) : new Blob([bytes])
+    audioUrl = URL.createObjectURL(blob)
+    audioElement.src = audioUrl
+
+    await new Promise<void>((resolve, reject) => {
+      const onLoaded = () => {
+        cleanup()
+        hasAudio = true
+        resolve()
+      }
+      const onError = () => {
+        cleanup()
+        reject(new Error('Failed to load selected audio data'))
+      }
+      const cleanup = () => {
+        audioElement?.removeEventListener('loadeddata', onLoaded)
+        audioElement?.removeEventListener('error', onError)
+      }
+
+      audioElement.addEventListener('loadeddata', onLoaded, { once: true })
+      audioElement.addEventListener('error', onError, { once: true })
+    })
+  }
+
   // Parameter change listeners
   const listeners = new Map<number, Set<(v: number) => void>>()
 
@@ -89,6 +162,41 @@ export async function createWebRuntime(): Promise<AudioRuntime> {
       return 0
     },
 
+    async loadAudioData(bytes: ArrayBuffer, mimeType?: string) {
+      await loadAudioDataInternal(bytes, mimeType)
+    },
+
+    async loadAudioFile(file: File) {
+      const bytes = await file.arrayBuffer()
+      await loadAudioDataInternal(bytes, file.type)
+    },
+
+    async play() {
+      if (!audioElement || !hasAudio) return
+
+      if (ctx.state === 'suspended') {
+        await ctx.resume()
+      }
+
+      await audioElement.play()
+      isPlaying = true
+    },
+
+    stop() {
+      if (!audioElement) return
+      audioElement.pause()
+      audioElement.currentTime = 0
+      isPlaying = false
+    },
+
+    hasAudioLoaded() {
+      return hasAudio
+    },
+
+    getIsPlaying() {
+      return isPlaying
+    },
+
     onParamChange(index: number, cb: (v: number) => void) {
       if (!listeners.has(index)) listeners.set(index, new Set())
       listeners.get(index)!.add(cb)
@@ -96,6 +204,14 @@ export async function createWebRuntime(): Promise<AudioRuntime> {
     },
 
     dispose() {
+      if (audioElement) {
+        audioElement.pause()
+        audioElement.src = ''
+      }
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl)
+      }
+      mediaSourceNode?.disconnect()
       workletNode.disconnect()
       ctx.close()
     },

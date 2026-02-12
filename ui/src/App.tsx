@@ -1,7 +1,13 @@
 import { useRuntime } from './runtime/useRuntime'
 import { GainSlider } from './components/GainSlider'
 import { LevelMeter } from './components/LevelMeter'
+import { WebAudioMenu } from './components/WebAudioMenu'
+import type { WebAudioRuntime } from './runtime/types'
 import styles from './App.module.css'
+
+function isWebAudioRuntime(runtime: { type: 'juce' | 'web' }): runtime is WebAudioRuntime {
+  return runtime.type === 'web'
+}
 
 export default function App() {
   const { runtime, error } = useRuntime()
@@ -16,7 +22,8 @@ export default function App() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>WebVST</h1>
+      {isWebAudioRuntime(runtime) ? <WebAudioMenu runtime={runtime} /> : null}
+      <h1 className={styles.title}>MoonVST</h1>
       <div className={styles.controls}>
         <GainSlider runtime={runtime} />
         <LevelMeter runtime={runtime} />

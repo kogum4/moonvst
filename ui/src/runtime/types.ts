@@ -15,3 +15,13 @@ export interface AudioRuntime {
   onParamChange(index: number, cb: (v: number) => void): () => void
   dispose(): void
 }
+
+export interface WebAudioRuntime extends AudioRuntime {
+  readonly type: 'web'
+  loadAudioData(bytes: ArrayBuffer, mimeType?: string): Promise<void>
+  loadAudioFile(file: File): Promise<void>
+  play(): Promise<void>
+  stop(): void
+  hasAudioLoaded(): boolean
+  getIsPlaying(): boolean
+}
