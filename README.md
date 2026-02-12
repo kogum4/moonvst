@@ -73,9 +73,10 @@ MoonBit DSP + Vite dev server が並列起動。
 ### Native プラグイン開発
 
 ```bash
-npm run build:dsp     # WASM → AOT
-npm run build:ui      # React → single-file HTML
-npm run build:plugin  # CMake Release ビルド
+npm run build:dsp          # WASM → AOT
+npm run build:ui           # React → single-file HTML
+npm run configure:plugin   # CMake 構成 (初回のみ)
+npm run build:plugin       # CMake Release ビルド
 ```
 
 ### リリースビルド
