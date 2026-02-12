@@ -7,7 +7,6 @@ PluginProcessor::PluginProcessor()
                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "Parameters", createParameterLayout())
 {
-    wasmReady_ = wasmDSP_.initialize();
 }
 
 PluginProcessor::~PluginProcessor()
@@ -18,14 +17,52 @@ PluginProcessor::~PluginProcessor()
 juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
-    paramCount_ = 1;
-    paramNames_ = { "gain" };
+    wasmReady_ = wasmDSP_.initialize();
 
-    layout.add (std::make_unique<juce::AudioParameterFloat> (
-        juce::ParameterID { "gain", 1 },
-        "gain",
-        juce::NormalisableRange<float> (0.0f, 1.0f),
-        0.5f));
+    if (wasmReady_)
+    {
+        const int wasmParamCount = wasmDSP_.getParamCount();
+        if (wasmParamCount > 0)
+        {
+            paramCount_ = wasmParamCount;
+            paramNames_.clear();
+            paramNames_.reserve ((size_t) paramCount_);
+
+            for (int i = 0; i < paramCount_; ++i)
+            {
+                auto name = wasmDSP_.getParamName (i);
+                if (name.empty())
+                    name = "param_" + std::to_string (i);
+
+                auto minVal = wasmDSP_.getParamMin (i);
+                auto maxVal = wasmDSP_.getParamMax (i);
+                auto defVal = wasmDSP_.getParamDefault (i);
+
+                if (maxVal <= minVal)
+                    maxVal = minVal + 1.0f;
+                defVal = juce::jlimit (minVal, maxVal, defVal);
+
+                paramNames_.push_back (name);
+
+                layout.add (std::make_unique<juce::AudioParameterFloat> (
+                    juce::ParameterID { name, 1 },
+                    name,
+                    juce::NormalisableRange<float> (minVal, maxVal),
+                    defVal));
+            }
+        }
+    }
+
+    if (paramNames_.empty())
+    {
+        paramCount_ = 1;
+        paramNames_ = { "gain" };
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { "gain", 1 },
+            "gain",
+            juce::NormalisableRange<float> (0.0f, 1.0f),
+            0.5f));
+    }
 
     return layout;
 }
