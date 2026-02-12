@@ -30,12 +30,12 @@ if(APPLE)
     list(APPEND PLUGIN_FORMATS AU)
 endif()
 
-juce_add_plugin(WebVST
-    COMPANY_NAME "WebVST"
+juce_add_plugin(MoonVST
+    COMPANY_NAME "MoonVST"
     PLUGIN_MANUFACTURER_CODE Wvst
     PLUGIN_CODE Wvs1
     FORMATS ${PLUGIN_FORMATS}
-    PRODUCT_NAME "WebVST"
+    PRODUCT_NAME "MoonVST"
     NEEDS_WEB_BROWSER TRUE
     NEEDS_WEBVIEW2 TRUE
 )
@@ -43,7 +43,7 @@ juce_add_plugin(WebVST
 # AOT binary data
 file(GLOB AOT_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/resources/*.aot")
 if(AOT_RESOURCES)
-    juce_add_binary_data(WebVSTBinaryData
+    juce_add_binary_data(MoonVSTBinaryData
         HEADER_NAME "BinaryData.h"
         NAMESPACE BinaryData
         SOURCES ${AOT_RESOURCES}
@@ -51,7 +51,7 @@ if(AOT_RESOURCES)
 else()
     # Create placeholder for initial build
     file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/resources/.gitkeep" "")
-    juce_add_binary_data(WebVSTBinaryData
+    juce_add_binary_data(MoonVSTBinaryData
         HEADER_NAME "BinaryData.h"
         NAMESPACE BinaryData
         SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/resources/.gitkeep"
@@ -64,7 +64,7 @@ file(GLOB_RECURSE UI_RESOURCES CONFIGURE_DEPENDS
 )
 list(FILTER UI_RESOURCES EXCLUDE REGEX "/\\.gitkeep$")
 if(UI_RESOURCES)
-    juce_add_binary_data(WebVSTUIBinaryData
+    juce_add_binary_data(MoonVSTUIBinaryData
         HEADER_NAME "UIBinaryData.h"
         NAMESPACE UIBinaryData
         SOURCES ${UI_RESOURCES}
@@ -72,45 +72,45 @@ if(UI_RESOURCES)
 else()
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/placeholder_ui.html"
          "<!DOCTYPE html><html><body><p>UI not built yet. Run npm run build:ui</p></body></html>")
-    juce_add_binary_data(WebVSTUIBinaryData
+    juce_add_binary_data(MoonVSTUIBinaryData
         HEADER_NAME "UIBinaryData.h"
         NAMESPACE UIBinaryData
         SOURCES "${CMAKE_CURRENT_BINARY_DIR}/placeholder_ui.html"
     )
 endif()
 
-target_sources(WebVST PRIVATE
+target_sources(MoonVST PRIVATE
     src/WasmDSP.cpp
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
 )
 
-target_include_directories(WebVST PRIVATE
+target_include_directories(MoonVST PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${WAMR_INCLUDE_DIRS}
 )
 
-target_compile_definitions(WebVST PUBLIC
+target_compile_definitions(MoonVST PUBLIC
     JUCE_WEB_BROWSER=1
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
 )
 
 if(WIN32)
-    target_compile_definitions(WebVST PRIVATE
+    target_compile_definitions(MoonVST PRIVATE
         JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1
         WASM_RUNTIME_API_EXTERN=
     )
 endif()
 
-target_link_libraries(WebVST PRIVATE
+target_link_libraries(MoonVST PRIVATE
     ${WAMR_LIB}
-    WebVSTBinaryData
-    WebVSTUIBinaryData
+    MoonVSTBinaryData
+    MoonVSTUIBinaryData
     juce::juce_audio_utils
     juce::juce_gui_extra
 )
 
 if(NOT WIN32)
-    target_link_libraries(WebVST PRIVATE pthread m dl)
+    target_link_libraries(MoonVST PRIVATE pthread m dl)
 endif()

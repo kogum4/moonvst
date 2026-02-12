@@ -1,4 +1,4 @@
-# WebVST Boilerplate
+# MoonVST
 
 MoonBit DSP (WASM) + WAMR AOT Runtime + JUCE + React Web UI による
 オーディオプラグイン (VST3) ボイラープレート。
@@ -89,7 +89,7 @@ npm run release:vst   # 全パイプライン実行
 ## ディレクトリ構成
 
 ```
-webvst-boilerplate/
+moonvst/
 ├── dsp/                # MoonBit DSP ★主に編集するレイヤー
 │   └── src/
 │       ├── params.mbt  # ★パラメータ定義 (ここに1行足すだけ)
