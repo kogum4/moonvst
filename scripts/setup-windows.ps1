@@ -87,12 +87,26 @@ Set-Location "$WamrcDir/build"
 cmake ..
 cmake --build . --config Release
 
-# 5. Install UI dependencies
+# 5. Install WebView2 NuGet package (required by JUCE for WebView on Windows)
+Write-Host "=== Installing WebView2 NuGet package ==="
+$WebView2Dir = "$env:USERPROFILE/AppData/Local/PackageManagement/NuGet/Packages/Microsoft.Web.WebView2*"
+if (-not (Test-Path $WebView2Dir)) {
+    $NugetSource = Get-PackageSource -Name nugetRepository -ErrorAction SilentlyContinue
+    if (-not $NugetSource) {
+        Register-PackageSource -provider NuGet -name nugetRepository -location https://www.nuget.org/api/v2
+    }
+    Install-Package Microsoft.Web.WebView2 -Scope CurrentUser -RequiredVersion 1.0.3485.44 -Source nugetRepository -Force
+    Write-Host "WebView2 NuGet package installed."
+} else {
+    Write-Host "WebView2 NuGet package already installed."
+}
+
+# 6. Install UI dependencies
 Write-Host "=== Installing UI dependencies ==="
 Set-Location "$RootDir/ui"
 npm install
 
-# 6. Install root dependencies
+# 7. Install root dependencies
 Write-Host "=== Installing root dependencies ==="
 Set-Location "$RootDir"
 npm install

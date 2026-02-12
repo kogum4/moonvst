@@ -38,6 +38,7 @@ DAW → JUCE PluginProcessor → WASM DSP (WAMR AOT) → Audio Output
 
 ### Windows 追加要件
 - Visual Studio 2022 (MSVC)
+- WebView2 NuGet パッケージ (セットアップスクリプトが自動インストール)
 
 ### macOS 追加要件
 - Xcode Command Line Tools
