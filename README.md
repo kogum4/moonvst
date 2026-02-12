@@ -1,155 +1,203 @@
-# MoonVST
+﻿# MoonVST
 
-MoonBit DSP (WASM) + WAMR AOT Runtime + JUCE + React Web UI による
-オーディオプラグイン (VST3) ボイラープレート。
+MoonVST is a template for building desktop audio plugins with web technology.
 
-## 設計原則: C++ を触らない開発体験
+It combines:
+- MoonBit for DSP code (compiled to WASM)
+- WAMR for native AOT execution
+- JUCE for plugin hosting (VST3 / AU / Standalone)
+- React + Vite for the plugin UI
 
-パラメータ追加・DSP変更・UI変更で C++ コードの修正が不要。
+The main goal is to let you iterate on DSP and UI quickly, while keeping native plugin output.
 
+## What Is MoonBit?
+
+MoonBit is a language/toolchain built for WebAssembly-first development.
+
+- It compiles to WebAssembly and comes with the `moon` CLI.
+- Here, it is the source of truth for DSP because the project is WASM-first and needs a lightweight DSP build loop.
+
+If you are new to it, start here:
+- Official docs: https://docs.moonbitlang.com/
+- Language site: https://www.moonbitlang.com/
+
+## Why This Template?
+
+- Less C++ churn: most day-to-day DSP/UI work can be done without full native rebuild loops.
+- MoonBit + React workflow: define DSP/parameters in MoonBit, build controls in React, and iterate quickly with `npm run dev`.
+- Native output, web-like DX: ship VST3/AU/Standalone while keeping a fast web-style development experience.
+
+## Architecture
+
+```text
+MoonBit DSP (WASM) -> AOT (wamrc) -> JUCE plugin (WAMR runtime)
+                                     -> React UI in WebView
+
+Browser dev mode:
+MoonBit DSP (WASM) + React UI + WebAudio/AudioWorklet
 ```
-パラメータ追加時の作業:
-  1. MoonBit: params.mbt にパラメータ定義を追加 → ✅ これだけ
-  2. React: UI コンポーネントを追加/変更 → ✅ これだけ
-  3. C++: 変更不要 ✅
-```
 
-## アーキテクチャ
+## Requirements
 
-```
-DAW → JUCE PluginProcessor → WASM DSP (WAMR AOT) → Audio Output
-                ↕
-       PluginEditor (WebView)
-                ↕
-         React UI (generic param API)
-```
-
-- WASM DSP が自身のパラメータ情報をエクスポート
-- C++ は init 時に WASM からパラメータ一覧を動的に取得
-- JUCE AudioParameterFloat と WebSliderRelay を自動生成
-- UI は汎用的なパラメータ API 経由で通信
-
-## 必要環境
-
-- [MoonBit](https://www.moonbitlang.com/) CLI
-- [Node.js](https://nodejs.org/) 20+
+- Git
+- Node.js 20+
 - CMake 3.22+
-- C++17 対応コンパイラ (MSVC / Clang / GCC)
+- C++17 toolchain
+- MoonBit CLI (`moon`)
 
-### Windows 追加要件
-- Visual Studio 2022 (MSVC)
-- WebView2 NuGet パッケージ (セットアップスクリプトが自動インストール)
+### Windows
 
-### macOS 追加要件
+- Visual Studio 2022 (MSVC, Desktop C++)
+- `winget` (used by setup script)
+- Edge WebView2 Runtime (setup script installs if missing)
+
+### macOS
+
 - Xcode Command Line Tools
-- [Homebrew](https://brew.sh/)
+- Homebrew
 
-> LLVM (wamrc ビルドに必要) はセットアップスクリプトが自動でインストールします。
+## Quick Start
 
-## セットアップ
+### 1. Clone with submodules
 
 ```bash
-# 1. リポジトリクローン (サブモジュール含む)
-git clone --recursive https://github.com/kogum4/moonvst
+git clone --recursive https://github.com/kogum4/moonvst.git
 cd moonvst
-
-# 2. プラットフォームセットアップ
-# macOS:
-./scripts/setup-macos.sh
-# Windows (PowerShell):
-.\scripts\setup-windows.ps1
 ```
 
-## 開発ワークフロー
+If you already cloned without submodules:
 
-### Web 開発モード (推奨、ホットリロード対応)
+```bash
+git submodule update --init --recursive
+```
+
+### 2. Run platform setup
+
+Windows (PowerShell):
+
+```powershell
+./scripts/setup-windows.ps1
+```
+
+macOS:
+
+```bash
+./scripts/setup-macos.sh
+```
+
+These scripts install/check MoonBit, build WAMR, build `wamrc`, and install npm dependencies.
+
+## Development Workflows
+
+### Web development mode (fast iteration)
 
 ```bash
 npm run dev
 ```
 
-MoonBit DSP + Vite dev server が並列起動。
-ブラウザで `http://localhost:5173` を開いて開発。
+This runs in parallel:
+- DSP watcher (`scripts/dev-dsp.js`) that rebuilds MoonBit WASM
+- Vite dev server for UI at `http://localhost:5173`
 
-### Native プラグイン開発
+Use this to iterate quickly on DSP and UI without rebuilding the native plugin each edit.
 
-```bash
-npm run build:dsp          # WASM → AOT
-npm run build:ui           # React → single-file HTML
-npm run configure:plugin   # CMake 構成 (初回のみ)
-npm run build:plugin       # CMake Release ビルド
-```
-
-### リリースビルド
+### Native plugin build
 
 ```bash
-npm run release:vst   # 全パイプライン実行
+npm run build:dsp
+npm run build:ui
+npm run configure:plugin
+npm run build:plugin
 ```
 
-## ディレクトリ構成
+Or run all in one:
 
-```
-moonvst/
-├── dsp/                # MoonBit DSP ★主に編集するレイヤー
-│   └── src/
-│       ├── params.mbt  # ★パラメータ定義 (ここに1行足すだけ)
-│       ├── lib.mbt     # DSP 処理ロジック
-│       └── exports.mbt # 汎用パラメータ API
-├── plugin/             # JUCE C++ プラグイン (原則いじらない)
-├── ui/                 # React Web UI ★主に編集するレイヤー
-│   └── src/
-│       ├── components/ # UI コンポーネント
-│       ├── runtime/    # JUCE / Web Audio ランタイム抽象
-│       └── hooks/      # React Hooks
-├── scripts/            # ビルド・セットアップスクリプト
-├── libs/               # Git サブモジュール (JUCE, WAMR)
-└── tests/              # テスト
+```bash
+npm run release:vst
 ```
 
-## パラメータの追加方法
+## Output Artifacts
 
-### 1. MoonBit (dsp/src/params.mbt)
+After native build, artifacts are under:
 
-```moonbit
-let param_defs : Array[ParamDef] = [
-  { name: "gain", min: 0.0, max: 1.0, default_val: 0.5 },
-  { name: "mix", min: 0.0, max: 1.0, default_val: 1.0 },  // ← 追加
-]
+- `build/plugin/MoonVST_artefacts/Release/VST3/`
+- `build/plugin/MoonVST_artefacts/Release/Standalone/`
 
-let param_values : Array[Float] = [0.5, 1.0]  // ← デフォルト値追加
+On macOS, AU is also built.
+
+## First Customization Steps
+
+The template is designed so most feature work does not require C++ edits.
+
+### 1. Add or modify DSP parameters
+
+Edit `dsp/src/params.mbt`:
+
+- add parameter definitions in `param_defs`
+- keep `param_values` aligned with your parameter count/defaults
+
+### 2. Implement DSP logic
+
+Edit `dsp/src/lib.mbt` (`process_audio`).
+
+### 3. Keep exported DSP API available
+
+`dsp/src/exports.mbt` contains the generic host API used by C++/UI:
+- `get_param_count`
+- `get_param_name`
+- `get_param_default`
+- `get_param_min`
+- `get_param_max`
+- `set_param`
+- `get_param`
+- `process_block`
+
+Do not remove these unless you also update the host bridge.
+
+### 4. Build UI controls
+
+Edit React UI under `ui/src`.
+
+`useParam` (`ui/src/hooks/useParam.ts`) already maps controls to DSP parameters by name.
+
+## Project Layout
+
+```text
+dsp/                MoonBit DSP source and exports
+plugin/             JUCE plugin + WAMR host bridge
+ui/                 React/Vite UI
+scripts/            setup/build helper scripts
+libs/               submodules (JUCE, WAMR)
+tests/cpp/          native WASM integration test
 ```
 
-### 2. DSP ロジック (dsp/src/lib.mbt)
+## Testing
 
-```moonbit
-fn process_audio(num_samples : Int) -> Unit {
-  let gain = param_values[0]
-  let mix = param_values[1]  // ← 新パラメータを使用
-  // ...
-}
+There is a C++ integration test in `tests/cpp/wasm_dsp_test.cpp`.
+
+Example build with tests enabled:
+
+```bash
+cmake -B build -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
 ```
 
-### 3. React UI (ui/src/components/)
+## Troubleshooting
 
-```tsx
-function MixSlider({ runtime }: { runtime: AudioRuntime }) {
-  const { value, set, info } = useParam(runtime, "mix")
-  if (!info) return null
-  return <input type="range" min={info.min} max={info.max}
-                step={0.01} value={value} onChange={e => set(+e.target.value)} />
-}
-```
+- `WAMR runtime library not found`
+  - run platform setup script again (`setup-windows.ps1` or `setup-macos.sh`)
 
-**C++ の変更は不要。**
+- `wamrc not found`
+  - setup script did not finish successfully; rerun it
 
-## プラットフォーム対応
+- UI shows `JUCE bridge not available`
+  - when running plugin debug mode, ensure Vite dev server is running (`npm run dev`)
+  - for release build, run `npm run build:ui` before `npm run build:plugin`
 
-| 項目 | macOS | Windows |
-|------|-------|---------|
-| WAMR ライブラリ | `libiwasm.a` | `iwasm.lib` |
-| プラグイン形式 | VST3, AU, Standalone | VST3, Standalone |
-| WebView | WebKit | WebView2 (Edge) |
+- Clone/build issues around JUCE or WAMR
+  - confirm submodules are initialized (`git submodule update --init --recursive`)
 
-## ライセンス
+## License
 
 MIT
