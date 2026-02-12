@@ -37,6 +37,11 @@ Browser dev mode:
 MoonBit DSP (WASM) + React UI + WebAudio/AudioWorklet
 ```
 
+## Status
+
+- Windows: verified
+- macOS: not fully verified yet
+
 ## Requirements
 
 - Git
