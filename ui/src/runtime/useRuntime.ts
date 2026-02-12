@@ -5,8 +5,9 @@ function isJuceEnvironment(): boolean {
   return typeof window !== 'undefined' && window.__JUCE__ !== undefined
 }
 
-export function useRuntime(): AudioRuntime | null {
+export function useRuntime() {
   const [runtime, setRuntime] = useState<AudioRuntime | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let disposed = false
@@ -26,6 +27,10 @@ export function useRuntime(): AudioRuntime | null {
         if (!disposed) setRuntime(rt)
       } catch (err) {
         console.error('Failed to initialize audio runtime:', err)
+        if (!disposed) {
+          const message = err instanceof Error ? err.message : String(err)
+          setError(message)
+        }
       }
     }
 
@@ -38,5 +43,5 @@ export function useRuntime(): AudioRuntime | null {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return runtime
+  return { runtime, error }
 }

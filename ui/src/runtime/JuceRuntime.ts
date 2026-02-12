@@ -15,20 +15,47 @@ declare global {
 }
 
 export async function createJuceRuntime(): Promise<AudioRuntime> {
-  const juce = window.__JUCE__
-  if (!juce) throw new Error('JUCE bridge not available')
+  const withTimeout = async <T>(promise: Promise<T>, label: string, timeoutMs = 4000): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const timeoutPromise = new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs)
+      })
+      return await Promise.race([promise, timeoutPromise])
+    } finally {
+      if (timer !== undefined) clearTimeout(timer)
+    }
+  }
+
+  const waitForJuceBridge = async (timeoutMs = 4000, intervalMs = 25) => {
+    const start = Date.now()
+    while (Date.now() - start < timeoutMs) {
+      if (window.__JUCE__) return window.__JUCE__
+      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    }
+    return undefined
+  }
+
+  const juce = await waitForJuceBridge()
+  if (!juce) throw new Error('JUCE bridge not available (timeout)')
 
   const getParamCount = juce.getNativeFunction('getParamCount')
   const getParamInfo = juce.getNativeFunction('getParamInfo')
   const setParamNative = juce.getNativeFunction('setParam')
-  const getParamNative = juce.getNativeFunction('getParam')
+  juce.getNativeFunction('getParam')
 
   // Fetch all parameter info at init
-  const count = (await getParamCount()) as number
+  const count = (await withTimeout(getParamCount() as Promise<number>, 'getParamCount')) as number
   const params: ParamInfo[] = []
 
   for (let i = 0; i < count; i++) {
-    const info = (await getParamInfo(i)) as {
+    const info = (await withTimeout(getParamInfo(i) as Promise<{
+      name: string
+      min: number
+      max: number
+      defaultValue: number
+      index: number
+    }>, `getParamInfo(${i})`)) as {
       name: string
       min: number
       max: number

@@ -1,18 +1,5 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include <fstream>
-
-namespace
-{
-void logUiPath (const char* msg)
-{
-    const auto path = juce::File::getSpecialLocation (juce::File::tempDirectory)
-                          .getChildFile ("webvst_ui.log")
-                          .getFullPathName();
-    std::ofstream ofs (path.toRawUTF8(), std::ios::app);
-    ofs << msg << "\n";
-}
-}
 
 PluginProcessor::PluginProcessor()
     : AudioProcessor (BusesProperties()
@@ -61,7 +48,6 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()
 {
-    logUiPath ("PluginProcessor::createEditor");
     return new PluginEditor (*this);
 }
 

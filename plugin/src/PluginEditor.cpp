@@ -1,28 +1,9 @@
 #include "PluginEditor.h"
 #include "UIBinaryData.h"
-#include <fstream>
 #include <cstring>
-#if JUCE_WINDOWS && JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING
- #include <WebView2.h>
- #include <wrl.h>
-#endif
 
 namespace
 {
-void logUi (const char* msg)
-{
-    const auto path = juce::File::getSpecialLocation (juce::File::tempDirectory)
-                          .getChildFile ("webvst_ui.log")
-                          .getFullPathName();
-    std::ofstream ofs (path.toRawUTF8(), std::ios::app);
-    ofs << msg << "\n";
-}
-
-void logUi (const juce::String& msg)
-{
-    logUi (msg.toRawUTF8());
-}
-
 juce::String normaliseResourcePath (juce::String path)
 {
     path = path.replaceCharacter ('\\', '/').trim();
@@ -54,59 +35,11 @@ juce::String getMimeTypeForPath (const juce::String& path)
     if (ext == "txt")                    return "text/plain";
     return "application/octet-stream";
 }
-
-#if JUCE_WINDOWS && JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING
-void logWebView2ProbeResult()
-{
-    HRESULT hr = CreateCoreWebView2EnvironmentWithOptions (
-        nullptr,
-        nullptr,
-        nullptr,
-        Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler> (
-            [] (HRESULT, ICoreWebView2Environment*) -> HRESULT { return S_OK; }).Get());
-
-    logUi ("webview:probe_hr=0x" + juce::String::toHexString ((juce::int64) (unsigned long) hr));
-}
-#endif
-
-class LoggingWebBrowserComponent : public juce::WebBrowserComponent
-{
-public:
-    using juce::WebBrowserComponent::WebBrowserComponent;
-
-    bool pageAboutToLoad (const juce::String& newURL) override
-    {
-        logUi ("webview:aboutToLoad " + newURL);
-        return true;
-    }
-
-    void pageFinishedLoading (const juce::String& url) override
-    {
-        logUi ("webview:finished " + url);
-    }
-
-    bool pageLoadHadNetworkError (const juce::String& errorInfo) override
-    {
-        logUi ("webview:networkError " + errorInfo);
-        return true;
-    }
-};
 }
 
 PluginEditor::PluginEditor (PluginProcessor& p)
     : AudioProcessorEditor (p), processorRef (p)
 {
-    logUi ("PluginEditor::ctor " __DATE__ " " __TIME__);
-#if JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING
-    logUi ("webview:build_macro static_linking");
-#if JUCE_WINDOWS
-    logWebView2ProbeResult();
-#endif
-#elif JUCE_USE_WIN_WEBVIEW2
-    logUi ("webview:build_macro dynamic_loader");
-#else
-    logUi ("webview:build_macro disabled");
-#endif
     setSize (600, 400);
     fallbackLabel.setText ("Loading UI...", juce::dontSendNotification);
     fallbackLabel.setJustificationType (juce::Justification::centred);
@@ -125,9 +58,7 @@ PluginEditor::~PluginEditor() = default;
 
 bool PluginEditor::setupWebView()
 {
-    logUi ("setupWebView:begin");
 #if WEBVST_DISABLE_WEBVIEW
-    logUi ("setupWebView:disabled");
     return false;
 #else
     juce::WebBrowserComponent::Options options;
@@ -141,7 +72,6 @@ bool PluginEditor::setupWebView()
         .withNativeIntegrationEnabled()
         .withResourceProvider ([this] (const auto& url)
         {
-            logUi ("resource:req " + url);
             return getUIResource (url);
         })
         .withNativeFunction ("getParamCount", [this] (auto& /*args*/, auto complete)
@@ -238,60 +168,20 @@ bool PluginEditor::setupWebView()
     }
 
     const auto backendSupported = juce::WebBrowserComponent::areOptionsSupported (opts);
-    logUi (backendSupported ? "webview:options_supported" : "webview:options_not_supported");
 
     if (! backendSupported)
-    {
-        logUi ("setupWebView:abort_no_webview2");
         return false;
-    }
 
-    webView = std::make_unique<LoggingWebBrowserComponent> (opts);
+    webView = std::make_unique<juce::WebBrowserComponent> (opts);
     addAndMakeVisible (*webView);
     webView->setBounds (getLocalBounds());
-    logUi ("setupWebView:webview_created");
 
 #if JUCE_DEBUG
     // Debug mode: connect to Vite dev server
     webView->goToURL ("http://localhost:5173");
 #else
     webView->goToURL (juce::WebBrowserComponent::getResourceProviderRoot());
-    logUi ("setupWebView:goToURL_resource_root");
 #endif
-
-    juce::Timer::callAfterDelay (1500, [browser = webView.get()]
-    {
-        if (browser == nullptr)
-            return;
-
-        browser->evaluateJavascript (
-            "(() => {"
-            "  const id='webvst-diagnostic-badge';"
-            "  if (document.getElementById(id)) return 'badge_exists';"
-            "  const d = document.createElement('div');"
-            "  d.id = id;"
-            "  d.textContent = 'WebView JS alive';"
-            "  d.style.position='fixed';"
-            "  d.style.top='8px';"
-            "  d.style.left='8px';"
-            "  d.style.zIndex='99999';"
-            "  d.style.background='#b00020';"
-            "  d.style.color='#fff';"
-            "  d.style.padding='4px 8px';"
-            "  d.style.font='12px sans-serif';"
-            "  document.body.appendChild(d);"
-            "  return 'badge_added';"
-            "})();",
-            [] (auto result)
-            {
-                if (const auto* value = result.getResult())
-                    logUi ("webview:eval " + value->toString());
-                else
-                    logUi ("webview:eval_error");
-            });
-    });
-
-    logUi ("setupWebView:end");
     return webView != nullptr;
 #endif
 }
@@ -317,13 +207,9 @@ std::optional<juce::WebBrowserComponent::Resource> PluginEditor::getUIResource (
         {
             std::vector<std::byte> bytes ((size_t) size);
             std::memcpy (bytes.data(), data, (size_t) size);
-
-            logUi ("resource:hit " + path + " <- " + originalPath);
             return juce::WebBrowserComponent::Resource { std::move (bytes), mimeType };
         }
     }
-
-    logUi ("resource:miss " + path);
     return std::nullopt;
 }
 

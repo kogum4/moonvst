@@ -4,7 +4,11 @@ import { LevelMeter } from './components/LevelMeter'
 import styles from './App.module.css'
 
 export default function App() {
-  const runtime = useRuntime()
+  const { runtime, error } = useRuntime()
+
+  if (error) {
+    return <div className={styles.error}>Audio runtime init failed: {error}</div>
+  }
 
   if (!runtime) {
     return <div className={styles.loading}>Loading audio runtime...</div>

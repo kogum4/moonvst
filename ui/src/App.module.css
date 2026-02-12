@@ -35,3 +35,13 @@
   min-height: 100vh;
   color: #888;
 }
+
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: #ff7a7a;
+  padding: 1rem;
+  text-align: center;
+}

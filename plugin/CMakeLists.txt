@@ -118,7 +118,3 @@ endif()
 if(NOT WIN32)
     target_link_libraries(WebVST PRIVATE pthread m dl)
 endif()
-
-if(WIN32 AND TARGET WebVST_Standalone)
-    target_link_options(WebVST_Standalone PRIVATE "/MAP")
-endif()
