@@ -87,7 +87,24 @@ Set-Location "$WamrcDir/build"
 cmake ..
 cmake --build . --config Release
 
-# 5. Install WebView2 NuGet package (required by JUCE for WebView on Windows)
+# 5. Install Edge WebView2 Runtime (required at runtime for WebView UI on Windows)
+Write-Host "=== Checking Edge WebView2 Runtime ==="
+$WebView2RuntimeId = "Microsoft.EdgeWebView2Runtime"
+$WingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+if (-not $WingetCmd) {
+    throw "winget is required to install $WebView2RuntimeId. Please install App Installer (winget) and re-run this script."
+}
+
+$RuntimeInstalled = winget list --id $WebView2RuntimeId -e | Select-String -SimpleMatch $WebView2RuntimeId
+if (-not $RuntimeInstalled) {
+    Write-Host "Installing Edge WebView2 Runtime..."
+    winget install --id $WebView2RuntimeId -e --accept-package-agreements --accept-source-agreements
+    Write-Host "Edge WebView2 Runtime installed."
+} else {
+    Write-Host "Edge WebView2 Runtime already installed."
+}
+
+# 6. Install WebView2 NuGet package (required by JUCE for WebView build on Windows)
 Write-Host "=== Installing WebView2 NuGet package ==="
 $WebView2Dir = "$env:USERPROFILE/AppData/Local/PackageManagement/NuGet/Packages/Microsoft.Web.WebView2*"
 if (-not (Test-Path $WebView2Dir)) {
@@ -101,12 +118,12 @@ if (-not (Test-Path $WebView2Dir)) {
     Write-Host "WebView2 NuGet package already installed."
 }
 
-# 6. Install UI dependencies
+# 7. Install UI dependencies
 Write-Host "=== Installing UI dependencies ==="
 Set-Location "$RootDir/ui"
 npm install
 
-# 7. Install root dependencies
+# 8. Install root dependencies
 Write-Host "=== Installing root dependencies ==="
 Set-Location "$RootDir"
 npm install
