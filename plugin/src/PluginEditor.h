@@ -20,6 +20,7 @@ private:
 
     // Dynamic WebSliderRelay storage for generic parameter bridging
     std::vector<std::unique_ptr<juce::WebSliderRelay>> sliderRelays;
+    std::vector<std::unique_ptr<juce::WebSliderParameterAttachment>> sliderAttachments;
 
     void setupWebView();
     void registerNativeFunctions();

@@ -75,15 +75,18 @@ void PluginEditor::setupWebView()
             complete (juce::var (0.0));
         });
 
-    // Create WebSliderRelay for each parameter
+    // Create WebSliderRelay and bind each relay to the corresponding parameter.
     int paramCount = processorRef.getWasmParamCount();
     for (int i = 0; i < paramCount; ++i)
     {
-        auto name = processorRef.getWasmParamName (i);
-        auto relay = std::make_unique<juce::WebSliderRelay> (
-            *processorRef.apvts.getParameter (name));
-        opts = opts.withOptionsFrom (
-            juce::WebBrowserComponent::Options().withWebSliderRelayToAdd (*relay));
+        auto relayName = juce::String ("param_") + juce::String (i);
+        auto relay = std::make_unique<juce::WebSliderRelay> (relayName);
+        opts = opts.withOptionsFrom (*relay);
+
+        auto paramName = processorRef.getWasmParamName (i);
+        if (auto* param = processorRef.apvts.getParameter (paramName))
+            sliderAttachments.push_back (std::make_unique<juce::WebSliderParameterAttachment> (*param, *relay));
+
         sliderRelays.push_back (std::move (relay));
     }
 

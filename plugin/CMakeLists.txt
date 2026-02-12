@@ -6,10 +6,17 @@ if(APPLE)
     set(WAMR_LIB ${WAMR_BUILD_DIR}/libiwasm.a)
 elseif(WIN32)
     set(WAMR_BUILD_DIR ${WAMR_ROOT}/product-mini/platforms/windows/build)
-    set(WAMR_LIB ${WAMR_BUILD_DIR}/Release/iwasm.lib)
+    # Use static runtime library. iwasm.lib is an import lib for iwasm.exe.
+    set(WAMR_LIB ${WAMR_BUILD_DIR}/Release/libiwasm.lib)
 else()
     set(WAMR_BUILD_DIR ${WAMR_ROOT}/product-mini/platforms/linux/build)
     set(WAMR_LIB ${WAMR_BUILD_DIR}/libiwasm.a)
+endif()
+
+if(NOT EXISTS "${WAMR_LIB}")
+    message(FATAL_ERROR
+        "WAMR runtime library not found: ${WAMR_LIB}\n"
+        "Run scripts/setup-windows.ps1 (Windows) or scripts/setup-macos.sh (macOS) first.")
 endif()
 
 # WAMR include directories
@@ -86,8 +93,8 @@ target_compile_definitions(WebVST PUBLIC
 )
 
 if(WIN32)
-    target_compile_definitions(WebVST PUBLIC
-        JUCE_USE_WIN_WEBVIEW2=1
+    target_compile_definitions(WebVST PRIVATE
+        WASM_RUNTIME_API_EXTERN=
     )
 endif()
 
