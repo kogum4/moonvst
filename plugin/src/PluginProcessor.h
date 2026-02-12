@@ -35,13 +35,14 @@ public:
     WasmDSP& getWasmDSP() { return wasmDSP_; }
     int getWasmParamCount() const { return paramCount_; }
     const std::string& getWasmParamName (int index) const { return paramNames_[index]; }
-
-    juce::AudioProcessorValueTreeState apvts;
+    juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
+    const juce::AudioProcessorValueTreeState& getAPVTS() const { return apvts; }
 
 private:
     WasmDSP wasmDSP_;
     int paramCount_ = 0;
     std::vector<std::string> paramNames_;
+    juce::AudioProcessorValueTreeState apvts;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

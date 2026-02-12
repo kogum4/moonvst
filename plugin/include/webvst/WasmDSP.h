@@ -50,6 +50,7 @@ private:
     static constexpr int OUTPUT_RIGHT_OFFSET = 0x40000;
 
     std::atomic<bool> initialized_ { false };
+    std::atomic<bool> runtimeInitialized_ { false };
     int cachedParamCount_ = 0;
 
     bool lookupFunctions();

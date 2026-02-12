@@ -44,6 +44,8 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
     })
   }
 
+  const getRelayName = (index: number) => `param_${index}`
+
   return {
     type: 'juce',
 
@@ -58,7 +60,7 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
     getParam(index: number) {
       const p = params[index]
       if (!p) return 0
-      const slider = juce.getSliderState(p.name)
+      const slider = juce.getSliderState(getRelayName(p.index))
       return slider.getValue()
     },
 
@@ -66,7 +68,7 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
       const p = params[index]
       if (!p) return () => {}
 
-      const slider = juce.getSliderState(p.name)
+      const slider = juce.getSliderState(getRelayName(p.index))
       const listener = () => cb(slider.getValue())
       slider.addListener(listener)
       return () => slider.removeListener(listener)

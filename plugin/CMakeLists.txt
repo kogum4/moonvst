@@ -37,6 +37,7 @@ juce_add_plugin(WebVST
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "WebVST"
     NEEDS_WEB_BROWSER TRUE
+    NEEDS_WEBVIEW2 TRUE
 )
 
 # AOT binary data
@@ -57,8 +58,11 @@ else()
     )
 endif()
 
-# UI binary data (single-file HTML)
-file(GLOB UI_RESOURCES "${CMAKE_SOURCE_DIR}/ui/dist/index.html")
+# UI binary data (built frontend assets)
+file(GLOB_RECURSE UI_RESOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/ui/dist/*"
+)
+list(FILTER UI_RESOURCES EXCLUDE REGEX "/\\.gitkeep$")
 if(UI_RESOURCES)
     juce_add_binary_data(WebVSTUIBinaryData
         HEADER_NAME "UIBinaryData.h"
@@ -94,12 +98,13 @@ target_compile_definitions(WebVST PUBLIC
 
 if(WIN32)
     target_compile_definitions(WebVST PRIVATE
+        JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1
         WASM_RUNTIME_API_EXTERN=
+        WEBVST_DISABLE_WASM_DSP=1
     )
 endif()
 
 target_link_libraries(WebVST PRIVATE
-    ${WAMR_LIB}
     WebVSTBinaryData
     WebVSTUIBinaryData
     juce::juce_audio_utils
@@ -107,5 +112,13 @@ target_link_libraries(WebVST PRIVATE
 )
 
 if(NOT WIN32)
+    target_link_libraries(WebVST PRIVATE ${WAMR_LIB})
+endif()
+
+if(NOT WIN32)
     target_link_libraries(WebVST PRIVATE pthread m dl)
+endif()
+
+if(WIN32 AND TARGET WebVST_Standalone)
+    target_link_options(WebVST_Standalone PRIVATE "/MAP")
 endif()

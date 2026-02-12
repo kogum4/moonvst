@@ -1,5 +1,18 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <fstream>
+
+namespace
+{
+void logUiPath (const char* msg)
+{
+    const auto path = juce::File::getSpecialLocation (juce::File::tempDirectory)
+                          .getChildFile ("webvst_ui.log")
+                          .getFullPathName();
+    std::ofstream ofs (path.toRawUTF8(), std::ios::app);
+    ofs << msg << "\n";
+}
+}
 
 PluginProcessor::PluginProcessor()
     : AudioProcessor (BusesProperties()
@@ -17,29 +30,14 @@ PluginProcessor::~PluginProcessor()
 juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    paramCount_ = 1;
+    paramNames_ = { "gain" };
 
-    // Initialize WASM DSP and dynamically create parameters
-    if (wasmDSP_.initialize())
-    {
-        paramCount_ = wasmDSP_.getParamCount();
-        paramNames_.resize ((size_t) paramCount_);
-
-        for (int i = 0; i < paramCount_; ++i)
-        {
-            auto name = wasmDSP_.getParamName (i);
-            auto minVal = wasmDSP_.getParamMin (i);
-            auto maxVal = wasmDSP_.getParamMax (i);
-            auto defVal = wasmDSP_.getParamDefault (i);
-
-            paramNames_[(size_t) i] = name;
-
-            layout.add (std::make_unique<juce::AudioParameterFloat> (
-                juce::ParameterID { name, 1 },
-                name,
-                juce::NormalisableRange<float> (minVal, maxVal),
-                defVal));
-        }
-    }
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "gain", 1 },
+        "gain",
+        juce::NormalisableRange<float> (0.0f, 1.0f),
+        0.5f));
 
     return layout;
 }
@@ -57,18 +55,13 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // Sync all parameters from APVTS to WASM
-    for (int i = 0; i < paramCount_; ++i)
-    {
-        float val = *apvts.getRawParameterValue (paramNames_[(size_t) i]);
-        wasmDSP_.setParam (i, val);
-    }
-
+    // TEMP: skip APVTS->WASM sync on Windows stability mode.
     wasmDSP_.processBlock (buffer);
 }
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()
 {
+    logUiPath ("PluginProcessor::createEditor");
     return new PluginEditor (*this);
 }
 

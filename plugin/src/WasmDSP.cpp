@@ -2,6 +2,56 @@
 #include "BinaryData.h"
 #include <cstring>
 
+#if WEBVST_DISABLE_WASM_DSP
+
+WasmDSP::WasmDSP() = default;
+WasmDSP::~WasmDSP() = default;
+
+bool WasmDSP::initialize() { return false; }
+void WasmDSP::shutdown() {}
+void WasmDSP::prepare (double, int) {}
+void WasmDSP::processBlock (juce::AudioBuffer<float>&) {}
+int WasmDSP::getParamCount() { return 0; }
+std::string WasmDSP::getParamName (int) { return ""; }
+float WasmDSP::getParamDefault (int) { return 0.0f; }
+float WasmDSP::getParamMin (int) { return 0.0f; }
+float WasmDSP::getParamMax (int) { return 1.0f; }
+void WasmDSP::setParam (int, float) {}
+float WasmDSP::getParam (int) { return 0.0f; }
+bool WasmDSP::lookupFunctions() { return false; }
+
+#else
+
+namespace
+{
+bool callVoid (wasm_exec_env_t execEnv, wasm_function_inst_t fn, wasm_val_t* args, uint32_t numArgs)
+{
+    return wasm_runtime_call_wasm_a (execEnv, fn, 0, nullptr, numArgs, args);
+}
+
+bool callI32 (wasm_exec_env_t execEnv, wasm_function_inst_t fn,
+              wasm_val_t* args, uint32_t numArgs, int32_t& out)
+{
+    wasm_val_t result[1];
+    result[0].kind = WASM_I32;
+    if (! wasm_runtime_call_wasm_a (execEnv, fn, 1, result, numArgs, args))
+        return false;
+    out = result[0].of.i32;
+    return true;
+}
+
+bool callF32 (wasm_exec_env_t execEnv, wasm_function_inst_t fn,
+              wasm_val_t* args, uint32_t numArgs, float& out)
+{
+    wasm_val_t result[1];
+    result[0].kind = WASM_F32;
+    if (! wasm_runtime_call_wasm_a (execEnv, fn, 1, result, numArgs, args))
+        return false;
+    out = result[0].of.f32;
+    return true;
+}
+}
+
 WasmDSP::WasmDSP() = default;
 
 WasmDSP::~WasmDSP()
@@ -14,6 +64,10 @@ bool WasmDSP::initialize()
     if (initialized_.load())
         return true;
 
+#if WEBVST_DISABLE_WASM_DSP
+    return false;
+#endif
+
     // Initialize WAMR runtime
     RuntimeInitArgs initArgs;
     std::memset (&initArgs, 0, sizeof (initArgs));
@@ -21,6 +75,7 @@ bool WasmDSP::initialize()
 
     if (! wasm_runtime_full_init (&initArgs))
         return false;
+    runtimeInitialized_.store (true);
 
     // Load AOT binary from embedded resource
     // BinaryData contains the .aot file compiled from MoonBit WASM
@@ -81,7 +136,11 @@ bool WasmDSP::initialize()
     // Call init()
     if (fn_init_ != nullptr)
     {
-        wasm_runtime_call_wasm (execEnv_, fn_init_, 0, nullptr);
+        if (! callVoid (execEnv_, fn_init_, nullptr, 0))
+        {
+            shutdown();
+            return false;
+        }
     }
 
     // Cache parameter count
@@ -113,7 +172,8 @@ void WasmDSP::shutdown()
         module_ = nullptr;
     }
 
-    wasm_runtime_destroy();
+    if (runtimeInitialized_.exchange (false))
+        wasm_runtime_destroy();
 }
 
 bool WasmDSP::lookupFunctions()
@@ -160,8 +220,10 @@ void WasmDSP::processBlock (juce::AudioBuffer<float>& buffer)
                          (size_t) numSamples * sizeof (float));
 
         // Call process_block(numSamples)
-        uint32_t args[1] = { (uint32_t) numSamples };
-        wasm_runtime_call_wasm (execEnv_, fn_process_block_, 1, args);
+        wasm_val_t args[1];
+        args[0].kind = WASM_I32;
+        args[0].of.i32 = numSamples;
+        callVoid (execEnv_, fn_process_block_, args, 1);
 
         // Copy output from WASM linear memory
         if (numChannels >= 1)
@@ -181,10 +243,9 @@ int WasmDSP::getParamCount()
     if (fn_get_param_count_ == nullptr)
         return 0;
 
-    uint32_t result[1] = { 0 };
-    if (wasm_runtime_call_wasm (execEnv_, fn_get_param_count_, 0, result))
-        return (int) result[0];
-
+    int32_t count = 0;
+    if (callI32 (execEnv_, fn_get_param_count_, nullptr, 0, count))
+        return juce::jlimit (0, 128, (int) count);
     return 0;
 }
 
@@ -194,25 +255,29 @@ std::string WasmDSP::getParamName (int index)
         return "";
 
     // Get name length
-    uint32_t lenArgs[1] = { (uint32_t) index };
-    uint32_t lenResult[1] = { 0 };
-    if (! wasm_runtime_call_wasm (execEnv_, fn_get_param_name_len_, 1, lenArgs))
+    wasm_val_t lenArgs[1];
+    lenArgs[0].kind = WASM_I32;
+    lenArgs[0].of.i32 = index;
+    int32_t nameLen = 0;
+    if (! callI32 (execEnv_, fn_get_param_name_len_, lenArgs, 1, nameLen))
         return "";
-    lenResult[0] = lenArgs[0]; // result is returned in args array
 
     // Get name pointer
-    uint32_t ptrArgs[1] = { (uint32_t) index };
-    if (! wasm_runtime_call_wasm (execEnv_, fn_get_param_name_, 1, ptrArgs))
+    wasm_val_t ptrArgs[1];
+    ptrArgs[0].kind = WASM_I32;
+    ptrArgs[0].of.i32 = index;
+    int32_t wasmPtr = 0;
+    if (! callI32 (execEnv_, fn_get_param_name_, ptrArgs, 1, wasmPtr))
         return "";
 
-    uint32_t wasmPtr = ptrArgs[0];
-    int nameLen = (int) lenResult[0];
-
-    if (wasmPtr == 0 || nameLen <= 0)
+    if (wasmPtr == 0 || nameLen <= 0 || nameLen > 256)
         return "";
 
     // Convert WASM address to native pointer
-    auto* nativePtr = (const char*) wasm_runtime_addr_app_to_native (moduleInst_, wasmPtr);
+    if (! wasm_runtime_validate_app_addr (moduleInst_, (uint32_t) wasmPtr, (uint32_t) nameLen))
+        return "";
+
+    auto* nativePtr = (const char*) wasm_runtime_addr_app_to_native (moduleInst_, (uint32_t) wasmPtr);
     if (nativePtr == nullptr)
         return "";
 
@@ -224,13 +289,13 @@ float WasmDSP::getParamDefault (int index)
     if (fn_get_param_default_ == nullptr)
         return 0.0f;
 
-    uint32_t args[1] = { (uint32_t) index };
-    if (wasm_runtime_call_wasm (execEnv_, fn_get_param_default_, 1, args))
-    {
-        float result;
-        std::memcpy (&result, args, sizeof (float));
+    wasm_val_t args[1];
+    args[0].kind = WASM_I32;
+    args[0].of.i32 = index;
+
+    float result = 0.0f;
+    if (callF32 (execEnv_, fn_get_param_default_, args, 1, result))
         return result;
-    }
     return 0.0f;
 }
 
@@ -239,13 +304,13 @@ float WasmDSP::getParamMin (int index)
     if (fn_get_param_min_ == nullptr)
         return 0.0f;
 
-    uint32_t args[1] = { (uint32_t) index };
-    if (wasm_runtime_call_wasm (execEnv_, fn_get_param_min_, 1, args))
-    {
-        float result;
-        std::memcpy (&result, args, sizeof (float));
+    wasm_val_t args[1];
+    args[0].kind = WASM_I32;
+    args[0].of.i32 = index;
+
+    float result = 0.0f;
+    if (callF32 (execEnv_, fn_get_param_min_, args, 1, result))
         return result;
-    }
     return 0.0f;
 }
 
@@ -254,13 +319,13 @@ float WasmDSP::getParamMax (int index)
     if (fn_get_param_max_ == nullptr)
         return 1.0f;
 
-    uint32_t args[1] = { (uint32_t) index };
-    if (wasm_runtime_call_wasm (execEnv_, fn_get_param_max_, 1, args))
-    {
-        float result;
-        std::memcpy (&result, args, sizeof (float));
+    wasm_val_t args[1];
+    args[0].kind = WASM_I32;
+    args[0].of.i32 = index;
+
+    float result = 1.0f;
+    if (callF32 (execEnv_, fn_get_param_max_, args, 1, result))
         return result;
-    }
     return 1.0f;
 }
 
@@ -269,10 +334,12 @@ void WasmDSP::setParam (int index, float value)
     if (fn_set_param_ == nullptr)
         return;
 
-    uint32_t args[2];
-    args[0] = (uint32_t) index;
-    std::memcpy (&args[1], &value, sizeof (float));
-    wasm_runtime_call_wasm (execEnv_, fn_set_param_, 2, args);
+    wasm_val_t args[2];
+    args[0].kind = WASM_I32;
+    args[0].of.i32 = index;
+    args[1].kind = WASM_F32;
+    args[1].of.f32 = value;
+    callVoid (execEnv_, fn_set_param_, args, 2);
 }
 
 float WasmDSP::getParam (int index)
@@ -280,12 +347,14 @@ float WasmDSP::getParam (int index)
     if (fn_get_param_ == nullptr)
         return 0.0f;
 
-    uint32_t args[1] = { (uint32_t) index };
-    if (wasm_runtime_call_wasm (execEnv_, fn_get_param_, 1, args))
-    {
-        float result;
-        std::memcpy (&result, args, sizeof (float));
+    wasm_val_t args[1];
+    args[0].kind = WASM_I32;
+    args[0].of.i32 = index;
+
+    float result = 0.0f;
+    if (callF32 (execEnv_, fn_get_param_, args, 1, result))
         return result;
-    }
     return 0.0f;
 }
+
+#endif
