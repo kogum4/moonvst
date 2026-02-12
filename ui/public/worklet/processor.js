@@ -8,6 +8,9 @@ class WebVSTProcessor extends AudioWorkletProcessor {
     this.wasmInstance = null
     this.wasmMemory = null
     this.ready = false
+    this.levelPeak = 0
+    this.levelSampleCounter = 0
+    this.levelEmitIntervalSamples = Math.max(1, Math.floor(sampleRate * 0.05))
 
     // Memory offsets (must match dsp/src/utils/constants.mbt)
     this.INPUT_LEFT_OFFSET = 0x10000
@@ -70,6 +73,30 @@ class WebVSTProcessor extends AudioWorkletProcessor {
     }
     if (output[1]) {
       output[1].set(mem.subarray(outROffset, outROffset + numSamples))
+    }
+
+    let blockPeak = 0
+    const outL = output[0]
+    const outR = output[1]
+    if (outL) {
+      for (let i = 0; i < outL.length; i++) {
+        const v = Math.abs(outL[i])
+        if (v > blockPeak) blockPeak = v
+      }
+    }
+    if (outR) {
+      for (let i = 0; i < outR.length; i++) {
+        const v = Math.abs(outR[i])
+        if (v > blockPeak) blockPeak = v
+      }
+    }
+
+    if (blockPeak > this.levelPeak) this.levelPeak = blockPeak
+    this.levelSampleCounter += numSamples
+    if (this.levelSampleCounter >= this.levelEmitIntervalSamples) {
+      this.port.postMessage({ type: 'level', value: Math.min(1, this.levelPeak) })
+      this.levelPeak = 0
+      this.levelSampleCounter = 0
     }
 
     return true

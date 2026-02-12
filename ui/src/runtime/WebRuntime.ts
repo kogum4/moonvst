@@ -67,6 +67,18 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
   let audioUrl: string | null = null
   let hasAudio = false
   let isPlaying = false
+  let currentLevel = 0
+
+  workletNode.port.onmessage = (event) => {
+    const data = event.data as { type?: string; value?: number; message?: string }
+    if (data?.type === 'level' && typeof data.value === 'number' && Number.isFinite(data.value)) {
+      currentLevel = Math.max(0, Math.min(1, data.value))
+      return
+    }
+    if (data?.type === 'error') {
+      console.error('AudioWorklet processor error:', data.message)
+    }
+  }
 
   const ensureAudioGraph = () => {
     if (!audioElement) {
@@ -88,6 +100,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
   const resetPlaybackState = () => {
     hasAudio = false
     isPlaying = false
+    currentLevel = 0
     if (!audioElement) return
     audioElement.pause()
     audioElement.currentTime = 0
@@ -159,7 +172,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
     },
 
     getLevel() {
-      return 0
+      return currentLevel
     },
 
     async loadAudioData(bytes: ArrayBuffer, mimeType?: string) {
@@ -187,6 +200,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
       audioElement.pause()
       audioElement.currentTime = 0
       isPlaying = false
+      currentLevel = 0
     },
 
     hasAudioLoaded() {
@@ -204,6 +218,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
     },
 
     dispose() {
+      currentLevel = 0
       if (audioElement) {
         audioElement.pause()
         audioElement.src = ''
