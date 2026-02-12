@@ -85,6 +85,10 @@ export async function createWebRuntime(): Promise<AudioRuntime> {
       return exports.get_param(index)
     },
 
+    getLevel() {
+      return 0
+    },
+
     onParamChange(index: number, cb: (v: number) => void) {
       if (!listeners.has(index)) listeners.set(index, new Set())
       listeners.get(index)!.add(cb)

@@ -4,6 +4,7 @@
 #include "webvst/WasmDSP.h"
 #include <vector>
 #include <string>
+#include <atomic>
 
 class PluginProcessor : public juce::AudioProcessor
 {
@@ -37,12 +38,15 @@ public:
     const std::string& getWasmParamName (int index) const { return paramNames_[index]; }
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const { return apvts; }
+    float getOutputLevel() const { return outputLevel_.load(); }
 
 private:
     WasmDSP wasmDSP_;
+    bool wasmReady_ = false;
     int paramCount_ = 0;
     std::vector<std::string> paramNames_;
     juce::AudioProcessorValueTreeState apvts;
+    std::atomic<float> outputLevel_ { 0.0f };
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

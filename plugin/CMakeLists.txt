@@ -100,20 +100,16 @@ if(WIN32)
     target_compile_definitions(WebVST PRIVATE
         JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1
         WASM_RUNTIME_API_EXTERN=
-        WEBVST_DISABLE_WASM_DSP=1
     )
 endif()
 
 target_link_libraries(WebVST PRIVATE
+    ${WAMR_LIB}
     WebVSTBinaryData
     WebVSTUIBinaryData
     juce::juce_audio_utils
     juce::juce_gui_extra
 )
-
-if(NOT WIN32)
-    target_link_libraries(WebVST PRIVATE ${WAMR_LIB})
-endif()
 
 if(NOT WIN32)
     target_link_libraries(WebVST PRIVATE pthread m dl)

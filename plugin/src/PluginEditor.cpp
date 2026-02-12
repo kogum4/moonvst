@@ -150,6 +150,10 @@ bool PluginEditor::setupWebView()
                 }
             }
             complete (juce::var (0.0));
+        })
+        .withNativeFunction ("getLevel", [this] (auto& /*args*/, auto complete)
+        {
+            complete (juce::var ((double) processorRef.getOutputLevel()));
         });
 
     // Create WebSliderRelay and bind each relay to the corresponding parameter.

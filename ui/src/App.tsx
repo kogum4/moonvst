@@ -19,7 +19,7 @@ export default function App() {
       <h1 className={styles.title}>WebVST</h1>
       <div className={styles.controls}>
         <GainSlider runtime={runtime} />
-        <LevelMeter />
+        <LevelMeter runtime={runtime} />
       </div>
       <div className={styles.info}>
         Runtime: {runtime.type}

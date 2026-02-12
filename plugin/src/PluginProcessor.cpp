@@ -7,6 +7,7 @@ PluginProcessor::PluginProcessor()
                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "Parameters", createParameterLayout())
 {
+    wasmReady_ = wasmDSP_.initialize();
 }
 
 PluginProcessor::~PluginProcessor()
@@ -31,6 +32,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createParam
 
 void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    if (! wasmReady_)
+        wasmReady_ = wasmDSP_.initialize();
+
     wasmDSP_.prepare (sampleRate, samplesPerBlock);
 }
 
@@ -42,8 +46,23 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // TEMP: skip APVTS->WASM sync on Windows stability mode.
-    wasmDSP_.processBlock (buffer);
+    if (wasmReady_)
+    {
+        for (int i = 0; i < paramCount_; ++i)
+        {
+            if (const auto* raw = apvts.getRawParameterValue (paramNames_[(size_t) i]))
+                wasmDSP_.setParam (i, *raw);
+        }
+
+        wasmDSP_.processBlock (buffer);
+    }
+
+    float peak = 0.0f;
+    const int numSamples = buffer.getNumSamples();
+    const int numChannels = buffer.getNumChannels();
+    for (int ch = 0; ch < numChannels; ++ch)
+        peak = juce::jmax (peak, buffer.getMagnitude (ch, 0, numSamples));
+    outputLevel_.store (juce::jlimit (0.0f, 1.0f, peak));
 }
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()

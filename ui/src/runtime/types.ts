@@ -11,6 +11,7 @@ export interface AudioRuntime {
   getParams(): ParamInfo[]
   setParam(index: number, value: number): void
   getParam(index: number): number
+  getLevel(): number
   onParamChange(index: number, cb: (v: number) => void): () => void
   dispose(): void
 }

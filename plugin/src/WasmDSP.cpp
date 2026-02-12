@@ -24,6 +24,28 @@ bool WasmDSP::lookupFunctions() { return false; }
 
 namespace
 {
+struct ThreadEnvGuard
+{
+    ThreadEnvGuard()
+    {
+        initialized = wasm_runtime_init_thread_env();
+    }
+
+    ~ThreadEnvGuard()
+    {
+        if (initialized)
+            wasm_runtime_destroy_thread_env();
+    }
+
+    bool initialized = false;
+};
+
+bool ensureThreadEnv()
+{
+    thread_local ThreadEnvGuard threadEnvGuard;
+    return threadEnvGuard.initialized;
+}
+
 bool callVoid (wasm_exec_env_t execEnv, wasm_function_inst_t fn, wasm_val_t* args, uint32_t numArgs)
 {
     return wasm_runtime_call_wasm_a (execEnv, fn, 0, nullptr, numArgs, args);
@@ -179,6 +201,8 @@ void WasmDSP::shutdown()
 bool WasmDSP::lookupFunctions()
 {
     fn_init_               = wasm_runtime_lookup_function (moduleInst_, "init");
+    if (fn_init_ == nullptr)
+        fn_init_ = wasm_runtime_lookup_function (moduleInst_, "dsp_init");
     fn_process_block_      = wasm_runtime_lookup_function (moduleInst_, "process_block");
     fn_get_param_count_    = wasm_runtime_lookup_function (moduleInst_, "get_param_count");
     fn_get_param_name_     = wasm_runtime_lookup_function (moduleInst_, "get_param_name");
@@ -203,6 +227,9 @@ void WasmDSP::processBlock (juce::AudioBuffer<float>& buffer)
     if (! initialized_.load())
         return;
 
+    if (! ensureThreadEnv())
+        return;
+
     const int numSamples = buffer.getNumSamples();
     const int numChannels = buffer.getNumChannels();
 
@@ -223,7 +250,8 @@ void WasmDSP::processBlock (juce::AudioBuffer<float>& buffer)
         wasm_val_t args[1];
         args[0].kind = WASM_I32;
         args[0].of.i32 = numSamples;
-        callVoid (execEnv_, fn_process_block_, args, 1);
+        if (! callVoid (execEnv_, fn_process_block_, args, 1))
+            return;
 
         // Copy output from WASM linear memory
         if (numChannels >= 1)
@@ -242,6 +270,8 @@ int WasmDSP::getParamCount()
 {
     if (fn_get_param_count_ == nullptr)
         return 0;
+    if (! ensureThreadEnv())
+        return 0;
 
     int32_t count = 0;
     if (callI32 (execEnv_, fn_get_param_count_, nullptr, 0, count))
@@ -252,6 +282,8 @@ int WasmDSP::getParamCount()
 std::string WasmDSP::getParamName (int index)
 {
     if (fn_get_param_name_ == nullptr || fn_get_param_name_len_ == nullptr)
+        return "";
+    if (! ensureThreadEnv())
         return "";
 
     // Get name length
@@ -288,6 +320,8 @@ float WasmDSP::getParamDefault (int index)
 {
     if (fn_get_param_default_ == nullptr)
         return 0.0f;
+    if (! ensureThreadEnv())
+        return 0.0f;
 
     wasm_val_t args[1];
     args[0].kind = WASM_I32;
@@ -302,6 +336,8 @@ float WasmDSP::getParamDefault (int index)
 float WasmDSP::getParamMin (int index)
 {
     if (fn_get_param_min_ == nullptr)
+        return 0.0f;
+    if (! ensureThreadEnv())
         return 0.0f;
 
     wasm_val_t args[1];
@@ -318,6 +354,8 @@ float WasmDSP::getParamMax (int index)
 {
     if (fn_get_param_max_ == nullptr)
         return 1.0f;
+    if (! ensureThreadEnv())
+        return 1.0f;
 
     wasm_val_t args[1];
     args[0].kind = WASM_I32;
@@ -333,6 +371,8 @@ void WasmDSP::setParam (int index, float value)
 {
     if (fn_set_param_ == nullptr)
         return;
+    if (! ensureThreadEnv())
+        return;
 
     wasm_val_t args[2];
     args[0].kind = WASM_I32;
@@ -345,6 +385,8 @@ void WasmDSP::setParam (int index, float value)
 float WasmDSP::getParam (int index)
 {
     if (fn_get_param_ == nullptr)
+        return 0.0f;
+    if (! ensureThreadEnv())
         return 0.0f;
 
     wasm_val_t args[1];

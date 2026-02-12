@@ -207,7 +207,7 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
   const getParamCount = bridge.getNativeFunction('getParamCount')
   const getParamInfo = bridge.getNativeFunction('getParamInfo')
   const setParamNative = bridge.getNativeFunction('setParam')
-  bridge.getNativeFunction('getParam')
+  const getLevelNative = bridge.getNativeFunction('getLevel')
 
   // Fetch all parameter info at init
   const count = (await withTimeout(getParamCount() as Promise<number>, 'getParamCount')) as number
@@ -237,6 +237,20 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
   }
 
   const getRelayName = (index: number) => `param_${index}`
+  let currentLevel = 0
+  const pollLevel = async () => {
+    try {
+      const raw = Number(await (getLevelNative() as Promise<number>))
+      if (Number.isFinite(raw))
+        currentLevel = Math.max(0, Math.min(1, raw))
+    } catch {
+      // Ignore transient bridge failures.
+    }
+  }
+  void pollLevel()
+  const levelTimer = setInterval(() => {
+    void pollLevel()
+  }, 50)
 
   return {
     type: 'juce',
@@ -256,6 +270,10 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
       return slider.getValue()
     },
 
+    getLevel() {
+      return currentLevel
+    },
+
     onParamChange(index: number, cb: (v: number) => void) {
       const p = params[index]
       if (!p) return () => {}
@@ -267,7 +285,7 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
     },
 
     dispose() {
-      // Nothing to clean up
+      clearInterval(levelTimer)
     },
   }
 }
