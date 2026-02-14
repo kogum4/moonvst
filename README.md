@@ -178,6 +178,12 @@ tests/cpp/          native WASM integration test
 
 ## Testing
 
+DSP unit tests (MoonBit only):
+
+```bash
+npm run test:dsp
+```
+
 There is a C++ integration test in `tests/cpp/wasm_dsp_test.cpp`.
 
 Example build with tests enabled:
