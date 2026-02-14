@@ -9,6 +9,7 @@ const wasmSrc = path.join(dspDir, '_build', 'wasm', 'debug', 'build', 'src', 'sr
 const wasmDestDir = path.join(root, 'ui', 'public', 'wasm');
 const wasmDest = path.join(wasmDestDir, 'webvst_dsp.wasm');
 const debounceMs = 150;
+const buildTimeoutMs = Number.parseInt(process.env.DEV_DSP_BUILD_TIMEOUT_MS ?? '45000', 10);
 
 let buildInProgress = false;
 let buildQueued = false;
@@ -31,17 +32,87 @@ function runMoonBuild() {
   return new Promise((resolve, reject) => {
     const child = spawn('moon', ['build', '--target', 'wasm'], {
       cwd: dspDir,
-      stdio: 'inherit',
-      shell: true,
+      stdio: ['ignore', 'inherit', 'inherit'],
+      shell: false,
+    });
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        console.error(`[dev-dsp] Build timed out after ${buildTimeoutMs}ms. Terminating moon build...`);
+      }
+
+      if (process.platform === 'win32' && child.pid) {
+        spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
+          stdio: 'ignore',
+          shell: false,
+        });
+      } else {
+        child.kill('SIGKILL');
+      }
+
+      finish(new Error(`moon build timed out after ${buildTimeoutMs}ms`));
+    }, buildTimeoutMs);
+
+    const finish = (error) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timeoutId);
+
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    };
+
+    child.on('error', (error) => {
+      finish(new Error(`failed to start moon build: ${error.message}`));
     });
 
-    child.on('exit', (code) => {
+    child.on('close', (code, signal) => {
+      if (code === 0) {
+        finish();
+        return;
+      }
+
+      if (signal) {
+        finish(new Error(`moon build exited due to signal ${signal}`));
+        return;
+      }
+
+      finish(new Error(`moon build exited with code ${code}`));
+    });
+  });
+}
+
+function runMoonClean() {
+  return new Promise((resolve, reject) => {
+    const child = spawn('moon', ['clean'], {
+      cwd: dspDir,
+      stdio: ['ignore', 'inherit', 'inherit'],
+      shell: false,
+    });
+
+    child.on('error', (error) => {
+      reject(new Error(`failed to start moon clean: ${error.message}`));
+    });
+
+    child.on('close', (code, signal) => {
       if (code === 0) {
         resolve();
         return;
       }
 
-      reject(new Error(`moon build exited with code ${code}`));
+      if (signal) {
+        reject(new Error(`moon clean exited due to signal ${signal}`));
+        return;
+      }
+
+      reject(new Error(`moon clean exited with code ${code}`));
     });
   });
 }
@@ -55,7 +126,13 @@ async function buildOnce(reason) {
   buildInProgress = true;
   try {
     console.log(`[dev-dsp] Building (${reason})...`);
-    await runMoonBuild();
+    try {
+      await runMoonBuild();
+    } catch (e) {
+      console.warn(`[dev-dsp] Build attempt failed, retrying after clean: ${e.message}`);
+      await runMoonClean();
+      await runMoonBuild();
+    }
     copyWasm();
   } catch (e) {
     console.error('[dev-dsp] Build failed:', e.message);
