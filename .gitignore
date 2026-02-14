@@ -10,6 +10,7 @@ node_modules/
 # MoonBit
 dsp/target/
 dsp/.mooncakes/
+dsp/_build/
 
 # WAMR build artifacts
 libs/wamr/product-mini/platforms/*/build/

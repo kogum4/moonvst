@@ -25,7 +25,9 @@ export default function App() {
       {isWebAudioRuntime(runtime) ? <WebAudioMenu runtime={runtime} /> : null}
       <h1 className={styles.title}>MoonVST</h1>
       <div className={styles.controls}>
-        <GainSlider runtime={runtime} />
+        <GainSlider runtime={runtime} paramName="gain" />
+        <GainSlider runtime={runtime} paramName="drive" />
+        <GainSlider runtime={runtime} paramName="mix" />
         <LevelMeter runtime={runtime} />
       </div>
       <div className={styles.info}>

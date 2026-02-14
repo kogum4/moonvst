@@ -4,10 +4,11 @@ import styles from './GainSlider.module.css'
 
 interface Props {
   runtime: AudioRuntime
+  paramName: string
 }
 
-export function GainSlider({ runtime }: Props) {
-  const { value, set, info } = useParam(runtime, 'gain')
+export function GainSlider({ runtime, paramName }: Props) {
+  const { value, set, info } = useParam(runtime, paramName)
 
   if (!info) return null
 
