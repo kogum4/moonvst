@@ -24,8 +24,14 @@ set(WAMR_INCLUDE_DIRS
     ${WAMR_ROOT}/core/iwasm/include
 )
 
+# Optional Unity native plugin format (off by default)
+option(MOONVST_ENABLE_UNITY "Build Unity native plugin output" OFF)
+
 # Plugin formats (AU only on macOS)
 set(PLUGIN_FORMATS VST3 Standalone)
+if(MOONVST_ENABLE_UNITY)
+    list(APPEND PLUGIN_FORMATS Unity)
+endif()
 if(APPLE)
     list(APPEND PLUGIN_FORMATS AU)
 endif()

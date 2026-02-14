@@ -5,7 +5,7 @@ MoonVST is a template for building desktop audio plugins with web technology.
 It combines:
 - MoonBit for DSP code (compiled to WASM)
 - WAMR for native AOT execution
-- JUCE for plugin hosting (VST3 / AU / Standalone)
+- JUCE for plugin hosting (VST3 / AU / Standalone, optional Unity Native Audio Plugin)
 - React + Vite for the plugin UI
 
 The main goal is to let you iterate on DSP and UI quickly, while keeping native plugin output.
@@ -121,6 +121,12 @@ Or run all in one:
 npm run release:vst
 ```
 
+Unity Native Audio Plugin output included all in one:
+
+```bash
+npm run release:unity
+```
+
 ## Output Artifacts
 
 After native build, artifacts are under:
@@ -129,6 +135,24 @@ After native build, artifacts are under:
 - `build/plugin/MoonVST_artefacts/Release/Standalone/`
 
 On macOS, AU is also built.
+
+Unity Native Audio Plugin output is optional. Enable it at configure time:
+
+```bash
+npm run configure:plugin:unity
+npm run build:plugin
+```
+
+When enabled, Unity Native Audio Plugin artifacts are under:
+
+- `build/plugin/MoonVST_artefacts/Release/Unity/`
+
+You can also pass options directly through npm:
+
+```bash
+npm run configure:plugin -- -DMOONVST_ENABLE_UNITY=ON
+npm run configure:plugin -- -DMOONVST_ENABLE_UNITY=OFF
+```
 
 ## First Customization Steps
 
