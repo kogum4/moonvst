@@ -17,7 +17,7 @@
         "get_param"
       ],
       "export-memory-name": "memory",
-      "heap-start-address": 393216
+      "heap-start-address": 524288
     }
   }
 }

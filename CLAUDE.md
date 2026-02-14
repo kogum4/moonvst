@@ -23,6 +23,7 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 - Follow existing naming, file layout, and code style
 - Do not commit generated outputs (`build/`, `node_modules/`)
 - If requirements are unclear, keep scope narrow and avoid broad speculative changes
+- Do not implement speculative design changes without explicit user approval
 
 ## Recommended Workflow
 
@@ -67,4 +68,3 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 - Requested behavior is implemented
 - Relevant validation completed, or skipped with clear reason
 - Diff contains no unnecessary unrelated changes
-

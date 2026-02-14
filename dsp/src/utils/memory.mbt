@@ -9,3 +9,12 @@ pub extern "wasm" fn store_u8(ptr : Int, value : Int) =
 
 pub extern "wasm" fn load_u8(ptr : Int) -> Int =
   #|(func (param i32) (result i32) (i32.load8_u (local.get 0)))
+
+pub extern "wasm" fn load_i32(ptr : Int) -> Int =
+  #|(func (param i32) (result i32) (i32.load (local.get 0)))
+
+pub extern "wasm" fn store_i32(ptr : Int, value : Int) =
+  #|(func (param i32) (param i32) (i32.store (local.get 0) (local.get 1)))
+
+pub extern "wasm" fn memory_pages() -> Int =
+  #|(func (result i32) (memory.size))

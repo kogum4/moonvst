@@ -26,7 +26,10 @@ export default function App() {
       <h1 className={styles.title}>MoonVST</h1>
       <div className={styles.controls}>
         <GainSlider runtime={runtime} paramName="gain" />
-        <GainSlider runtime={runtime} paramName="drive" />
+        <GainSlider runtime={runtime} paramName="pre_delay_ms" />
+        <GainSlider runtime={runtime} paramName="decay" />
+        <GainSlider runtime={runtime} paramName="damping" />
+        <GainSlider runtime={runtime} paramName="diffusion" />
         <GainSlider runtime={runtime} paramName="mix" />
         <LevelMeter runtime={runtime} />
       </div>
