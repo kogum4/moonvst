@@ -52,6 +52,15 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Cache LLVM deps
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: libs/wamr/core/deps/llvm/build
+          key: ${{ runner.os }}-llvm-18.1.8-${{ hashFiles('scripts/setup-windows.ps1') }}
+          restore-keys: |
+            ${{ runner.os }}-llvm-18.1.8-
+
       - name: Run Windows setup script
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1
