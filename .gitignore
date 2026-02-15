@@ -21,6 +21,10 @@ plugin/resources/*.aot
 plugin/resources/*.wasm
 ui/public/wasm/*.wasm
 
+# Test artifacts
+ui/playwright-report/
+ui/test-results/
+
 # IDE
 .vscode/
 .idea/
