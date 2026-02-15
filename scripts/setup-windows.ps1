@@ -44,8 +44,49 @@ $LlvmBuildDir = "$RootDir/libs/wamr/core/deps/llvm/build"
 $LlvmVersion = "18.1.8"
 $LlvmArchive = "clang+llvm-$LlvmVersion-x86_64-pc-windows-msvc.tar.xz"
 $LlvmUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LlvmVersion/$LlvmArchive"
+$LlvmCmakeDir = "$LlvmBuildDir/lib/cmake/llvm"
 
-if (-not (Test-Path "$LlvmBuildDir/lib/cmake/llvm/LLVMConfig.cmake")) {
+function Patch-LlvmCmakeConfig {
+    param (
+        [string]$LlvmCmakeDirPath
+    )
+
+    if (-not (Test-Path $LlvmCmakeDirPath)) {
+        return
+    }
+
+    $DiaGuids = Get-ChildItem -Path "C:/Program Files (x86)/Microsoft Visual Studio" -Recurse -Filter "diaguids.lib" -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match "amd64" } | Select-Object -First 1
+    $DiaPath = if ($DiaGuids) { $DiaGuids.FullName.Replace('\', '/') } else { $null }
+
+    $patchedFiles = 0
+    $cmakeFiles = Get-ChildItem -Path $LlvmCmakeDirPath -Filter "*.cmake" -File
+    foreach ($file in $cmakeFiles) {
+        $content = Get-Content $file.FullName -Raw
+        $updated = $content
+        $updated = $updated.Replace('"LibXml2::LibXml2;LLVMSupport"', '"LLVMSupport"')
+        $updated = $updated.Replace('set(LLVM_ENABLE_LIBXML2 1)', 'set(LLVM_ENABLE_LIBXML2 0)')
+
+        if ($DiaPath) {
+            $updated = $updated -replace 'C:/Program Files \(x86\)/Microsoft Visual Studio/[^;"]*/DIA SDK/lib/amd64/diaguids\.lib', $DiaPath
+        } else {
+            $updated = $updated -replace 'C:/Program Files \(x86\)/Microsoft Visual Studio/[^;"]*/DIA SDK/lib/amd64/diaguids\.lib;?', ''
+        }
+
+        if ($updated -ne $content) {
+            Set-Content $file.FullName $updated -NoNewline
+            $patchedFiles++
+        }
+    }
+
+    if ($DiaPath) {
+        Write-Host "Patched LLVM CMake config files: $patchedFiles (DIA path: $DiaPath)"
+    } else {
+        Write-Warning "diaguids.lib was not found. Removed hardcoded DIA SDK references from LLVM CMake config files."
+    }
+}
+
+if (-not (Test-Path "$LlvmCmakeDir/LLVMConfig.cmake")) {
     Write-Host "=== Downloading LLVM $LlvmVersion development libraries ==="
     $LlvmDepsDir = "$RootDir/libs/wamr/core/deps"
     New-Item -ItemType Directory -Force -Path $LlvmDepsDir | Out-Null
@@ -67,28 +108,12 @@ if (-not (Test-Path "$LlvmBuildDir/lib/cmake/llvm/LLVMConfig.cmake")) {
 
     Remove-Item $ArchivePath -Force
 
-    # Patch LLVM cmake config for local environment
-    $ExportsFile = "$LlvmBuildDir/lib/cmake/llvm/LLVMExports.cmake"
-    $content = (Get-Content $ExportsFile -Raw)
-    # Remove LibXml2 dependency (not bundled with LLVM, not needed for wamrc)
-    $content = $content.Replace('"LibXml2::LibXml2;LLVMSupport"', '"LLVMSupport"')
-    # Fix DIA SDK path (pre-built LLVM hardcodes VS 2019 path)
-    $DiaGuids = Get-ChildItem -Path "C:/Program Files (x86)/Microsoft Visual Studio" -Recurse -Filter "diaguids.lib" -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -match "amd64" } | Select-Object -First 1
-    if ($DiaGuids) {
-        $DiaPath = $DiaGuids.FullName.Replace('\', '/')
-        $content = $content -replace 'C:/Program Files \(x86\)/Microsoft Visual Studio/[^;"]*/DIA SDK/lib/amd64/diaguids\.lib', $DiaPath
-    }
-    Set-Content $ExportsFile $content -NoNewline
-    $ConfigFile = "$LlvmBuildDir/lib/cmake/llvm/LLVMConfig.cmake"
-    $content = (Get-Content $ConfigFile -Raw)
-    $content = $content.Replace('set(LLVM_ENABLE_LIBXML2 1)', 'set(LLVM_ENABLE_LIBXML2 0)')
-    Set-Content $ConfigFile $content -NoNewline
-
     Write-Host "LLVM $LlvmVersion installed."
 } else {
     Write-Host "LLVM already available at $LlvmBuildDir"
 }
+
+Patch-LlvmCmakeConfig -LlvmCmakeDirPath $LlvmCmakeDir
 
 # 4. Build wamrc (AOT compiler)
 Write-Host "=== Building wamrc ==="
@@ -97,6 +122,15 @@ New-Item -ItemType Directory -Force -Path "$WamrcDir/build" | Out-Null
 Set-Location "$WamrcDir/build"
 cmake ..
 cmake --build . --config Release
+
+$WamrcCandidates = @(
+    "$WamrcDir/build/Release/wamrc.exe",
+    "$WamrcDir/build/wamrc.exe"
+)
+$BuiltWamrc = $WamrcCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $BuiltWamrc) {
+    throw "wamrc build completed but executable not found. Checked: $($WamrcCandidates -join ', ')"
+}
 
 # 5. Install Edge WebView2 Runtime (required at runtime for WebView UI on Windows)
 Write-Host "=== Checking Edge WebView2 Runtime ==="
