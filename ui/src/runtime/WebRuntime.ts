@@ -14,16 +14,23 @@ interface WasmExports {
   get_param(index: number): number
 }
 
+export function resolveRuntimeAssetPath(assetPath: string, baseUrl = import.meta.env.BASE_URL): string {
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+  return `${normalizedBase}${assetPath.replace(/^\//, '')}`
+}
+
 export async function createWebRuntime(): Promise<WebAudioRuntime> {
   const ctx = new AudioContext()
+  const wasmPath = resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm')
+  const workletPath = resolveRuntimeAssetPath('worklet/processor.js')
 
   // Load WASM binary
-  const wasmResponse = await fetch('/wasm/moonvst_dsp.wasm')
+  const wasmResponse = await fetch(wasmPath)
   const wasmBytes = await wasmResponse.arrayBuffer()
   const wasmModule = await WebAssembly.compile(wasmBytes)
 
   // Register AudioWorklet processor
-  await ctx.audioWorklet.addModule('/worklet/processor.js')
+  await ctx.audioWorklet.addModule(workletPath)
 
   // Also instantiate WASM on main thread for parameter queries
   const instance = await WebAssembly.instantiate(wasmModule)

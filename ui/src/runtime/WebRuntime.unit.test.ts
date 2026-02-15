@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { createWebRuntime } from './WebRuntime'
+import { createWebRuntime, resolveRuntimeAssetPath } from './WebRuntime'
 
 class MockAudioWorkletNode {
   public port: { postMessage: ReturnType<typeof vi.fn>; onmessage: ((e: any) => void) | null }
@@ -88,5 +88,16 @@ describe('createWebRuntime', () => {
     }))
 
     await expect(createWebRuntime()).rejects.toThrow('network down')
+  })
+})
+
+describe('resolveRuntimeAssetPath', () => {
+  test('resolves asset path under repository base path', () => {
+    expect(resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm', '/moonvst/')).toBe('/moonvst/wasm/moonvst_dsp.wasm')
+    expect(resolveRuntimeAssetPath('worklet/processor.js', '/moonvst/')).toBe('/moonvst/worklet/processor.js')
+  })
+
+  test('resolves asset path under root base path', () => {
+    expect(resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm', '/')).toBe('/wasm/moonvst_dsp.wasm')
   })
 })
