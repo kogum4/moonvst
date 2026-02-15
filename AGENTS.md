@@ -25,6 +25,13 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 - If requirements are unclear, keep scope narrow and avoid broad speculative changes
 - Do not implement speculative design changes without explicit user approval
 
+## TDD Rules
+
+- Default to test-driven development for behavior changes
+- Add or update a failing test first (unit/component/E2E as appropriate), then implement the code change
+- Keep each change cycle small: red -> green -> refactor
+- If tests cannot be written first due to tooling constraints, document the reason in the change summary and add tests immediately after implementation
+
 ## Recommended Workflow
 
 1. Identify the smallest relevant set of files.
@@ -38,6 +45,10 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 - DSP build: `npm run build:dsp`
 - DSP tests: `npm run test:dsp`
 - UI build: `npm run build:ui`
+- UI tests (all): `npm run test:ui`
+- UI unit tests: `npm run test:ui:unit`
+- UI component tests: `npm run test:ui:component`
+- UI E2E tests: `npm run test:ui:e2e`
 - Plugin configure: `npm run configure:plugin`
 - Plugin build: `npm run build:plugin`
 - Full release pipeline: `npm run release:vst`
@@ -49,6 +60,9 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
   - `npm run test:dsp`
 - UI-only changes:
   - `npm run build:ui`
+  - `npm run test:ui:unit`
+  - `npm run test:ui:component`
+  - `npm run test:ui:e2e`
 - Plugin/C++ changes:
   - `npm run configure:plugin`
   - `npm run build:plugin`

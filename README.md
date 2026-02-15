@@ -208,6 +208,20 @@ DSP unit tests (MoonBit only):
 npm run test:dsp
 ```
 
+UI tests:
+
+```bash
+npm run test:ui
+```
+
+Run by layer:
+
+```bash
+npm run test:ui:unit
+npm run test:ui:component
+npm run test:ui:e2e
+```
+
 There is a C++ integration test in `tests/cpp/wasm_dsp_test.cpp`.
 
 Example build with tests enabled:
@@ -217,6 +231,8 @@ cmake -B build -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 ```
+
+CI runs DSP tests and UI tests (unit/component/E2E) on every pull request and push to `main` via `.github/workflows/test.yml`.
 
 ## Troubleshooting
 
