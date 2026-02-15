@@ -8,5 +8,6 @@ add_subdirectory(plugin)
 
 option(BUILD_TESTS "Build tests" OFF)
 if(BUILD_TESTS)
+    enable_testing()
     add_subdirectory(tests/cpp)
 endif()

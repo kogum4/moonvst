@@ -29,10 +29,14 @@ jobs:
         run: npm run build:ui
 
       - name: Configure plugin
-        run: npm run configure:plugin:unity
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
 
       - name: Build plugin
         run: npm run build:plugin
+
+      - name: Run plugin smoke tests
+        working-directory: build
+        run: ctest -C Release --output-on-failure
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -72,10 +76,14 @@ jobs:
         run: npm run build:ui
 
       - name: Configure plugin
-        run: npm run configure:plugin:unity
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
 
       - name: Build plugin
         run: npm run build:plugin
+
+      - name: Run plugin smoke tests
+        working-directory: build
+        run: ctest -C Release --output-on-failure
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
