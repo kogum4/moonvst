@@ -28,6 +28,18 @@ jobs:
           cache: "npm"
           cache-dependency-path: ui/package-lock.json
 
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Build DSP WASM for web
+        run: |
+          cd dsp
+          moon build --target wasm
+          mkdir -p ../ui/public/wasm
+          cp _build/wasm/debug/build/src/src.wasm ../ui/public/wasm/moonvst_dsp.wasm
+
       - name: Install UI dependencies
         working-directory: ui
         run: npm ci
