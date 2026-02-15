@@ -11,6 +11,7 @@ export function useRuntime() {
 
   useEffect(() => {
     let disposed = false
+    let createdRuntime: AudioRuntime | null = null
 
     async function init() {
       try {
@@ -24,7 +25,12 @@ export function useRuntime() {
           rt = await createWebRuntime()
         }
 
-        if (!disposed) setRuntime(rt)
+        if (disposed) {
+          rt.dispose()
+          return
+        }
+        createdRuntime = rt
+        setRuntime(rt)
       } catch (err) {
         console.error('Failed to initialize audio runtime:', err)
         if (!disposed) {
@@ -38,7 +44,7 @@ export function useRuntime() {
 
     return () => {
       disposed = true
-      runtime?.dispose()
+      createdRuntime?.dispose()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

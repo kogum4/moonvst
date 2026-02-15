@@ -15,5 +15,8 @@ export default defineConfig({
     ],
     css: true,
     clearMocks: true,
+    coverage: {
+      exclude: ['**/*.module.css'],
+    },
   },
 })

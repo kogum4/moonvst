@@ -24,6 +24,7 @@ ui/public/wasm/*.wasm
 # Test artifacts
 ui/playwright-report/
 ui/test-results/
+ui/coverage/
 
 # IDE
 .vscode/
