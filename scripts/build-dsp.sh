@@ -8,9 +8,11 @@ echo "=== Building MoonBit DSP ==="
 cd "$ROOT_DIR/dsp"
 moon build --target wasm
 
+WASM_PATH="_build/wasm/debug/build/src/src.wasm"
+
 echo "=== Copying WASM to UI public ==="
 mkdir -p "$ROOT_DIR/ui/public/wasm"
-cp _build/wasm/debug/build/src/src.wasm "$ROOT_DIR/ui/public/wasm/webvst_dsp.wasm"
+cp "$WASM_PATH" "$ROOT_DIR/ui/public/wasm/webvst_dsp.wasm"
 
 echo "=== AOT Compiling ==="
 WAMRC="$ROOT_DIR/libs/wamr/wamr-compiler/build/wamrc"
@@ -23,6 +25,6 @@ fi
 mkdir -p "$ROOT_DIR/plugin/resources"
 $WAMRC --opt-level=3 \
     -o "$ROOT_DIR/plugin/resources/webvst_dsp.aot" \
-    _build/wasm/release/build/src/src.wasm
+    "$WASM_PATH"
 
 echo "=== DSP build complete ==="
