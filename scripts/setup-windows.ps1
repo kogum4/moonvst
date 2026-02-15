@@ -10,8 +10,19 @@ $moonCmd = Get-Command moon -ErrorAction SilentlyContinue
 if (-not $moonCmd) {
     Write-Host "Installing MoonBit..."
     irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
-    Write-Host "Please restart your terminal after MoonBit installation, then re-run this script."
-    exit 0
+    $MoonBin = "$env:USERPROFILE\.moon\bin"
+    if ($env:GITHUB_PATH) {
+        $MoonBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        $env:PATH = "$MoonBin;$env:PATH"
+    }
+    $moonCmd = Get-Command moon -ErrorAction SilentlyContinue
+    if (-not $moonCmd) {
+        throw "MoonBit installation completed, but 'moon' command is still unavailable."
+    }
+    if (-not $env:GITHUB_ACTIONS) {
+        Write-Host "Please restart your terminal after MoonBit installation, then re-run this script."
+        exit 0
+    }
 } else {
     Write-Host "MoonBit already installed: $(moon version)"
 }

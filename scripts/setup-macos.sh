@@ -12,6 +12,9 @@ if ! command -v moon &> /dev/null; then
     curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
     echo 'export PATH="$HOME/.moon/bin:$PATH"' >> ~/.zshrc
     export PATH="$HOME/.moon/bin:$PATH"
+    if [ -n "${GITHUB_PATH:-}" ]; then
+        echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+    fi
 else
     echo "MoonBit already installed: $(moon version)"
 fi
