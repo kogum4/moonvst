@@ -18,7 +18,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
   const ctx = new AudioContext()
 
   // Load WASM binary
-  const wasmResponse = await fetch('/wasm/webvst_dsp.wasm')
+  const wasmResponse = await fetch('/wasm/moonvst_dsp.wasm')
   const wasmBytes = await wasmResponse.arrayBuffer()
   const wasmModule = await WebAssembly.compile(wasmBytes)
 
@@ -50,7 +50,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
   }
 
   // Create AudioWorklet node
-  const workletNode = new AudioWorkletNode(ctx, 'webvst-processor', {
+  const workletNode = new AudioWorkletNode(ctx, 'moonvst-processor', {
     numberOfInputs: 1,
     numberOfOutputs: 1,
     outputChannelCount: [2],

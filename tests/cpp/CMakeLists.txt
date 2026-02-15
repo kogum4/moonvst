@@ -31,8 +31,8 @@ target_sources(wasm_dsp_test PRIVATE
 # Copy AOT binary for testing
 add_custom_command(TARGET wasm_dsp_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/plugin/resources/webvst_dsp.aot
-        $<TARGET_FILE_DIR:wasm_dsp_test>/webvst_dsp.aot
+        ${CMAKE_SOURCE_DIR}/plugin/resources/moonvst_dsp.aot
+        $<TARGET_FILE_DIR:wasm_dsp_test>/moonvst_dsp.aot
 )
 
 add_test(NAME WasmDSPTest COMMAND wasm_dsp_test)

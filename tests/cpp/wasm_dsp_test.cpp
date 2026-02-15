@@ -47,9 +47,9 @@ int main()
     // 2. Load AOT binary
     uint8_t* aotBuf = nullptr;
     uint32_t aotSize = 0;
-    if (!load_file("webvst_dsp.aot", &aotBuf, &aotSize))
+    if (!load_file("moonvst_dsp.aot", &aotBuf, &aotSize))
     {
-        printf("SKIP: webvst_dsp.aot not found (run build:dsp first)\n");
+        printf("SKIP: moonvst_dsp.aot not found (run build:dsp first)\n");
         wasm_runtime_destroy();
         return 0;
     }

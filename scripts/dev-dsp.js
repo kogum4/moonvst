@@ -7,7 +7,7 @@ const dspDir = path.join(root, 'dsp');
 const dspSrcDir = path.join(dspDir, 'src');
 const wasmSrc = path.join(dspDir, '_build', 'wasm', 'debug', 'build', 'src', 'src.wasm');
 const wasmDestDir = path.join(root, 'ui', 'public', 'wasm');
-const wasmDest = path.join(wasmDestDir, 'webvst_dsp.wasm');
+const wasmDest = path.join(wasmDestDir, 'moonvst_dsp.wasm');
 const debounceMs = 150;
 const buildTimeoutMs = Number.parseInt(process.env.DEV_DSP_BUILD_TIMEOUT_MS ?? '45000', 10);
 
@@ -21,7 +21,7 @@ function copyWasm() {
     if (existsSync(wasmSrc)) {
       mkdirSync(wasmDestDir, { recursive: true });
       copyFileSync(wasmSrc, wasmDest);
-      console.log('[dev-dsp] Copied WASM -> ui/public/wasm/webvst_dsp.wasm');
+      console.log('[dev-dsp] Copied WASM -> ui/public/wasm/moonvst_dsp.wasm');
     }
   } catch (e) {
     console.error('[dev-dsp] Copy failed:', e.message);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "webvst/WasmDSP.h"
+#include "moonvst/WasmDSP.h"
 #include <vector>
 #include <string>
 #include <atomic>

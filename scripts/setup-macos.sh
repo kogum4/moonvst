@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "=== WebVST macOS Setup ==="
+echo "=== MoonVST macOS Setup ==="
 
 # 1. Check MoonBit
 if ! command -v moon &> /dev/null; then

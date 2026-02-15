@@ -1,8 +1,8 @@
 /**
- * WebVST AudioWorklet Processor
+ * MoonVST AudioWorklet Processor
  * Runs WASM DSP in the audio thread via AudioWorklet.
  */
-class WebVSTProcessor extends AudioWorkletProcessor {
+class MoonVSTProcessor extends AudioWorkletProcessor {
   constructor() {
     super()
     this.wasmInstance = null
@@ -103,4 +103,4 @@ class WebVSTProcessor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('webvst-processor', WebVSTProcessor)
+registerProcessor('moonvst-processor', MoonVSTProcessor)

@@ -9,7 +9,7 @@ moon build --target wasm
 
 Write-Host "=== Copying WASM to UI public ==="
 New-Item -ItemType Directory -Force -Path "$RootDir/ui/public/wasm" | Out-Null
-Copy-Item "_build/wasm/debug/build/src/src.wasm" "$RootDir/ui/public/wasm/webvst_dsp.wasm"
+Copy-Item "_build/wasm/debug/build/src/src.wasm" "$RootDir/ui/public/wasm/moonvst_dsp.wasm"
 
 Write-Host "=== AOT Compiling ==="
 $wamrcCandidates = @(
@@ -25,7 +25,7 @@ if (-not $wamrc) {
 
 New-Item -ItemType Directory -Force -Path "$RootDir/plugin/resources" | Out-Null
 & $wamrc --opt-level=3 `
-    -o "$RootDir/plugin/resources/webvst_dsp.aot" `
+    -o "$RootDir/plugin/resources/moonvst_dsp.aot" `
     "_build/wasm/debug/build/src/src.wasm"
 
 Write-Host "=== DSP build complete ==="

@@ -37,7 +37,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: webvst-macos
+          name: moonvst-macos
           path: build/plugin/MoonVST_artefacts/Release/
 
   build-windows:
@@ -80,5 +80,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: webvst-windows
+          name: moonvst-windows
           path: build/plugin/MoonVST_artefacts/Release/

@@ -1,8 +1,8 @@
-#include "webvst/WasmDSP.h"
+#include "moonvst/WasmDSP.h"
 #include "BinaryData.h"
 #include <cstring>
 
-#if WEBVST_DISABLE_WASM_DSP
+#if MOONVST_DISABLE_WASM_DSP
 
 WasmDSP::WasmDSP() = default;
 WasmDSP::~WasmDSP() = default;
@@ -86,7 +86,7 @@ bool WasmDSP::initialize()
     if (initialized_.load())
         return true;
 
-#if WEBVST_DISABLE_WASM_DSP
+#if MOONVST_DISABLE_WASM_DSP
     return false;
 #endif
 

@@ -4,7 +4,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 import path from 'node:path'
 
 const isJuceBuild = process.env.VITE_BUILD_TARGET === 'juce'
-const dspWasmPath = path.resolve(__dirname, 'public', 'wasm', 'webvst_dsp.wasm')
+const dspWasmPath = path.resolve(__dirname, 'public', 'wasm', 'moonvst_dsp.wasm')
 
 function normalizePath(filePath: string): string {
   return path.resolve(filePath).replace(/\\/g, '/').toLowerCase()

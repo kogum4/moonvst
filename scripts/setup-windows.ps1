@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir
 
-Write-Host "=== WebVST Windows Setup ==="
+Write-Host "=== MoonVST Windows Setup ==="
 
 # 1. Check MoonBit
 $moonCmd = Get-Command moon -ErrorAction SilentlyContinue

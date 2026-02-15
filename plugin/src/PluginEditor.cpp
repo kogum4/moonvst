@@ -44,7 +44,7 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     fallbackLabel.setText ("Loading UI...", juce::dontSendNotification);
     fallbackLabel.setJustificationType (juce::Justification::centred);
     addAndMakeVisible (fallbackLabel);
-#if WEBVST_DISABLE_WEBVIEW
+#if MOONVST_DISABLE_WEBVIEW
     fallbackLabel.setText ("WebView disabled (Windows stability mode)", juce::dontSendNotification);
 #else
     if (setupWebView())
@@ -58,7 +58,7 @@ PluginEditor::~PluginEditor() = default;
 
 bool PluginEditor::setupWebView()
 {
-#if WEBVST_DISABLE_WEBVIEW
+#if MOONVST_DISABLE_WEBVIEW
     return false;
 #else
     juce::WebBrowserComponent::Options options;

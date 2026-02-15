@@ -1,6 +1,6 @@
 {
   "import": [
-    "webvst/dsp/src/utils"
+    "moonvst/dsp/src/utils"
   ],
   "link": {
     "wasm": {
