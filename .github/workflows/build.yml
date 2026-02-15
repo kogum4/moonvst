@@ -125,10 +125,11 @@ jobs:
           test -f package/Standalone/MoonVST.app/Contents/MacOS/MoonVST
 
       - name: Run smoke tests from build artifacts
+        working-directory: smoke-tests
         run: |
-          chmod +x smoke-tests/wasm_dsp_test smoke-tests/plugin_smoke_test
-          smoke-tests/wasm_dsp_test
-          smoke-tests/plugin_smoke_test
+          chmod +x wasm_dsp_test plugin_smoke_test
+          ./wasm_dsp_test
+          ./plugin_smoke_test
 
   test-artifact-windows:
     runs-on: windows-latest
@@ -153,9 +154,10 @@ jobs:
           if (-not (Test-Path "package/Standalone/MoonVST.exe")) { throw "Standalone artifact missing" }
 
       - name: Run smoke tests from build artifacts
+        working-directory: smoke-tests
         shell: pwsh
         run: |
-          & "smoke-tests/wasm_dsp_test.exe"
+          & "./wasm_dsp_test.exe"
           if ($LASTEXITCODE -ne 0) { throw "wasm_dsp_test failed with code $LASTEXITCODE" }
-          & "smoke-tests/plugin_smoke_test.exe"
+          & "./plugin_smoke_test.exe"
           if ($LASTEXITCODE -ne 0) { throw "plugin_smoke_test failed with code $LASTEXITCODE" }
