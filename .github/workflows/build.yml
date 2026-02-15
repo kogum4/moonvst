@@ -38,7 +38,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: moonvst-macos
-          path: build/plugin/MoonVST_artefacts/Release/
+          path: |
+            build/plugin/MoonVST_artefacts/Release/VST3/
+            build/plugin/MoonVST_artefacts/Release/Standalone/
+            build/plugin/MoonVST_artefacts/Release/AU/
+            build/plugin/MoonVST_artefacts/Release/Unity/
 
       - name: Upload smoke test bundle
         uses: actions/upload-artifact@v4
@@ -91,7 +95,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: moonvst-windows
-          path: build/plugin/MoonVST_artefacts/Release/
+          path: |
+            build/plugin/MoonVST_artefacts/Release/VST3/
+            build/plugin/MoonVST_artefacts/Release/Standalone/
+            build/plugin/MoonVST_artefacts/Release/Unity/
+            !build/plugin/MoonVST_artefacts/Release/**/*.lib
+            !build/plugin/MoonVST_artefacts/Release/**/*.exp
 
       - name: Upload smoke test bundle
         uses: actions/upload-artifact@v4
@@ -161,3 +170,44 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "wasm_dsp_test failed with code $LASTEXITCODE" }
           & "./plugin_smoke_test.exe"
           if ($LASTEXITCODE -ne 0) { throw "plugin_smoke_test failed with code $LASTEXITCODE" }
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - test-artifact-macos
+      - test-artifact-windows
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download macOS plugin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: moonvst-macos
+          path: package/macos
+
+      - name: Download Windows plugin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: moonvst-windows
+          path: package/windows
+
+      - name: Validate release payload
+        run: |
+          test -d package/macos/VST3/MoonVST.vst3
+          test -f package/macos/Standalone/MoonVST.app/Contents/MacOS/MoonVST
+          test -d package/windows/VST3/MoonVST.vst3
+          test -f package/windows/Standalone/MoonVST.exe
+
+      - name: Create release archives
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          (cd package/macos && zip -r "../../moonvst-${tag}-macos.zip" .)
+          (cd package/windows && zip -r "../../moonvst-${tag}-windows.zip" .)
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            moonvst-${{ github.ref_name }}-macos.zip
+            moonvst-${{ github.ref_name }}-windows.zip
