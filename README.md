@@ -251,4 +251,4 @@ CI runs DSP tests and UI tests (unit/component/E2E) on every pull request and pu
 
 ## License
 
-MIT
+Apache-2.0
