@@ -249,6 +249,14 @@ CI runs DSP tests and UI tests (unit/component/E2E) on every pull request and pu
 - Clone/build issues around JUCE or WAMR
   - confirm submodules are initialized (`git submodule update --init --recursive`)
 
+## Acknowledgements
+
+This project references and includes ideas and/or code derived from:
+
+- https://github.com/yuichkun/suna
+- https://github.com/juce-framework/JUCE
+- https://github.com/bytecodealliance/wasm-micro-runtime
+
 ## License
 
 Apache-2.0
