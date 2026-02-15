@@ -71,6 +71,23 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
   - `npm run release:vst`
   - Add targeted tests as needed
 
+## Branch and Release Rules
+
+- Keep `main` in a releasable state at all times
+- Use short-lived working branches: `feat/*`, `fix/*`, `chore/*`
+- Merge to `main` via Pull Request (self-review is acceptable for solo development)
+- Require CI (`Build` workflow) to pass before merging to `main`
+- Create release tags as `v*` (example: `v0.1.0`) on `main` commits only
+- On tagged pushes, publish GitHub Release assets from CI; keep Artifacts for CI/debug use
+- Prefer `git revert` for rollback on shared history; avoid rewriting `main` history
+
+### Recommended GitHub Branch Protection for `main`
+
+- Require a pull request before merging
+- Require status checks to pass before merging (`Build`)
+- Require linear history
+- Disallow force pushes and branch deletion
+
 ## DSP/API Compatibility Notes
 
 - Keep `dsp/src/exports.mbt` host API compatible unless bridge changes are intentional
