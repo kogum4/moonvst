@@ -4,6 +4,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 import path from 'node:path'
 
 const isJuceBuild = process.env.VITE_BUILD_TARGET === 'juce'
+const base = process.env.VITE_BASE_PATH ?? '/'
 const dspWasmPath = path.resolve(__dirname, 'public', 'wasm', 'moonvst_dsp.wasm')
 
 function normalizePath(filePath: string): string {
@@ -33,6 +34,7 @@ function dspWasmReloadPlugin(): Plugin {
 }
 
 export default defineConfig({
+  base,
   plugins: [
     react(),
     dspWasmReloadPlugin(),
