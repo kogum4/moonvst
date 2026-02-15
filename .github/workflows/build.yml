@@ -34,15 +34,17 @@ jobs:
       - name: Build plugin
         run: npm run build:plugin
 
-      - name: Run plugin smoke tests
-        working-directory: build
-        run: ctest -C Release --output-on-failure
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: moonvst-macos
           path: build/plugin/MoonVST_artefacts/Release/
+
+      - name: Upload smoke test bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonvst-macos-tests
+          path: build/tests/cpp/Release/
 
   build-windows:
     runs-on: windows-latest
@@ -81,12 +83,71 @@ jobs:
       - name: Build plugin
         run: npm run build:plugin
 
-      - name: Run plugin smoke tests
-        working-directory: build
-        run: ctest -C Release --output-on-failure
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: moonvst-windows
           path: build/plugin/MoonVST_artefacts/Release/
+
+      - name: Upload smoke test bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonvst-windows-tests
+          path: build/tests/cpp/Release/
+
+  test-artifact-macos:
+    runs-on: macos-14
+    needs: build-macos
+    steps:
+      - name: Download plugin artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: moonvst-macos
+          path: package
+
+      - name: Download smoke test bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: moonvst-macos-tests
+          path: smoke-tests
+
+      - name: Validate packaged plugin files
+        run: |
+          test -d package/VST3/MoonVST.vst3
+          test -f package/Standalone/MoonVST.app/Contents/MacOS/MoonVST
+
+      - name: Run smoke tests from build artifacts
+        run: |
+          chmod +x smoke-tests/wasm_dsp_test smoke-tests/plugin_smoke_test
+          smoke-tests/wasm_dsp_test
+          smoke-tests/plugin_smoke_test
+
+  test-artifact-windows:
+    runs-on: windows-latest
+    needs: build-windows
+    steps:
+      - name: Download plugin artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: moonvst-windows
+          path: package
+
+      - name: Download smoke test bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: moonvst-windows-tests
+          path: smoke-tests
+
+      - name: Validate packaged plugin files
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "package/VST3/MoonVST.vst3")) { throw "VST3 artifact missing" }
+          if (-not (Test-Path "package/Standalone/MoonVST.exe")) { throw "Standalone artifact missing" }
+
+      - name: Run smoke tests from build artifacts
+        shell: pwsh
+        run: |
+          & "smoke-tests/wasm_dsp_test.exe"
+          if ($LASTEXITCODE -ne 0) { throw "wasm_dsp_test failed with code $LASTEXITCODE" }
+          & "smoke-tests/plugin_smoke_test.exe"
+          if ($LASTEXITCODE -ne 0) { throw "plugin_smoke_test failed with code $LASTEXITCODE" }
