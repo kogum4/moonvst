@@ -44,7 +44,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: moonvst-macos-tests
-          path: build/tests/cpp/Release/
+          if-no-files-found: error
+          path: |
+            build/tests/cpp/plugin_smoke_test
+            build/tests/cpp/wasm_dsp_test
+            build/tests/cpp/moonvst_dsp.aot
 
   build-windows:
     runs-on: windows-latest
@@ -93,7 +97,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: moonvst-windows-tests
-          path: build/tests/cpp/Release/
+          if-no-files-found: error
+          path: |
+            build/tests/cpp/Release/plugin_smoke_test.exe
+            build/tests/cpp/Release/wasm_dsp_test.exe
+            build/tests/cpp/Release/moonvst_dsp.aot
 
   test-artifact-macos:
     runs-on: macos-14
