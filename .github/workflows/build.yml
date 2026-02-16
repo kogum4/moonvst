@@ -28,6 +28,15 @@ jobs:
       - name: Build UI
         run: npm run build:ui
 
+      - name: Build DSP (showcase smoke)
+        run: npm run build:dsp:showcase
+
+      - name: Build UI (showcase smoke)
+        run: npm run build:ui:showcase
+
+      - name: Restore template artifacts
+        run: npm run build:dsp && npm run build:ui
+
       - name: Configure plugin
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
 
@@ -84,6 +93,15 @@ jobs:
 
       - name: Build UI
         run: npm run build:ui
+
+      - name: Build DSP (showcase smoke)
+        run: npm run build:dsp:showcase
+
+      - name: Build UI (showcase smoke)
+        run: npm run build:ui:showcase
+
+      - name: Restore template artifacts
+        run: npm run build:dsp && npm run build:ui
 
       - name: Configure plugin
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON

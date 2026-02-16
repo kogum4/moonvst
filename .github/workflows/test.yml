@@ -6,18 +6,85 @@ on:
   pull_request:
 
 jobs:
-  dsp-test:
+  dsp-test-template:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
 
       - name: Install MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
-      - name: Run DSP tests
+      - name: Run template DSP tests
         run: npm run test:dsp
+
+  dsp-test-showcase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Run showcase DSP tests
+        run: npm run test:dsp:showcase
+
+  scaffold-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Generate product scaffold
+        run: node scripts/scaffold-product.js --name ci-smoke --from template
+
+      - name: Validate scaffold output files
+        run: |
+          test -f products/ci-smoke/dsp-entry/lib.mbt
+          test -f products/ci-smoke/dsp-entry/params.mbt
+          test -f products/ci-smoke/dsp-entry/lib_test.mbt
+          test -f products/ci-smoke/ui-entry/App.tsx
+          test -f products/ci-smoke/product.config.json
+          test -f products/ci-smoke/README.md
+          test -f tests/dsp/ci-smoke/README.md
+          test -f tests/ui/ci-smoke/README.md
+
+      - name: Validate scaffolded npm scripts
+        run: node -e "const p=require('./package.json');const required=['dev:ci-smoke','build:dsp:ci-smoke','build:ui:ci-smoke','release:vst:ci-smoke'];for(const key of required){if(!p.scripts[key]){throw new Error('missing script: '+key)}}"
+
+      - name: Validate scaffold duplicate-name failure
+        run: |
+          if node scripts/scaffold-product.js --name ci-smoke --from template; then
+            echo "Expected duplicate product name to fail"
+            exit 1
+          fi
 
   ui-test:
     runs-on: ubuntu-latest
