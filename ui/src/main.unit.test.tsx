@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest'
+﻿import { describe, expect, test, vi } from 'vitest'
 
 describe('main entry', () => {
   test('renders App into root element', async () => {
@@ -12,7 +12,7 @@ describe('main entry', () => {
       createRoot,
     }))
 
-    vi.doMock('./App', () => ({
+    vi.doMock('../../products/showcase/ui-entry/App', () => ({
       default: () => null,
     }))
     vi.doMock('../../products/template/ui-entry/App', () => ({
