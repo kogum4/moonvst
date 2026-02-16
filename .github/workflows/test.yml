@@ -77,7 +77,7 @@ jobs:
           test -f tests/ui/ci-smoke/README.md
 
       - name: Validate scaffolded npm scripts
-        run: node -e "const p=require('./package.json');const required=['dev:ci-smoke','build:dsp:ci-smoke','build:ui:ci-smoke','release:vst:ci-smoke'];for(const key of required){if(!p.scripts[key]){throw new Error('missing script: '+key)}}"
+        run: node -e "const p=require('./package.json');const required=['dev:ci-smoke','build:dsp:ci-smoke','build:ui:ci-smoke','release:vst:ci-smoke','release:unity:ci-smoke'];for(const key of required){if(!p.scripts[key]){throw new Error('missing script: '+key)}}"
 
       - name: Validate scaffold duplicate-name failure
         run: |

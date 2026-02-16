@@ -41,6 +41,7 @@ function addScriptsToPackageJson(root, productName) {
   nextScripts[`build:dsp:${productName}`] = `cross-env MOONVST_PRODUCT=${productName} node scripts/build-dsp-product.js`;
   nextScripts[`build:ui:${productName}`] = `cd ui && cross-env VITE_PRODUCT=${productName} cross-env VITE_BUILD_TARGET=juce npx vite build`;
   nextScripts[`release:vst:${productName}`] = `npm run build:dsp:${productName} && npm run build:ui:${productName} && npm run build:plugin`;
+  nextScripts[`release:unity:${productName}`] = `npm run build:dsp:${productName} && npm run build:ui:${productName} && npm run configure:plugin:unity && npm run build:plugin`;
 
   packageJson.scripts = Object.fromEntries(Object.entries(nextScripts).sort(([a], [b]) => a.localeCompare(b)));
   fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');

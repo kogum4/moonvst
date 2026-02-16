@@ -28,6 +28,7 @@
     "release:vst": "npm run build:dsp && npm run build:ui && npm run build:plugin",
     "release:vst:showcase": "npm run build:dsp:showcase && npm run build:ui:showcase && npm run build:plugin",
     "release:unity": "npm run build:dsp && npm run build:ui && npm run configure:plugin:unity && npm run build:plugin",
+    "release:unity:showcase": "npm run build:dsp:showcase && npm run build:ui:showcase && npm run configure:plugin:unity && npm run build:plugin",
     "scaffold:product": "node scripts/scaffold-product.js"
   },
   "devDependencies": {
