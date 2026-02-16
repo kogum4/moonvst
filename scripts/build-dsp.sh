@@ -23,9 +23,13 @@ if [ ! -f "$WAMRC" ]; then
 fi
 
 mkdir -p "$ROOT_DIR/plugin/resources"
-$WAMRC --opt-level=3 \
-    --target=x86_64 \
-    --cpu=x86-64 \
+WAMRC_ARGS=(--opt-level=3)
+if [ "$(uname -m)" = "x86_64" ]; then
+    # Keep CI artifacts portable across different x86_64 runners.
+    WAMRC_ARGS+=(--target=x86_64 --cpu=x86-64)
+fi
+
+$WAMRC "${WAMRC_ARGS[@]}" \
     -o "$ROOT_DIR/plugin/resources/moonvst_dsp.aot" \
     "$WASM_PATH"
 
