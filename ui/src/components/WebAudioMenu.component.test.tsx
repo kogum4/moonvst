@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { WebAudioMenu } from './WebAudioMenu'
-import { loadPersistedAudio, savePersistedAudio } from '../utils/persistedAudio'
+import { WebAudioMenu } from '../../../packages/ui-core/src/components/WebAudioMenu'
+import { loadPersistedAudio, savePersistedAudio } from '../../../packages/ui-core/src/utils/persistedAudio'
 
-vi.mock('../utils/persistedAudio', () => ({
+vi.mock('../../../packages/ui-core/src/utils/persistedAudio', () => ({
   loadPersistedAudio: vi.fn(),
   savePersistedAudio: vi.fn(),
 }))

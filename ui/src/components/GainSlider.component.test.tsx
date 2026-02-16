@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { GainSlider } from './GainSlider'
-import { useParam } from '../hooks/useParam'
+import { GainSlider } from '../../../packages/ui-core/src/components/GainSlider'
+import { useParam } from '../../../packages/ui-core/src/hooks/useParam'
 
-vi.mock('../hooks/useParam', () => ({
+vi.mock('../../../packages/ui-core/src/hooks/useParam', () => ({
   useParam: vi.fn(),
 }))
 

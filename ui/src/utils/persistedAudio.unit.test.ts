@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, test } from 'vitest'
-import { loadPersistedAudio, savePersistedAudio } from './persistedAudio'
+import { loadPersistedAudio, savePersistedAudio } from '../../../packages/ui-core/src/utils/persistedAudio'
 
 const DB_NAME = 'moonvst-web-audio'
 

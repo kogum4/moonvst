@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { LevelMeter } from './LevelMeter'
+import { LevelMeter } from '../../../packages/ui-core/src/components/LevelMeter'
 
 describe('LevelMeter', () => {
   afterEach(() => {

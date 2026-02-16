@@ -1,4 +1,4 @@
-import type { AudioRuntime, ParamInfo, WebAudioRuntime } from './types'
+import type { AudioRuntime, ParamInfo, WebAudioRuntime } from '../../../packages/ui-core/src/runtime/types'
 import { describe, expect, test } from 'vitest'
 
 function acceptAudioRuntime(runtime: AudioRuntime): AudioRuntime {

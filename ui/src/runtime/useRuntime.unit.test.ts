@@ -1,14 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { useRuntime } from './useRuntime'
-import { createJuceRuntime } from './JuceRuntime'
-import { createWebRuntime } from './WebRuntime'
+import { useRuntime } from '../../../packages/ui-core/src/runtime/useRuntime'
+import { createJuceRuntime } from '../../../packages/ui-core/src/runtime/JuceRuntime'
+import { createWebRuntime } from '../../../packages/ui-core/src/runtime/WebRuntime'
 
-vi.mock('./JuceRuntime', () => ({
+vi.mock('../../../packages/ui-core/src/runtime/JuceRuntime', () => ({
   createJuceRuntime: vi.fn(),
 }))
 
-vi.mock('./WebRuntime', () => ({
+vi.mock('../../../packages/ui-core/src/runtime/WebRuntime', () => ({
   createWebRuntime: vi.fn(),
 }))
 
