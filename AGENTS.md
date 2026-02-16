@@ -91,7 +91,7 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 ## DSP/API Compatibility Notes
 
 - Keep `packages/dsp-core/src/exports.mbt` host API compatible unless bridge changes are intentional
-- When changing parameters in `packages/dsp-core/src/params.mbt`, verify matching behavior in `packages/ui-core/src`
+- When changing parameters in `products/*/dsp-entry/params.mbt` or `packages/dsp-core/src/api/params.mbt`, verify matching behavior in `packages/ui-core/src`
 - If parameter names change, update UI references accordingly
 
 ## Done Criteria
