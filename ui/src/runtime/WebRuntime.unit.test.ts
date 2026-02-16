@@ -18,6 +18,7 @@ describe('createWebRuntime', () => {
   const originalMediaDevices = globalThis.navigator.mediaDevices
   const originalWebAssemblyCompile = WebAssembly.compile
   const originalWebAssemblyInstantiate = WebAssembly.instantiate
+  let lastAudioContextOptions: AudioContextOptions | undefined
 
   beforeEach(() => {
     const memory = new WebAssembly.Memory({ initial: 1 })
@@ -42,6 +43,9 @@ describe('createWebRuntime', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ arrayBuffer: async () => new ArrayBuffer(8) })))
 
     class MockAudioContext {
+      constructor(options?: AudioContextOptions) {
+        lastAudioContextOptions = options
+      }
       audioWorklet = {
         addModule: vi.fn(async () => {}),
       }
@@ -83,6 +87,7 @@ describe('createWebRuntime', () => {
   test('creates runtime and exposes parameter info', async () => {
     const runtime = await createWebRuntime()
 
+    expect(lastAudioContextOptions).toEqual({ latencyHint: 'interactive' })
     expect(runtime.type).toBe('web')
     expect(runtime.getParams()).toEqual([
       { index: 0, name: 'gain', min: 0, max: 1, defaultValue: 0.5 },

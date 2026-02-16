@@ -20,7 +20,7 @@ export function resolveRuntimeAssetPath(assetPath: string, baseUrl = import.meta
 }
 
 export async function createWebRuntime(): Promise<WebAudioRuntime> {
-  const ctx = new AudioContext()
+  const ctx = new AudioContext({ latencyHint: 'interactive' })
   const wasmPath = resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm')
   const workletPath = resolveRuntimeAssetPath('worklet/processor.js')
 
