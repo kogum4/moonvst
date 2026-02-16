@@ -35,6 +35,7 @@ jobs:
 
       - name: Build DSP WASM for web
         run: |
+          node scripts/select-product.js --product showcase
           cd dsp
           moon build --target wasm
           mkdir -p ../ui/public/wasm
@@ -48,6 +49,7 @@ jobs:
         working-directory: ui
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_PRODUCT: showcase
         run: npx vite build
 
       - name: Setup Pages
