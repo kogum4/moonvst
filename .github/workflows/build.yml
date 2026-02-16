@@ -34,8 +34,24 @@ jobs:
       - name: Build UI (showcase smoke)
         run: npm run build:ui:showcase
 
+      - name: Snapshot showcase product artifacts
+        run: |
+          mkdir -p ci-artifacts/showcase/dsp
+          mkdir -p ci-artifacts/showcase/ui
+          cp plugin/resources/moonvst_dsp.aot ci-artifacts/showcase/dsp/moonvst_dsp.aot
+          cp packages/ui-core/public/wasm/moonvst_dsp.wasm ci-artifacts/showcase/dsp/moonvst_dsp.wasm
+          cp -R packages/ui-core/dist ci-artifacts/showcase/ui/dist
+
       - name: Restore template artifacts
         run: npm run build:dsp && npm run build:ui
+
+      - name: Snapshot template product artifacts
+        run: |
+          mkdir -p ci-artifacts/template/dsp
+          mkdir -p ci-artifacts/template/ui
+          cp plugin/resources/moonvst_dsp.aot ci-artifacts/template/dsp/moonvst_dsp.aot
+          cp packages/ui-core/public/wasm/moonvst_dsp.wasm ci-artifacts/template/dsp/moonvst_dsp.wasm
+          cp -R packages/ui-core/dist ci-artifacts/template/ui/dist
 
       - name: Configure plugin
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
@@ -62,6 +78,13 @@ jobs:
             build/tests/cpp/plugin_smoke_test
             build/tests/cpp/wasm_dsp_test
             build/tests/cpp/moonvst_dsp.aot
+
+      - name: Upload product build snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonvst-macos-products
+          if-no-files-found: error
+          path: ci-artifacts/
 
   build-windows:
     runs-on: windows-latest
@@ -100,8 +123,26 @@ jobs:
       - name: Build UI (showcase smoke)
         run: npm run build:ui:showcase
 
+      - name: Snapshot showcase product artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "ci-artifacts/showcase/dsp" | Out-Null
+          New-Item -ItemType Directory -Force -Path "ci-artifacts/showcase/ui" | Out-Null
+          Copy-Item "plugin/resources/moonvst_dsp.aot" "ci-artifacts/showcase/dsp/moonvst_dsp.aot"
+          Copy-Item "packages/ui-core/public/wasm/moonvst_dsp.wasm" "ci-artifacts/showcase/dsp/moonvst_dsp.wasm"
+          Copy-Item "packages/ui-core/dist" "ci-artifacts/showcase/ui/dist" -Recurse
+
       - name: Restore template artifacts
         run: npm run build:dsp && npm run build:ui
+
+      - name: Snapshot template product artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "ci-artifacts/template/dsp" | Out-Null
+          New-Item -ItemType Directory -Force -Path "ci-artifacts/template/ui" | Out-Null
+          Copy-Item "plugin/resources/moonvst_dsp.aot" "ci-artifacts/template/dsp/moonvst_dsp.aot"
+          Copy-Item "packages/ui-core/public/wasm/moonvst_dsp.wasm" "ci-artifacts/template/dsp/moonvst_dsp.wasm"
+          Copy-Item "packages/ui-core/dist" "ci-artifacts/template/ui/dist" -Recurse
 
       - name: Configure plugin
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
@@ -129,6 +170,13 @@ jobs:
             build/tests/cpp/Release/plugin_smoke_test.exe
             build/tests/cpp/Release/wasm_dsp_test.exe
             build/tests/cpp/Release/moonvst_dsp.aot
+
+      - name: Upload product build snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonvst-windows-products
+          if-no-files-found: error
+          path: ci-artifacts/
 
   test-artifact-macos:
     runs-on: macos-14
