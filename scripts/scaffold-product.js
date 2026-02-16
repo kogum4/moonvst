@@ -32,6 +32,11 @@ function copyFile(fromPath, toPath) {
   fs.copyFileSync(fromPath, toPath);
 }
 
+function writeFileEnsured(filePath, contents) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, contents, 'utf8');
+}
+
 function addScriptsToPackageJson(root, productName) {
   const packageJsonPath = path.join(root, 'package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
@@ -67,28 +72,24 @@ function scaffoldProduct({ name, from }) {
   copyFile(path.join(fromDir, 'dsp-entry', 'lib_test.mbt'), path.join(productDir, 'dsp-entry', 'lib_test.mbt'));
   copyFile(path.join(fromDir, 'ui-entry', 'App.tsx'), path.join(productDir, 'ui-entry', 'App.tsx'));
 
-  fs.writeFileSync(
+  writeFileEnsured(
     path.join(productDir, 'product.config.json'),
     `${JSON.stringify({ name }, null, 2)}\n`,
-    'utf8',
   );
 
-  fs.writeFileSync(
+  writeFileEnsured(
     path.join(productDir, 'README.md'),
     `# ${name}\n\nGenerated from ${from}.\n`,
-    'utf8',
   );
 
-  fs.writeFileSync(
+  writeFileEnsured(
     path.join(root, 'tests', 'dsp', name, 'README.md'),
     `# DSP tests for ${name}\n`,
-    'utf8',
   );
 
-  fs.writeFileSync(
+  writeFileEnsured(
     path.join(root, 'tests', 'ui', name, 'README.md'),
     `# UI tests for ${name}\n`,
-    'utf8',
   );
 
   addScriptsToPackageJson(root, name);
