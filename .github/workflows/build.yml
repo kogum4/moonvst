@@ -208,10 +208,23 @@ jobs:
           name: moonvst-macos-tests
           path: smoke-tests
 
-      - name: Validate packaged plugin files
+      - name: Download product plugin snapshots
+        uses: actions/download-artifact@v4
+        with:
+          name: moonvst-macos-products
+          path: products
+
+      - name: Validate packaged plugin files (template)
         run: |
           test -d package/VST3/MoonVST.vst3
           test -f package/Standalone/MoonVST.app/Contents/MacOS/MoonVST
+
+      - name: Validate packaged plugin files (template + showcase snapshots)
+        run: |
+          test -d products/template/plugin/VST3/MoonVST.vst3
+          test -f products/template/plugin/Standalone/MoonVST.app/Contents/MacOS/MoonVST
+          test -d products/showcase/plugin/VST3/MoonVST.vst3
+          test -f products/showcase/plugin/Standalone/MoonVST.app/Contents/MacOS/MoonVST
 
       - name: Run smoke tests from build artifacts
         working-directory: smoke-tests
@@ -236,11 +249,25 @@ jobs:
           name: moonvst-windows-tests
           path: smoke-tests
 
-      - name: Validate packaged plugin files
+      - name: Download product plugin snapshots
+        uses: actions/download-artifact@v4
+        with:
+          name: moonvst-windows-products
+          path: products
+
+      - name: Validate packaged plugin files (template)
         shell: pwsh
         run: |
           if (-not (Test-Path "package/VST3/MoonVST.vst3")) { throw "VST3 artifact missing" }
           if (-not (Test-Path "package/Standalone/MoonVST.exe")) { throw "Standalone artifact missing" }
+
+      - name: Validate packaged plugin files (template + showcase snapshots)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "products/template/plugin/VST3/MoonVST.vst3")) { throw "template VST3 snapshot missing" }
+          if (-not (Test-Path "products/template/plugin/Standalone/MoonVST.exe")) { throw "template Standalone snapshot missing" }
+          if (-not (Test-Path "products/showcase/plugin/VST3/MoonVST.vst3")) { throw "showcase VST3 snapshot missing" }
+          if (-not (Test-Path "products/showcase/plugin/Standalone/MoonVST.exe")) { throw "showcase Standalone snapshot missing" }
 
       - name: Run smoke tests from build artifacts
         working-directory: smoke-tests

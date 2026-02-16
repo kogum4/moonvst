@@ -52,47 +52,6 @@ jobs:
       - name: Run showcase DSP tests
         run: npm run test:dsp:showcase
 
-  product-build-smoke:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - product: template
-            ui_script: build:ui
-          - product: showcase
-            ui_script: build:ui:showcase
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: package-lock.json
-
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Install UI dependencies
-        working-directory: packages/ui-core
-        run: npm ci
-
-      - name: Install MoonBit
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
-          echo "$HOME/.moon/bin" >> $GITHUB_PATH
-
-      - name: Build DSP WASM (${{ matrix.product }})
-        run: |
-          node scripts/select-product.js --product ${{ matrix.product }}
-          cd build/dsp-active
-          moon build --target wasm
-
-      - name: Build UI (${{ matrix.product }})
-        run: npm run ${{ matrix.ui_script }}
-
   scaffold-smoke:
     runs-on: ubuntu-latest
     steps:
