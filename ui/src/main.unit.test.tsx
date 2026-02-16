@@ -15,6 +15,9 @@ describe('main entry', () => {
     vi.doMock('./App', () => ({
       default: () => null,
     }))
+    vi.doMock('../../products/template/ui-entry/App', () => ({
+      default: () => null,
+    }))
 
     document.body.innerHTML = '<div id="root"></div>'
 

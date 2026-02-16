@@ -20,6 +20,7 @@ libs/wamr/wamr-compiler/build/
 plugin/resources/*.aot
 plugin/resources/*.wasm
 ui/public/wasm/*.wasm
+products/.selected-product
 
 # Test artifacts
 ui/playwright-report/

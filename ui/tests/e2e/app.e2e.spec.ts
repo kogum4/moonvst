@@ -62,5 +62,5 @@ test('renders MoonVST controls', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'MoonVST' })).toBeVisible()
   await expect(page.getByText('Runtime: juce')).toBeVisible()
-  await expect(page.getByRole('slider')).toHaveCount(6)
+  await expect(page.getByRole('slider')).toHaveCount(1)
 })

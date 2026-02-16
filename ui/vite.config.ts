@@ -4,6 +4,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 import path from 'node:path'
 
 const isJuceBuild = process.env.VITE_BUILD_TARGET === 'juce'
+const product = process.env.VITE_PRODUCT === 'showcase' ? 'showcase' : 'template'
 const base = process.env.VITE_BASE_PATH ?? '/'
 const dspWasmPath = path.resolve(__dirname, 'public', 'wasm', 'moonvst_dsp.wasm')
 
@@ -49,5 +50,6 @@ export default defineConfig({
   },
   define: {
     'import.meta.env.VITE_RUNTIME': JSON.stringify(isJuceBuild ? 'juce' : 'web'),
+    'import.meta.env.VITE_PRODUCT': JSON.stringify(product),
   },
 })

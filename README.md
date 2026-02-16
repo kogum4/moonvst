@@ -106,6 +106,14 @@ This runs in parallel:
 
 Use this to iterate quickly on DSP and UI without rebuilding the native plugin each edit.
 
+### Showcase development mode
+
+```bash
+npm run dev:showcase
+```
+
+This switches product wiring to `showcase` (DSP + UI).
+
 ### Native plugin build
 
 ```bash
@@ -119,6 +127,12 @@ Or run all in one:
 
 ```bash
 npm run release:vst
+```
+
+Showcase build pipeline:
+
+```bash
+npm run release:vst:showcase
 ```
 
 Unity Native Audio Plugin output included all in one:
@@ -160,14 +174,20 @@ The template is designed so most feature work does not require C++ edits.
 
 ### 1. Add or modify DSP parameters
 
-Edit `dsp/src/params.mbt`:
+Edit product entrypoint params:
+
+- `products/template/dsp-entry/params.mbt`
+- `products/showcase/dsp-entry/params.mbt`
 
 - add parameter definitions in `param_defs`
 - keep `param_values` aligned with your parameter count/defaults
 
 ### 2. Implement DSP logic
 
-Edit `dsp/src/lib.mbt` (`process_audio`).
+Edit product entrypoint DSP:
+
+- `products/template/dsp-entry/lib.mbt`
+- `products/showcase/dsp-entry/lib.mbt`
 
 ### 3. Keep exported DSP API available
 
@@ -189,15 +209,28 @@ Edit React UI under `ui/src`.
 
 `useParam` (`ui/src/hooks/useParam.ts`) already maps controls to DSP parameters by name.
 
+Product UI entrypoints:
+
+- `products/template/ui-entry/App.tsx`
+- `products/showcase/ui-entry/App.tsx`
+
 ## Project Layout
 
 ```text
+products/           product wiring (template/showcase)
+packages/           shared core modules
 dsp/                MoonBit DSP source and exports
 plugin/             JUCE plugin + WAMR host bridge
 ui/                 React/Vite UI
 scripts/            setup/build helper scripts
 libs/               submodules (JUCE, WAMR)
 tests/cpp/          native WASM integration test
+```
+
+Create a new product scaffold:
+
+```bash
+npm run scaffold:product -- --name my-product --from template
 ```
 
 ## Testing

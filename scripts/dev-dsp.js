@@ -1,10 +1,13 @@
 const { spawn } = require('child_process');
 const { copyFileSync, mkdirSync, existsSync, watch } = require('fs');
 const path = require('path');
+const { selectProduct } = require('./select-product');
 
 const root = path.resolve(__dirname, '..');
 const dspDir = path.join(root, 'dsp');
 const dspSrcDir = path.join(dspDir, 'src');
+const product = process.env.MOONVST_PRODUCT || 'template';
+const productDspEntryDir = path.join(root, 'products', product, 'dsp-entry');
 const wasmSrc = path.join(dspDir, '_build', 'wasm', 'debug', 'build', 'src', 'src.wasm');
 const wasmDestDir = path.join(root, 'ui', 'public', 'wasm');
 const wasmDest = path.join(wasmDestDir, 'moonvst_dsp.wasm');
@@ -15,6 +18,7 @@ let buildInProgress = false;
 let buildQueued = false;
 let debounceTimer = null;
 let srcWatcher = null;
+let productWatcher = null;
 
 function copyWasm() {
   try {
@@ -125,6 +129,7 @@ async function buildOnce(reason) {
 
   buildInProgress = true;
   try {
+    selectProduct(product);
     console.log(`[dev-dsp] Building (${reason})...`);
     try {
       await runMoonBuild();
@@ -156,6 +161,7 @@ function scheduleBuild(reason) {
 }
 
 async function start() {
+  console.log(`[dev-dsp] Active product: ${product}`);
   await buildOnce('initial');
 
   srcWatcher = watch(dspSrcDir, { recursive: true }, (_eventType, filename) => {
@@ -175,12 +181,26 @@ async function start() {
     console.error('[dev-dsp] Watcher error:', e.message);
   });
 
-  console.log('[dev-dsp] Watching dsp/src for changes...');
+  productWatcher = watch(productDspEntryDir, { recursive: true }, (_eventType, filename) => {
+    if (!filename || !/\.(mbt|json)$/.test(filename)) {
+      return;
+    }
+    scheduleBuild(`product dsp change: ${filename}`);
+  });
+
+  productWatcher.on('error', (e) => {
+    console.error('[dev-dsp] Product watcher error:', e.message);
+  });
+
+  console.log('[dev-dsp] Watching dsp/src and products/*/dsp-entry for changes...');
 }
 
 process.on('SIGINT', () => {
   if (srcWatcher) {
     srcWatcher.close();
+  }
+  if (productWatcher) {
+    productWatcher.close();
   }
   process.exit();
 });
