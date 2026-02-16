@@ -8,9 +8,9 @@ dist-web/
 node_modules/
 
 # MoonBit
-dsp/target/
-dsp/.mooncakes/
-dsp/_build/
+packages/dsp-core/target/
+packages/dsp-core/.mooncakes/
+packages/dsp-core/_build/
 
 # WAMR build artifacts
 libs/wamr/product-mini/platforms/*/build/
@@ -19,13 +19,13 @@ libs/wamr/wamr-compiler/build/
 # Generated binaries
 plugin/resources/*.aot
 plugin/resources/*.wasm
-ui/public/wasm/*.wasm
+packages/ui-core/public/wasm/*.wasm
 products/.selected-product
 
 # Test artifacts
-ui/playwright-report/
-ui/test-results/
-ui/coverage/
+packages/ui-core/playwright-report/
+packages/ui-core/test-results/
+packages/ui-core/coverage/
 
 # IDE
 .vscode/

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, test, vi } from 'vitest'
-import { useParam } from '../../../packages/ui-core/src/hooks/useParam'
+import { useParam } from './useParam'
 
 describe('useParam', () => {
   test('binds to runtime param and updates through callbacks', () => {

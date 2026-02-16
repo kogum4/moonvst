@@ -1,21 +1,21 @@
 ﻿import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import TemplateApp from '../../products/template/ui-entry/App'
-import { useRuntime } from '../../packages/ui-core/src/runtime/useRuntime'
+import TemplateApp from '../../../products/template/ui-entry/App'
+import { useRuntime } from './runtime/useRuntime'
 
-vi.mock('../../packages/ui-core/src/runtime/useRuntime', () => ({
+vi.mock('./runtime/useRuntime', () => ({
   useRuntime: vi.fn(),
 }))
 
-vi.mock('../../packages/ui-core/src/components/GainSlider', () => ({
+vi.mock('./components/GainSlider', () => ({
   GainSlider: ({ paramName }: { paramName: string }) => <div data-testid={`slider-${paramName}`}>{paramName}</div>,
 }))
 
-vi.mock('../../packages/ui-core/src/components/LevelMeter', () => ({
+vi.mock('./components/LevelMeter', () => ({
   LevelMeter: () => <div data-testid="level-meter">LevelMeter</div>,
 }))
 
-vi.mock('../../packages/ui-core/src/components/WebAudioMenu', () => ({
+vi.mock('./components/WebAudioMenu', () => ({
   WebAudioMenu: () => <div data-testid="web-audio-menu">WebAudioMenu</div>,
 }))
 

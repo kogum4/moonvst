@@ -191,7 +191,7 @@ Edit product entrypoint DSP:
 
 ### 3. Keep exported DSP API available
 
-`dsp/src/exports.mbt` contains the generic host API used by C++/UI:
+`packages/dsp-core/src/exports.mbt` contains the generic host API used by C++/UI:
 - `get_param_count`
 - `get_param_name`
 - `get_param_default`
@@ -205,9 +205,9 @@ Do not remove these unless you also update the host bridge.
 
 ### 4. Build UI controls
 
-Edit React UI under `ui/src`.
+Edit React UI under `packages/ui-core/src`.
 
-`useParam` (`ui/src/hooks/useParam.ts`) already maps controls to DSP parameters by name.
+`useParam` (`packages/ui-core/src/hooks/useParam.ts`) already maps controls to DSP parameters by name.
 
 Product UI entrypoints:
 
@@ -219,9 +219,9 @@ Product UI entrypoints:
 ```text
 products/           product wiring (template/showcase)
 packages/           shared core modules
-dsp/                MoonBit DSP source and exports
+packages/dsp-core/  MoonBit DSP source and exports
 plugin/             JUCE plugin + WAMR host bridge
-ui/                 React/Vite UI
+packages/ui-core/   React/Vite UI
 scripts/            setup/build helper scripts
 libs/               submodules (JUCE, WAMR)
 tests/cpp/          native WASM integration test

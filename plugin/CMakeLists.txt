@@ -66,7 +66,7 @@ endif()
 
 # UI binary data (built frontend assets)
 file(GLOB_RECURSE UI_RESOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/ui/dist/*"
+    "${CMAKE_SOURCE_DIR}/packages/ui-core/dist/*"
 )
 list(FILTER UI_RESOURCES EXCLUDE REGEX "/\\.gitkeep$")
 if(UI_RESOURCES)

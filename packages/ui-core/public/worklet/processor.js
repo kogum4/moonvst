@@ -12,7 +12,7 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
     this.levelSampleCounter = 0
     this.levelEmitIntervalSamples = Math.max(1, Math.floor(sampleRate * 0.05))
 
-    // Memory offsets (must match dsp/src/utils/constants.mbt)
+    // Memory offsets (must match packages/dsp-core/src/utils/constants.mbt)
     this.INPUT_LEFT_OFFSET = 0x10000
     this.INPUT_RIGHT_OFFSET = 0x20000
     this.OUTPUT_LEFT_OFFSET = 0x30000

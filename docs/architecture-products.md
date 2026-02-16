@@ -31,7 +31,7 @@ The design prioritizes the project principle: keep C++ changes minimal and avoid
   - UI entrypoint selection (`template` vs `showcase`)
 - Plugin consumes generated artifacts only:
   - AOT DSP binary in `plugin/resources/*.aot`
-  - Built UI bundle in `ui/dist/*`
+  - Built UI bundle in `packages/ui-core/dist/*`
 
 In short: one plugin codebase, two product build pipelines.
 
@@ -171,7 +171,7 @@ Add showcase-specific commands:
 
 Artifact flow:
 1. Build selected product DSP entry -> AOT -> `plugin/resources/`.
-2. Build selected product UI entry -> `ui/dist/`.
+2. Build selected product UI entry -> `packages/ui-core/dist/`.
 3. Run shared plugin build from `plugin/`.
 
 ## Product Scaffolding
@@ -266,7 +266,7 @@ Exit criteria:
 
 ## Migration Plan (No Implementation in This Document)
 
-1. Extract reusable DSP logic from current `dsp/src` into `packages/dsp-core`.
+1. Keep reusable DSP logic in `packages/dsp-core/src`.
 2. Extract reusable UI runtime/components into `packages/ui-core`.
 3. Create `products/template` entrypoints (Gain + Meter only) and map existing default scripts to them.
 4. Create `products/showcase` entrypoints and migrate current Dattorro-only behavior.

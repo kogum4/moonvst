@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { createWebRuntime, resolveRuntimeAssetPath } from '../../../packages/ui-core/src/runtime/WebRuntime'
+import { createWebRuntime, resolveRuntimeAssetPath } from './WebRuntime'
 
 class MockAudioWorkletNode {
   public port: { postMessage: ReturnType<typeof vi.fn>; onmessage: ((e: any) => void) | null }

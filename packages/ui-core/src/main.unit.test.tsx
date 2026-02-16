@@ -12,10 +12,10 @@ describe('main entry', () => {
       createRoot,
     }))
 
-    vi.doMock('../../products/showcase/ui-entry/App', () => ({
+    vi.doMock('../../../products/showcase/ui-entry/App', () => ({
       default: () => null,
     }))
-    vi.doMock('../../products/template/ui-entry/App', () => ({
+    vi.doMock('../../../products/template/ui-entry/App', () => ({
       default: () => null,
     }))
 

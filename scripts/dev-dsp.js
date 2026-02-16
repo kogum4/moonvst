@@ -4,12 +4,12 @@ const path = require('path');
 const { selectProduct } = require('./select-product');
 
 const root = path.resolve(__dirname, '..');
-const dspDir = path.join(root, 'dsp');
+const dspDir = path.join(root, 'packages', 'dsp-core');
 const dspSrcDir = path.join(dspDir, 'src');
 const product = process.env.MOONVST_PRODUCT || 'template';
 const productDspEntryDir = path.join(root, 'products', product, 'dsp-entry');
 const wasmSrc = path.join(dspDir, '_build', 'wasm', 'debug', 'build', 'src', 'src.wasm');
-const wasmDestDir = path.join(root, 'ui', 'public', 'wasm');
+const wasmDestDir = path.join(root, 'packages', 'ui-core', 'public', 'wasm');
 const wasmDest = path.join(wasmDestDir, 'moonvst_dsp.wasm');
 const debounceMs = 150;
 const buildTimeoutMs = Number.parseInt(process.env.DEV_DSP_BUILD_TIMEOUT_MS ?? '45000', 10);
@@ -25,7 +25,7 @@ function copyWasm() {
     if (existsSync(wasmSrc)) {
       mkdirSync(wasmDestDir, { recursive: true });
       copyFileSync(wasmSrc, wasmDest);
-      console.log('[dev-dsp] Copied WASM -> ui/public/wasm/moonvst_dsp.wasm');
+      console.log('[dev-dsp] Copied WASM -> packages/ui-core/public/wasm/moonvst_dsp.wasm');
     }
   } catch (e) {
     console.error('[dev-dsp] Copy failed:', e.message);
@@ -192,7 +192,7 @@ async function start() {
     console.error('[dev-dsp] Product watcher error:', e.message);
   });
 
-  console.log('[dev-dsp] Watching dsp/src and products/*/dsp-entry for changes...');
+  console.log('[dev-dsp] Watching packages/dsp-core/src and products/*/dsp-entry for changes...');
 }
 
 process.on('SIGINT', () => {

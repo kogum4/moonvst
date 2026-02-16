@@ -78,7 +78,7 @@ jobs:
 
       - name: Validate scaffolded npm scripts
         run: |
-          node -e 'const p=require("./package.json");const required=["dev:ci-smoke","build:dsp:ci-smoke","build:ui:ci-smoke","release:vst:ci-smoke","release:unity:ci-smoke"];for(const key of required){if(!p.scripts[key]){throw new Error("missing script: "+key)}}'
+          node -e 'const p=require("./package.json");const required=["dev:ci-smoke","dev:ui:ci-smoke","build:dsp:ci-smoke","build:ui:ci-smoke","release:vst:ci-smoke","release:unity:ci-smoke"];for(const key of required){if(!p.scripts[key]){throw new Error("missing script: "+key)}}'
 
       - name: Validate scaffold duplicate-name failure
         run: |
@@ -97,24 +97,24 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: ui/package-lock.json
+          cache-dependency-path: packages/ui-core/package-lock.json
 
       - name: Install UI dependencies
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm ci
 
       - name: Run UI unit tests
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm run test:unit
 
       - name: Run UI component tests
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm run test:component
 
       - name: Install Playwright browser
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npx playwright install --with-deps chromium
 
       - name: Run UI E2E tests
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm run test:e2e

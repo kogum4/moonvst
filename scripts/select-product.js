@@ -33,7 +33,7 @@ function selectProduct(product) {
 
   const root = path.resolve(__dirname, '..');
   const dspEntryDir = path.join(root, 'products', product, 'dsp-entry');
-  const dspSrcDir = path.join(root, 'dsp', 'src');
+  const dspSrcDir = path.join(root, 'packages', 'dsp-core', 'src');
 
   if (!fs.existsSync(dspEntryDir)) {
     throw new Error(`missing product dsp-entry: ${dspEntryDir}`);

@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: ui/package-lock.json
+          cache-dependency-path: packages/ui-core/package-lock.json
 
       - name: Install MoonBit
         run: |
@@ -36,17 +36,17 @@ jobs:
       - name: Build DSP WASM for web
         run: |
           node scripts/select-product.js --product showcase
-          cd dsp
+          cd packages/dsp-core
           moon build --target wasm
-          mkdir -p ../ui/public/wasm
-          cp _build/wasm/debug/build/src/src.wasm ../ui/public/wasm/moonvst_dsp.wasm
+          mkdir -p ../ui-core/public/wasm
+          cp _build/wasm/debug/build/src/src.wasm ../ui-core/public/wasm/moonvst_dsp.wasm
 
       - name: Install UI dependencies
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm ci
 
       - name: Build UI for Pages
-        working-directory: ui
+        working-directory: packages/ui-core
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
           VITE_PRODUCT: showcase
@@ -58,7 +58,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ui/dist-web
+          path: packages/ui-core/dist-web
 
   deploy:
     needs: build

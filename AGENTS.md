@@ -10,8 +10,8 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 
 ## Repository Map
 
-- `dsp/`: MoonBit DSP source (WASM-first)
-- `ui/`: React + Vite frontend
+- `packages/dsp-core/`: MoonBit DSP source (WASM-first)
+- `packages/ui-core/`: React + Vite frontend
 - `plugin/`: JUCE plugin and host bridge
 - `scripts/`: setup and build helpers
 - `tests/cpp/`: C++ integration tests
@@ -90,8 +90,8 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 
 ## DSP/API Compatibility Notes
 
-- Keep `dsp/src/exports.mbt` host API compatible unless bridge changes are intentional
-- When changing parameters in `dsp/src/params.mbt`, verify matching behavior in `ui/src`
+- Keep `packages/dsp-core/src/exports.mbt` host API compatible unless bridge changes are intentional
+- When changing parameters in `packages/dsp-core/src/params.mbt`, verify matching behavior in `packages/ui-core/src`
 - If parameter names change, update UI references accordingly
 
 ## Done Criteria

@@ -43,8 +43,9 @@ function addScriptsToPackageJson(root, productName) {
   const nextScripts = packageJson.scripts || {};
 
   nextScripts[`dev:${productName}`] = `cross-env MOONVST_PRODUCT=${productName} npm-run-all --parallel dev:dsp:product dev:ui:${productName}`;
+  nextScripts[`dev:ui:${productName}`] = `cd packages/ui-core && cross-env VITE_PRODUCT=${productName} npx vite`;
   nextScripts[`build:dsp:${productName}`] = `cross-env MOONVST_PRODUCT=${productName} node scripts/build-dsp-product.js`;
-  nextScripts[`build:ui:${productName}`] = `cd ui && cross-env VITE_PRODUCT=${productName} cross-env VITE_BUILD_TARGET=juce npx vite build`;
+  nextScripts[`build:ui:${productName}`] = `cd packages/ui-core && cross-env VITE_PRODUCT=${productName} cross-env VITE_BUILD_TARGET=juce npx vite build`;
   nextScripts[`release:vst:${productName}`] = `npm run build:dsp:${productName} && npm run build:ui:${productName} && npm run build:plugin`;
   nextScripts[`release:unity:${productName}`] = `npm run build:dsp:${productName} && npm run build:ui:${productName} && npm run configure:plugin:unity && npm run build:plugin`;
 

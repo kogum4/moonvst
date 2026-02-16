@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { createJuceRuntime } from '../../../packages/ui-core/src/runtime/JuceRuntime'
+import { createJuceRuntime } from './JuceRuntime'
 
 describe('createJuceRuntime', () => {
   afterEach(() => {
