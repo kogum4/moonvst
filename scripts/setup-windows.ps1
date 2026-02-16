@@ -165,7 +165,7 @@ if (-not (Test-Path $WebView2Dir)) {
 
 # 7. Install UI dependencies
 Write-Host "=== Installing UI dependencies ==="
-Set-Location "$RootDir/ui"
+Set-Location "$RootDir/packages/ui-core"
 npm install
 
 # 8. Install root dependencies
