@@ -18,7 +18,7 @@ jobs:
       - id: discover
         shell: bash
         run: |
-          products_json="$(node -e "const fs=require('fs');const dirs=fs.readdirSync('products',{withFileTypes:true}).filter((d)=>d.isDirectory()).map((d)=>d.name).sort();if(dirs.length===0){throw new Error('no products found under products/');}process.stdout.write(JSON.stringify(dirs.map((product)=>({product}))))")"
+          products_json="$(node -e "const fs=require('fs');const dirs=fs.readdirSync('products',{withFileTypes:true}).filter((d)=>d.isDirectory()).map((d)=>d.name).sort();if(dirs.length===0){throw new Error('no products found under products/');}process.stdout.write(JSON.stringify(dirs));")"
           default_product="$(node -e "const fs=require('fs');const dirs=fs.readdirSync('products',{withFileTypes:true}).filter((d)=>d.isDirectory()).map((d)=>d.name).sort();if(dirs.includes('template')){process.stdout.write('template');}else{process.stdout.write(dirs[0]);}")"
           echo "products=$products_json" >> "$GITHUB_OUTPUT"
           echo "default_product=$default_product" >> "$GITHUB_OUTPUT"
@@ -27,10 +27,6 @@ jobs:
   build-macos:
     runs-on: macos-14
     needs: discover-products
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.discover-products.outputs.products) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,52 +40,49 @@ jobs:
       - name: Run macOS setup script
         run: bash scripts/setup-macos.sh
 
-      - name: Build product assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          product="${{ matrix.product }}"
-          if [ "$product" = "template" ]; then
-            npm run build:dsp
-            npm run build:ui
-          else
-            npm run "build:dsp:$product"
-            npm run "build:ui:$product"
-          fi
-
       - name: Configure plugin
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
 
-      - name: Build plugin
-        run: npm run build:plugin
+      - name: Build all products
+        shell: bash
+        run: |
+          set -euo pipefail
+          products='${{ needs.discover-products.outputs.products }}'
+          mkdir -p ci-artifacts
+          for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
+            echo "=== Building product: $product ==="
+            if [ "$product" = "template" ]; then
+              npm run build:dsp
+              npm run build:ui
+            else
+              npm run "build:dsp:$product"
+              npm run "build:ui:$product"
+            fi
+            npm run build:plugin
 
-      - name: Upload plugin artifact
+            product_dir="ci-artifacts/$product"
+            mkdir -p "$product_dir/plugin" "$product_dir/tests"
+            cp -R build/plugin/MoonVST_artefacts/Release/VST3 "$product_dir/plugin/VST3"
+            cp -R build/plugin/MoonVST_artefacts/Release/Standalone "$product_dir/plugin/Standalone"
+            cp -R build/plugin/MoonVST_artefacts/Release/Unity "$product_dir/plugin/Unity"
+            if [ -d build/plugin/MoonVST_artefacts/Release/AU ]; then
+              cp -R build/plugin/MoonVST_artefacts/Release/AU "$product_dir/plugin/AU"
+            fi
+            cp build/tests/cpp/plugin_smoke_test "$product_dir/tests/plugin_smoke_test"
+            cp build/tests/cpp/wasm_dsp_test "$product_dir/tests/wasm_dsp_test"
+            cp build/tests/cpp/moonvst_dsp.aot "$product_dir/tests/moonvst_dsp.aot"
+          done
+
+      - name: Upload product artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: moonvst-macos-${{ matrix.product }}
-          path: |
-            build/plugin/MoonVST_artefacts/Release/VST3/
-            build/plugin/MoonVST_artefacts/Release/Standalone/
-            build/plugin/MoonVST_artefacts/Release/AU/
-            build/plugin/MoonVST_artefacts/Release/Unity/
-
-      - name: Upload smoke test bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: moonvst-macos-tests-${{ matrix.product }}
+          name: moonvst-macos-products
           if-no-files-found: error
-          path: |
-            build/tests/cpp/plugin_smoke_test
-            build/tests/cpp/wasm_dsp_test
-            build/tests/cpp/moonvst_dsp.aot
+          path: ci-artifacts/
 
   build-windows:
     runs-on: windows-latest
     needs: discover-products
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.discover-products.outputs.products) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -113,111 +106,91 @@ jobs:
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1
 
-      - name: Build product assets
-        shell: pwsh
-        run: |
-          $product = "${{ matrix.product }}"
-          if ($product -eq "template") {
-            npm run build:dsp
-            npm run build:ui
-          } else {
-            npm run "build:dsp:$product"
-            npm run "build:ui:$product"
-          }
-
       - name: Configure plugin
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
 
-      - name: Build plugin
-        run: npm run build:plugin
+      - name: Build all products
+        shell: pwsh
+        run: |
+          $products = '${{ needs.discover-products.outputs.products }}' | ConvertFrom-Json
+          New-Item -ItemType Directory -Force -Path "ci-artifacts" | Out-Null
+          foreach ($product in $products) {
+            Write-Host "=== Building product: $product ==="
+            if ($product -eq "template") {
+              npm run build:dsp
+              npm run build:ui
+            } else {
+              npm run "build:dsp:$product"
+              npm run "build:ui:$product"
+            }
+            npm run build:plugin
 
-      - name: Upload plugin artifact
+            $productDir = "ci-artifacts/$product"
+            New-Item -ItemType Directory -Force -Path "$productDir/plugin" | Out-Null
+            New-Item -ItemType Directory -Force -Path "$productDir/tests" | Out-Null
+            Copy-Item "build/plugin/MoonVST_artefacts/Release/VST3" "$productDir/plugin/VST3" -Recurse
+            Copy-Item "build/plugin/MoonVST_artefacts/Release/Standalone" "$productDir/plugin/Standalone" -Recurse
+            Copy-Item "build/plugin/MoonVST_artefacts/Release/Unity" "$productDir/plugin/Unity" -Recurse
+            Copy-Item "build/tests/cpp/Release/plugin_smoke_test.exe" "$productDir/tests/plugin_smoke_test.exe"
+            Copy-Item "build/tests/cpp/Release/wasm_dsp_test.exe" "$productDir/tests/wasm_dsp_test.exe"
+            Copy-Item "build/tests/cpp/Release/moonvst_dsp.aot" "$productDir/tests/moonvst_dsp.aot"
+          }
+
+      - name: Upload product artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: moonvst-windows-${{ matrix.product }}
-          path: |
-            build/plugin/MoonVST_artefacts/Release/VST3/
-            build/plugin/MoonVST_artefacts/Release/Standalone/
-            build/plugin/MoonVST_artefacts/Release/Unity/
-            !build/plugin/MoonVST_artefacts/Release/**/*.lib
-            !build/plugin/MoonVST_artefacts/Release/**/*.exp
-
-      - name: Upload smoke test bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: moonvst-windows-tests-${{ matrix.product }}
+          name: moonvst-windows-products
           if-no-files-found: error
-          path: |
-            build/tests/cpp/Release/plugin_smoke_test.exe
-            build/tests/cpp/Release/wasm_dsp_test.exe
-            build/tests/cpp/Release/moonvst_dsp.aot
+          path: ci-artifacts/
 
   test-artifact-macos:
     runs-on: macos-14
     needs: [discover-products, build-macos]
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.discover-products.outputs.products) }}
     steps:
-      - name: Download plugin artifact
+      - name: Download product artifacts
         uses: actions/download-artifact@v4
         with:
-          name: moonvst-macos-${{ matrix.product }}
-          path: package
+          name: moonvst-macos-products
+          path: products
 
-      - name: Download smoke test bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: moonvst-macos-tests-${{ matrix.product }}
-          path: smoke-tests
-
-      - name: Validate packaged plugin files
+      - name: Validate and run smoke tests for all products
+        shell: bash
         run: |
-          test -d package/VST3/MoonVST.vst3
-          test -f package/Standalone/MoonVST.app/Contents/MacOS/MoonVST
-
-      - name: Run smoke tests from build artifacts
-        working-directory: smoke-tests
-        run: |
-          chmod +x wasm_dsp_test plugin_smoke_test
-          ./wasm_dsp_test
-          ./plugin_smoke_test
+          set -euo pipefail
+          products='${{ needs.discover-products.outputs.products }}'
+          for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
+            echo "=== Testing product: $product ==="
+            test -d "products/$product/plugin/VST3/MoonVST.vst3"
+            test -f "products/$product/plugin/Standalone/MoonVST.app/Contents/MacOS/MoonVST"
+            chmod +x "products/$product/tests/wasm_dsp_test" "products/$product/tests/plugin_smoke_test"
+            (cd "products/$product/tests" && ./wasm_dsp_test && ./plugin_smoke_test)
+          done
 
   test-artifact-windows:
     runs-on: windows-latest
     needs: [discover-products, build-windows]
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.discover-products.outputs.products) }}
     steps:
-      - name: Download plugin artifact
+      - name: Download product artifacts
         uses: actions/download-artifact@v4
         with:
-          name: moonvst-windows-${{ matrix.product }}
-          path: package
+          name: moonvst-windows-products
+          path: products
 
-      - name: Download smoke test bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: moonvst-windows-tests-${{ matrix.product }}
-          path: smoke-tests
-
-      - name: Validate packaged plugin files
+      - name: Validate and run smoke tests for all products
         shell: pwsh
         run: |
-          if (-not (Test-Path "package/VST3/MoonVST.vst3")) { throw "VST3 artifact missing for ${{ matrix.product }}" }
-          if (-not (Test-Path "package/Standalone/MoonVST.exe")) { throw "Standalone artifact missing for ${{ matrix.product }}" }
-
-      - name: Run smoke tests from build artifacts
-        working-directory: smoke-tests
-        shell: pwsh
-        run: |
-          & "./wasm_dsp_test.exe"
-          if ($LASTEXITCODE -ne 0) { throw "wasm_dsp_test failed with code $LASTEXITCODE for ${{ matrix.product }}" }
-          & "./plugin_smoke_test.exe"
-          if ($LASTEXITCODE -ne 0) { throw "plugin_smoke_test failed with code $LASTEXITCODE for ${{ matrix.product }}" }
+          $products = '${{ needs.discover-products.outputs.products }}' | ConvertFrom-Json
+          foreach ($product in $products) {
+            Write-Host "=== Testing product: $product ==="
+            if (-not (Test-Path "products/$product/plugin/VST3/MoonVST.vst3")) { throw "VST3 artifact missing for $product" }
+            if (-not (Test-Path "products/$product/plugin/Standalone/MoonVST.exe")) { throw "Standalone artifact missing for $product" }
+            Push-Location "products/$product/tests"
+            & "./wasm_dsp_test.exe"
+            if ($LASTEXITCODE -ne 0) { throw "wasm_dsp_test failed with code $LASTEXITCODE for $product" }
+            & "./plugin_smoke_test.exe"
+            if ($LASTEXITCODE -ne 0) { throw "plugin_smoke_test failed with code $LASTEXITCODE for $product" }
+            Pop-Location
+          }
 
   release:
     runs-on: ubuntu-latest
@@ -226,20 +199,26 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download macOS plugin artifact (default product)
+      - name: Download macOS product artifacts
         uses: actions/download-artifact@v4
         with:
-          name: moonvst-macos-${{ needs.discover-products.outputs.default_product }}
-          path: package/macos
+          name: moonvst-macos-products
+          path: macos-products
 
-      - name: Download Windows plugin artifact (default product)
+      - name: Download Windows product artifacts
         uses: actions/download-artifact@v4
         with:
-          name: moonvst-windows-${{ needs.discover-products.outputs.default_product }}
-          path: package/windows
+          name: moonvst-windows-products
+          path: windows-products
 
-      - name: Validate release payload
+      - name: Prepare default product payload
+        shell: bash
         run: |
+          set -euo pipefail
+          product='${{ needs.discover-products.outputs.default_product }}'
+          mkdir -p package/macos package/windows
+          cp -R "macos-products/$product/plugin/." package/macos/
+          cp -R "windows-products/$product/plugin/." package/windows/
           test -d package/macos/VST3/MoonVST.vst3
           test -f package/macos/Standalone/MoonVST.app/Contents/MacOS/MoonVST
           test -d package/windows/VST3/MoonVST.vst3
