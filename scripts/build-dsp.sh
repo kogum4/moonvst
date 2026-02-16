@@ -24,6 +24,8 @@ fi
 
 mkdir -p "$ROOT_DIR/plugin/resources"
 $WAMRC --opt-level=3 \
+    --target=x86_64 \
+    --cpu=x86-64 \
     -o "$ROOT_DIR/plugin/resources/moonvst_dsp.aot" \
     "$WASM_PATH"
 

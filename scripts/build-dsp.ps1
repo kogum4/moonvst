@@ -24,7 +24,9 @@ if (-not $wamrc) {
 }
 
 New-Item -ItemType Directory -Force -Path "$RootDir/plugin/resources" | Out-Null
+$targetArgs = @("--target=x86_64", "--cpu=x86-64")
 & $wamrc --opt-level=3 `
+    $targetArgs `
     -o "$RootDir/plugin/resources/moonvst_dsp.aot" `
     "_build/wasm/debug/build/src/src.wasm"
 
