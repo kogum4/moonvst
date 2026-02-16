@@ -34,30 +34,40 @@ jobs:
       - name: Build UI (showcase smoke)
         run: npm run build:ui:showcase
 
-      - name: Snapshot showcase product artifacts
+      - name: Configure plugin (showcase)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
+
+      - name: Build plugin (showcase)
+        run: npm run build:plugin
+
+      - name: Snapshot showcase plugin artifacts
         run: |
-          mkdir -p ci-artifacts/showcase/dsp
-          mkdir -p ci-artifacts/showcase/ui
-          cp plugin/resources/moonvst_dsp.aot ci-artifacts/showcase/dsp/moonvst_dsp.aot
-          cp packages/ui-core/public/wasm/moonvst_dsp.wasm ci-artifacts/showcase/dsp/moonvst_dsp.wasm
-          cp -R packages/ui-core/dist ci-artifacts/showcase/ui/dist
+          mkdir -p ci-artifacts/showcase/plugin
+          cp -R build/plugin/MoonVST_artefacts/Release/VST3 ci-artifacts/showcase/plugin/VST3
+          cp -R build/plugin/MoonVST_artefacts/Release/Standalone ci-artifacts/showcase/plugin/Standalone
+          cp -R build/plugin/MoonVST_artefacts/Release/Unity ci-artifacts/showcase/plugin/Unity
+          if [ -d build/plugin/MoonVST_artefacts/Release/AU ]; then
+            cp -R build/plugin/MoonVST_artefacts/Release/AU ci-artifacts/showcase/plugin/AU
+          fi
 
       - name: Restore template artifacts
         run: npm run build:dsp && npm run build:ui
 
-      - name: Snapshot template product artifacts
-        run: |
-          mkdir -p ci-artifacts/template/dsp
-          mkdir -p ci-artifacts/template/ui
-          cp plugin/resources/moonvst_dsp.aot ci-artifacts/template/dsp/moonvst_dsp.aot
-          cp packages/ui-core/public/wasm/moonvst_dsp.wasm ci-artifacts/template/dsp/moonvst_dsp.wasm
-          cp -R packages/ui-core/dist ci-artifacts/template/ui/dist
-
-      - name: Configure plugin
+      - name: Configure plugin (template)
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
 
-      - name: Build plugin
+      - name: Build plugin (template)
         run: npm run build:plugin
+
+      - name: Snapshot template plugin artifacts
+        run: |
+          mkdir -p ci-artifacts/template/plugin
+          cp -R build/plugin/MoonVST_artefacts/Release/VST3 ci-artifacts/template/plugin/VST3
+          cp -R build/plugin/MoonVST_artefacts/Release/Standalone ci-artifacts/template/plugin/Standalone
+          cp -R build/plugin/MoonVST_artefacts/Release/Unity ci-artifacts/template/plugin/Unity
+          if [ -d build/plugin/MoonVST_artefacts/Release/AU ]; then
+            cp -R build/plugin/MoonVST_artefacts/Release/AU ci-artifacts/template/plugin/AU
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -123,32 +133,36 @@ jobs:
       - name: Build UI (showcase smoke)
         run: npm run build:ui:showcase
 
-      - name: Snapshot showcase product artifacts
+      - name: Configure plugin (showcase)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
+
+      - name: Build plugin (showcase)
+        run: npm run build:plugin
+
+      - name: Snapshot showcase plugin artifacts
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "ci-artifacts/showcase/dsp" | Out-Null
-          New-Item -ItemType Directory -Force -Path "ci-artifacts/showcase/ui" | Out-Null
-          Copy-Item "plugin/resources/moonvst_dsp.aot" "ci-artifacts/showcase/dsp/moonvst_dsp.aot"
-          Copy-Item "packages/ui-core/public/wasm/moonvst_dsp.wasm" "ci-artifacts/showcase/dsp/moonvst_dsp.wasm"
-          Copy-Item "packages/ui-core/dist" "ci-artifacts/showcase/ui/dist" -Recurse
+          New-Item -ItemType Directory -Force -Path "ci-artifacts/showcase/plugin" | Out-Null
+          Copy-Item "build/plugin/MoonVST_artefacts/Release/VST3" "ci-artifacts/showcase/plugin/VST3" -Recurse
+          Copy-Item "build/plugin/MoonVST_artefacts/Release/Standalone" "ci-artifacts/showcase/plugin/Standalone" -Recurse
+          Copy-Item "build/plugin/MoonVST_artefacts/Release/Unity" "ci-artifacts/showcase/plugin/Unity" -Recurse
 
       - name: Restore template artifacts
         run: npm run build:dsp && npm run build:ui
 
-      - name: Snapshot template product artifacts
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path "ci-artifacts/template/dsp" | Out-Null
-          New-Item -ItemType Directory -Force -Path "ci-artifacts/template/ui" | Out-Null
-          Copy-Item "plugin/resources/moonvst_dsp.aot" "ci-artifacts/template/dsp/moonvst_dsp.aot"
-          Copy-Item "packages/ui-core/public/wasm/moonvst_dsp.wasm" "ci-artifacts/template/dsp/moonvst_dsp.wasm"
-          Copy-Item "packages/ui-core/dist" "ci-artifacts/template/ui/dist" -Recurse
-
-      - name: Configure plugin
+      - name: Configure plugin (template)
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
 
-      - name: Build plugin
+      - name: Build plugin (template)
         run: npm run build:plugin
+
+      - name: Snapshot template plugin artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "ci-artifacts/template/plugin" | Out-Null
+          Copy-Item "build/plugin/MoonVST_artefacts/Release/VST3" "ci-artifacts/template/plugin/VST3" -Recurse
+          Copy-Item "build/plugin/MoonVST_artefacts/Release/Standalone" "ci-artifacts/template/plugin/Standalone" -Recurse
+          Copy-Item "build/plugin/MoonVST_artefacts/Release/Unity" "ci-artifacts/template/plugin/Unity" -Recurse
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
