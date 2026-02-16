@@ -4,7 +4,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir
 
 Write-Host "=== Building MoonBit DSP ==="
-Set-Location "$RootDir/packages/dsp-core"
+Set-Location "$RootDir/build/dsp-active"
 moon build --target wasm
 
 Write-Host "=== Copying WASM to UI public ==="

@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "=== Building MoonBit DSP ==="
-cd "$ROOT_DIR/packages/dsp-core"
+cd "$ROOT_DIR/build/dsp-active"
 moon build --target wasm
 
 WASM_PATH="_build/wasm/debug/build/src/src.wasm"

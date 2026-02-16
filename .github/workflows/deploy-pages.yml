@@ -36,7 +36,7 @@ jobs:
       - name: Build DSP WASM for web
         run: |
           node scripts/select-product.js --product showcase
-          cd packages/dsp-core
+          cd build/dsp-active
           moon build --target wasm
           mkdir -p ../ui-core/public/wasm
           cp _build/wasm/debug/build/src/src.wasm ../ui-core/public/wasm/moonvst_dsp.wasm

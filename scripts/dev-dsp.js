@@ -4,8 +4,8 @@ const path = require('path');
 const { selectProduct } = require('./select-product');
 
 const root = path.resolve(__dirname, '..');
-const dspDir = path.join(root, 'packages', 'dsp-core');
-const dspSrcDir = path.join(dspDir, 'src');
+const dspDir = path.join(root, 'build', 'dsp-active');
+const dspCoreSrcDir = path.join(root, 'packages', 'dsp-core', 'src');
 const product = process.env.MOONVST_PRODUCT || 'template';
 const productDspEntryDir = path.join(root, 'products', product, 'dsp-entry');
 const wasmSrc = path.join(dspDir, '_build', 'wasm', 'debug', 'build', 'src', 'src.wasm');
@@ -164,7 +164,7 @@ async function start() {
   console.log(`[dev-dsp] Active product: ${product}`);
   await buildOnce('initial');
 
-  srcWatcher = watch(dspSrcDir, { recursive: true }, (_eventType, filename) => {
+  srcWatcher = watch(dspCoreSrcDir, { recursive: true }, (_eventType, filename) => {
     if (!filename) {
       scheduleBuild('source change');
       return;
