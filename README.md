@@ -220,8 +220,8 @@ Product UI entrypoints:
 products/           product wiring (template/showcase)
 packages/           shared core modules
 packages/dsp-core/  MoonBit DSP source and exports
-plugin/             JUCE plugin + WAMR host bridge
 packages/ui-core/   React/Vite UI
+plugin/             JUCE plugin + WAMR host bridge
 scripts/            setup/build helper scripts
 libs/               submodules (JUCE, WAMR)
 tests/cpp/          native WASM integration test

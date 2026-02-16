@@ -25,6 +25,16 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 - If requirements are unclear, keep scope narrow and avoid broad speculative changes
 - Do not implement speculative design changes without explicit user approval
 
+## Product Architecture Rules
+
+- Keep `plugin/` shared and product-agnostic. Do not add product branching in C++ unless explicitly requested.
+- Treat `packages/*` as shared implementation and `products/*` as product wiring only.
+- Keep DSP product-specific files in `products/*/dsp-entry/` and do not write generated entry files into tracked `packages/dsp-core/src`.
+- Keep UI product-specific composition in `products/*/ui-entry/App.tsx`; keep business logic/components in `packages/ui-core`.
+- Keep CSS split by responsibility: shared styles in `packages/ui-core`, product-specific theme overrides in `products/*/ui-entry`.
+- Keep `App.tsx` thin (composition and wiring only). If product-specific UI grows, create `products/<name>/ui-entry/components/*` instead of moving logic into `packages/ui-core` conditionals.
+- Do not duplicate core logic into `products/*`; when shared behavior appears, move it back to `packages/*`.
+
 ## TDD Rules
 
 - Default to test-driven development for behavior changes
