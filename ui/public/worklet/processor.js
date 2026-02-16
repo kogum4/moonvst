@@ -52,13 +52,19 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
     const bytesPerFloat = 4
 
     // Copy input to WASM memory
+    const inLOffset = this.INPUT_LEFT_OFFSET / bytesPerFloat
+    const inROffset = this.INPUT_RIGHT_OFFSET / bytesPerFloat
     if (input[0]) {
-      const inLOffset = this.INPUT_LEFT_OFFSET / bytesPerFloat
       mem.set(input[0], inLOffset)
+    } else {
+      mem.fill(0, inLOffset, inLOffset + numSamples)
     }
     if (input[1]) {
-      const inROffset = this.INPUT_RIGHT_OFFSET / bytesPerFloat
       mem.set(input[1], inROffset)
+    } else if (input[0]) {
+      mem.set(input[0], inROffset)
+    } else {
+      mem.fill(0, inROffset, inROffset + numSamples)
     }
 
     // Process

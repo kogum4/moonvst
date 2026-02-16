@@ -22,6 +22,10 @@ export interface WebAudioRuntime extends AudioRuntime {
   loadAudioFile(file: File): Promise<void>
   play(): Promise<void>
   stop(): void
+  startMic(): Promise<void>
+  stopMic(): void
   hasAudioLoaded(): boolean
   getIsPlaying(): boolean
+  getInputMode(): 'none' | 'file' | 'mic'
+  getMicState(): 'inactive' | 'requesting' | 'active' | 'denied' | 'error'
 }

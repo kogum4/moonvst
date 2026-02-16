@@ -79,6 +79,29 @@
   color: #9f9fb6;
 }
 
+.sourceRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sourceButton {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #40404f;
+  border-radius: 6px;
+  background: #20202a;
+  color: #b9b9cf;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sourceActive {
+  background: #2f2f3f;
+  color: #f2f2ff;
+  border-color: #5f5f7f;
+}
+
 .hiddenInput {
   display: none;
 }

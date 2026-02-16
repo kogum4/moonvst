@@ -14,6 +14,8 @@ const mockedSavePersistedAudio = vi.mocked(savePersistedAudio)
 function createRuntime() {
   let playing = false
   let hasAudio = false
+  let inputMode: 'none' | 'file' | 'mic' = 'none'
+  let micState: 'inactive' | 'requesting' | 'active' | 'denied' | 'error' = 'inactive'
 
   return {
     type: 'web' as const,
@@ -26,6 +28,7 @@ function createRuntime() {
     loadAudioData: vi.fn(async () => {
       hasAudio = true
       playing = false
+      inputMode = 'file'
     }),
     loadAudioFile: vi.fn(async () => {}),
     play: vi.fn(async () => {
@@ -36,6 +39,19 @@ function createRuntime() {
     }),
     hasAudioLoaded: vi.fn(() => hasAudio),
     getIsPlaying: vi.fn(() => playing),
+    startMic: vi.fn(async () => {
+      inputMode = 'mic'
+      micState = 'active'
+      hasAudio = false
+      playing = false
+    }),
+    stopMic: vi.fn(() => {
+      inputMode = 'none'
+      micState = 'inactive'
+      playing = false
+    }),
+    getInputMode: vi.fn(() => inputMode),
+    getMicState: vi.fn(() => micState),
   }
 }
 
@@ -106,5 +122,19 @@ describe('WebAudioMenu', () => {
     const stopButton = screen.getByRole('button', { name: 'Stop' })
     fireEvent.click(stopButton)
     expect(runtime.stop).toHaveBeenCalled()
+  })
+
+  test('switches to mic mode and toggles mic start/stop', async () => {
+    const runtime = createRuntime()
+    render(<WebAudioMenu runtime={runtime} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Microphone' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start Mic' }))
+
+    await waitFor(() => expect(runtime.startMic).toHaveBeenCalled())
+    expect(screen.getByRole('button', { name: 'Stop Mic' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Mic' }))
+    expect(runtime.stopMic).toHaveBeenCalled()
   })
 })
