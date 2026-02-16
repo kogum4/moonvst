@@ -22,6 +22,16 @@ const runtimeStub = {
   getParam: () => 0,
   getLevel: () => 0,
   onParamChange: () => () => {},
+  loadAudioData: async () => {},
+  loadAudioFile: async () => {},
+  play: async () => {},
+  stop: () => {},
+  startMic: async () => {},
+  stopMic: () => {},
+  hasAudioLoaded: () => false,
+  getIsPlaying: () => false,
+  getInputMode: () => 'none' as const,
+  getMicState: () => 'inactive' as const,
   dispose: vi.fn(),
 }
 

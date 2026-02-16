@@ -36,8 +36,12 @@ describe('runtime types', () => {
       loadAudioFile: async () => {},
       play: async () => {},
       stop: () => {},
+      startMic: async () => {},
+      stopMic: () => {},
       hasAudioLoaded: () => false,
       getIsPlaying: () => false,
+      getInputMode: () => 'none',
+      getMicState: () => 'inactive',
     }
 
     expect(acceptAudioRuntime(baseRuntime).type).toBe('juce')

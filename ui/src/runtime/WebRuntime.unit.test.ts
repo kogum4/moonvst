@@ -15,8 +15,10 @@ describe('createWebRuntime', () => {
   const originalFetch = globalThis.fetch
   const originalAudioContext = globalThis.AudioContext
   const originalAudioWorkletNode = (globalThis as any).AudioWorkletNode
+  const originalMediaDevices = globalThis.navigator.mediaDevices
   const originalWebAssemblyCompile = WebAssembly.compile
   const originalWebAssemblyInstantiate = WebAssembly.instantiate
+  let lastAudioContextOptions: AudioContextOptions | undefined
 
   beforeEach(() => {
     const memory = new WebAssembly.Memory({ initial: 1 })
@@ -41,12 +43,16 @@ describe('createWebRuntime', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ arrayBuffer: async () => new ArrayBuffer(8) })))
 
     class MockAudioContext {
+      constructor(options?: AudioContextOptions) {
+        lastAudioContextOptions = options
+      }
       audioWorklet = {
         addModule: vi.fn(async () => {}),
       }
       destination = {}
       decodeAudioData = vi.fn(async () => ({}))
       createMediaElementSource = vi.fn(() => ({ connect: vi.fn(), disconnect: vi.fn() }))
+      createMediaStreamSource = vi.fn(() => ({ connect: vi.fn(), disconnect: vi.fn() }))
       close = vi.fn(async () => {})
       resume = vi.fn(async () => {})
       state = 'running'
@@ -54,6 +60,13 @@ describe('createWebRuntime', () => {
 
     vi.stubGlobal('AudioContext', MockAudioContext as unknown as typeof AudioContext)
     vi.stubGlobal('AudioWorkletNode', MockAudioWorkletNode)
+    vi.stubGlobal('navigator', {
+      mediaDevices: {
+        getUserMedia: vi.fn(async () => ({
+          getTracks: () => [{ stop: vi.fn() }],
+        })),
+      },
+    })
 
     WebAssembly.compile = vi.fn(async () => ({} as WebAssembly.Module))
     WebAssembly.instantiate = vi.fn(async () => ({ exports } as unknown as WebAssembly.Instance))
@@ -64,6 +77,9 @@ describe('createWebRuntime', () => {
     if (originalFetch) vi.stubGlobal('fetch', originalFetch)
     if (originalAudioContext) vi.stubGlobal('AudioContext', originalAudioContext)
     if (originalAudioWorkletNode) vi.stubGlobal('AudioWorkletNode', originalAudioWorkletNode)
+    if (originalMediaDevices) {
+      vi.stubGlobal('navigator', { mediaDevices: originalMediaDevices })
+    }
     WebAssembly.compile = originalWebAssemblyCompile
     WebAssembly.instantiate = originalWebAssemblyInstantiate
   })
@@ -71,6 +87,7 @@ describe('createWebRuntime', () => {
   test('creates runtime and exposes parameter info', async () => {
     const runtime = await createWebRuntime()
 
+    expect(lastAudioContextOptions).toEqual({ latencyHint: 'interactive' })
     expect(runtime.type).toBe('web')
     expect(runtime.getParams()).toEqual([
       { index: 0, name: 'gain', min: 0, max: 1, defaultValue: 0.5 },
@@ -88,6 +105,28 @@ describe('createWebRuntime', () => {
     }))
 
     await expect(createWebRuntime()).rejects.toThrow('network down')
+  })
+
+  test('starts and stops microphone input', async () => {
+    const runtime = await createWebRuntime()
+    const getUserMedia = vi.mocked(navigator.mediaDevices.getUserMedia)
+
+    expect(runtime.getInputMode()).toBe('none')
+
+    await runtime.startMic()
+    expect(getUserMedia).toHaveBeenCalledWith({
+      audio: {
+        autoGainControl: false,
+        noiseSuppression: false,
+        echoCancellation: false,
+      },
+    })
+    expect(runtime.getInputMode()).toBe('mic')
+    expect(runtime.getMicState()).toBe('active')
+
+    runtime.stopMic()
+    expect(runtime.getInputMode()).toBe('none')
+    expect(runtime.getMicState()).toBe('inactive')
   })
 })
 

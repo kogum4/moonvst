@@ -60,8 +60,12 @@ describe('App', () => {
         loadAudioFile: async () => {},
         play: async () => {},
         stop: () => {},
+        startMic: async () => {},
+        stopMic: () => {},
         hasAudioLoaded: () => false,
         getIsPlaying: () => false,
+        getInputMode: () => 'none' as const,
+        getMicState: () => 'inactive' as const,
       },
       error: null,
     })

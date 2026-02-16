@@ -10,14 +10,18 @@ type Props = {
 export function WebAudioMenu({ runtime }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [isOpen, setIsOpen] = useState(false)
+  const [sourceMode, setSourceMode] = useState<'file' | 'mic'>(() => runtime.getInputMode() === 'mic' ? 'mic' : 'file')
   const [fileName, setFileName] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(runtime.getIsPlaying())
   const [hasAudio, setHasAudio] = useState(runtime.hasAudioLoaded())
+  const [micState, setMicState] = useState(runtime.getMicState())
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setIsPlaying(runtime.getIsPlaying())
     setHasAudio(runtime.hasAudioLoaded())
+    setSourceMode(runtime.getInputMode() === 'mic' ? 'mic' : 'file')
+    setMicState(runtime.getMicState())
   }, [runtime])
 
   useEffect(() => {
@@ -94,6 +98,37 @@ export function WebAudioMenu({ runtime }: Props) {
     }
   }
 
+  const selectFileMode = () => {
+    setSourceMode('file')
+    runtime.stopMic()
+    setMicState(runtime.getMicState())
+  }
+
+  const selectMicMode = () => {
+    setSourceMode('mic')
+    if (runtime.getIsPlaying()) {
+      runtime.stop()
+      setIsPlaying(false)
+    }
+  }
+
+  const toggleMic = async () => {
+    try {
+      setError(null)
+      if (runtime.getMicState() === 'active') {
+        runtime.stopMic()
+        setMicState('inactive')
+      } else {
+        await runtime.startMic()
+        setMicState(runtime.getMicState())
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
+      setMicState(runtime.getMicState())
+    }
+  }
+
   return (
     <div className={styles.root}>
       <button
@@ -113,28 +148,60 @@ export function WebAudioMenu({ runtime }: Props) {
       <aside className={`${styles.panel} ${isOpen ? styles.panelOpen : ''}`}>
         <h2 className={styles.heading}>Audio Source</h2>
 
-        <input
-          ref={fileInputRef}
-          className={styles.hiddenInput}
-          type="file"
-          accept="audio/*"
-          onChange={onFileSelected}
-        />
+        <div className={styles.sourceRow}>
+          <button
+            type="button"
+            className={`${styles.sourceButton} ${sourceMode === 'file' ? styles.sourceActive : ''}`}
+            onClick={selectFileMode}
+          >
+            File
+          </button>
+          <button
+            type="button"
+            className={`${styles.sourceButton} ${sourceMode === 'mic' ? styles.sourceActive : ''}`}
+            onClick={selectMicMode}
+          >
+            Microphone
+          </button>
+        </div>
 
-        <button type="button" className={styles.button} onClick={openFilePicker}>
-          Choose File
-        </button>
+        {sourceMode === 'file' ? (
+          <>
+            <input
+              ref={fileInputRef}
+              className={styles.hiddenInput}
+              type="file"
+              accept="audio/*"
+              onChange={onFileSelected}
+            />
 
-        <p className={styles.fileName}>{fileName ?? 'No file selected'}</p>
+            <button type="button" className={styles.button} onClick={openFilePicker}>
+              Choose File
+            </button>
 
-        <button
-          type="button"
-          className={`${styles.button} ${hasAudio ? (isPlaying ? styles.stop : styles.play) : styles.disabled}`}
-          onClick={() => { void togglePlayback() }}
-          disabled={!hasAudio}
-        >
-          {isPlaying ? 'Stop' : 'Play'}
-        </button>
+            <p className={styles.fileName}>{fileName ?? 'No file selected'}</p>
+
+            <button
+              type="button"
+              className={`${styles.button} ${hasAudio ? (isPlaying ? styles.stop : styles.play) : styles.disabled}`}
+              onClick={() => { void togglePlayback() }}
+              disabled={!hasAudio}
+            >
+              {isPlaying ? 'Stop' : 'Play'}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className={styles.fileName}>Mic status: {micState}</p>
+            <button
+              type="button"
+              className={`${styles.button} ${micState === 'active' ? styles.stop : styles.play}`}
+              onClick={() => { void toggleMic() }}
+            >
+              {micState === 'active' ? 'Stop Mic' : 'Start Mic'}
+            </button>
+          </>
+        )}
 
         {error ? <p className={styles.error}>{error}</p> : null}
       </aside>

@@ -20,7 +20,7 @@ export function resolveRuntimeAssetPath(assetPath: string, baseUrl = import.meta
 }
 
 export async function createWebRuntime(): Promise<WebAudioRuntime> {
-  const ctx = new AudioContext()
+  const ctx = new AudioContext({ latencyHint: 'interactive' })
   const wasmPath = resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm')
   const workletPath = resolveRuntimeAssetPath('worklet/processor.js')
 
@@ -71,10 +71,15 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
 
   let audioElement: HTMLAudioElement | null = null
   let mediaSourceNode: MediaElementAudioSourceNode | null = null
+  let micSourceNode: MediaStreamAudioSourceNode | null = null
+  let micStream: MediaStream | null = null
+  let activeSourceNode: AudioNode | null = null
   let audioUrl: string | null = null
   let hasAudio = false
   let isPlaying = false
   let currentLevel = 0
+  let inputMode: 'none' | 'file' | 'mic' = 'none'
+  let micState: 'inactive' | 'requesting' | 'active' | 'denied' | 'error' = 'inactive'
 
   workletNode.port.onmessage = (event) => {
     const data = event.data as { type?: string; value?: number; message?: string }
@@ -100,8 +105,35 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
         isPlaying = false
       })
       mediaSourceNode = ctx.createMediaElementSource(audioElement)
-      mediaSourceNode.connect(workletNode)
     }
+  }
+
+  const activateSource = (sourceNode: AudioNode | null) => {
+    if (!sourceNode) return
+    if (activeSourceNode && activeSourceNode !== sourceNode) {
+      activeSourceNode.disconnect()
+    }
+    sourceNode.connect(workletNode)
+    activeSourceNode = sourceNode
+  }
+
+  const stopMicInternal = () => {
+    const previousMicSource = micSourceNode
+    if (micSourceNode) {
+      micSourceNode.disconnect()
+      micSourceNode = null
+    }
+    if (micStream) {
+      micStream.getTracks().forEach((track) => track.stop())
+      micStream = null
+    }
+    if (activeSourceNode && activeSourceNode === previousMicSource) {
+      activeSourceNode = null
+    }
+    if (inputMode === 'mic') {
+      inputMode = 'none'
+    }
+    micState = 'inactive'
   }
 
   const resetPlaybackState = () => {
@@ -124,6 +156,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
     }
 
     resetPlaybackState()
+    stopMicInternal()
     ensureAudioGraph()
     await validateAudioData(bytes)
 
@@ -153,6 +186,9 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
       audioElement.addEventListener('loadeddata', onLoaded, { once: true })
       audioElement.addEventListener('error', onError, { once: true })
     })
+
+    activateSource(mediaSourceNode)
+    inputMode = 'file'
   }
 
   // Parameter change listeners
@@ -210,12 +246,67 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
       currentLevel = 0
     },
 
+    async startMic() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        micState = 'error'
+        throw new Error('Microphone input is not supported in this browser')
+      }
+
+      micState = 'requesting'
+      try {
+        if (ctx.state === 'suspended') {
+          await ctx.resume()
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            autoGainControl: false,
+            noiseSuppression: false,
+            echoCancellation: false,
+          },
+        })
+
+        if (audioElement) {
+          audioElement.pause()
+          audioElement.currentTime = 0
+        }
+        isPlaying = false
+        currentLevel = 0
+        ensureAudioGraph()
+        stopMicInternal()
+        if (mediaSourceNode) {
+          mediaSourceNode.disconnect()
+        }
+        micStream = stream
+        micSourceNode = ctx.createMediaStreamSource(stream)
+        activateSource(micSourceNode)
+        inputMode = 'mic'
+        micState = 'active'
+      } catch (err) {
+        const name = (err as { name?: string })?.name
+        micState = name === 'NotAllowedError' ? 'denied' : 'error'
+        throw err
+      }
+    },
+
+    stopMic() {
+      stopMicInternal()
+      currentLevel = 0
+    },
+
     hasAudioLoaded() {
       return hasAudio
     },
 
     getIsPlaying() {
       return isPlaying
+    },
+
+    getInputMode() {
+      return inputMode
+    },
+
+    getMicState() {
+      return micState
     },
 
     onParamChange(index: number, cb: (v: number) => void) {
@@ -226,6 +317,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
 
     dispose() {
       currentLevel = 0
+      stopMicInternal()
       if (audioElement) {
         audioElement.pause()
         audioElement.src = ''
@@ -234,6 +326,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
         URL.revokeObjectURL(audioUrl)
       }
       mediaSourceNode?.disconnect()
+      activeSourceNode?.disconnect()
       workletNode.disconnect()
       ctx.close()
     },
