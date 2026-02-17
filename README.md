@@ -1,301 +1,185 @@
-﻿# MoonVST
+# MoonVST
 
-MoonVST is a template for building desktop audio plugins with web technology.
+**Build native audio plugins at web-dev speed.**
 
-It combines:
-- MoonBit for DSP code (compiled to WASM)
-- WAMR for native AOT execution
-- JUCE for plugin hosting (VST3 / AU / Standalone, optional Unity Native Audio Plugin)
-- React + Vite for the plugin UI
+Write DSP in [MoonBit](https://www.moonbitlang.com/), build UI in React, ship VST3 / AU / Standalone -- all without touching C++.
 
-The main goal is to let you iterate on DSP and UI quickly, while keeping native plugin output.
+[MoonBit](https://docs.moonbitlang.com/) is a type-safe language that compiles to compact WebAssembly. MoonVST uses it as the DSP source of truth because the WASM output runs both in the browser (dev) and natively via AOT (release).
 
-## What Is MoonBit?
+**[Try it in your browser](https://kogum4.github.io/moonvst/)** -- no install needed.
 
-MoonBit is a language/toolchain built for WebAssembly-first development.
+## Why MoonVST?
 
-- It compiles to WebAssembly and comes with the `moon` CLI.
-- Here, it is the source of truth for DSP because the project is WASM-first and needs a lightweight DSP build loop.
+- **Instant iteration** -- `npm run dev` starts a browser-based dev environment with hot reload. Change DSP or UI, see results immediately.
+- **No C++ in your daily loop** -- DSP lives in MoonBit, UI lives in React. C++ is handled once by the template.
+- **Native output** -- the same code that runs in your browser compiles to a production plugin via WAMR AOT. Produces VST3 + Standalone on Windows, VST3 + AU + Standalone on macOS.
+- **Multi-product, one repo** -- [scaffold new plugins](#scaffold-a-new-plugin) from a shared core. Each product is just a thin wiring layer.
 
-If you are new to it, start here:
-- Official docs: https://docs.moonbitlang.com/
-- Language site: https://www.moonbitlang.com/
-
-## Why This Template?
-
-- Less C++ churn: most day-to-day DSP/UI work can be done without full native rebuild loops.
-- MoonBit + React workflow: define DSP/parameters in MoonBit, build controls in React, and iterate quickly with `npm run dev`.
-- Native output, web-like DX: ship VST3/AU/Standalone while keeping a fast web-style development experience.
-
-## Architecture
+## How It Works
 
 ```text
-MoonBit DSP (WASM) -> AOT (wamrc) -> JUCE plugin (WAMR runtime)
-                                     -> React UI in WebView
-
-Browser dev mode:
-MoonBit DSP (WASM) + React UI + WebAudio/AudioWorklet
+You write:          MoonBit DSP + React UI
+                          |
+  Dev mode:     Browser + WebAudio (hot reload, no build wait)
+  Release:      WASM -> AOT (wamrc) -> JUCE plugin (WAMR runtime)
+                                       + React UI in WebView
 ```
 
-## Status
+## Setup
 
-- Windows: verified
-- macOS: not fully verified yet
-
-## Requirements
-
-- Git
-- Node.js 20+
-- CMake 3.22+
-- C++17 toolchain
-- MoonBit CLI (`moon`)
-
-### Windows
-
-- Visual Studio 2022 (MSVC, Desktop C++)
-- `winget` (used by setup script)
-- Edge WebView2 Runtime (setup script installs if missing)
-
-### macOS
-
-- Xcode Command Line Tools
-- Homebrew
-
-## Quick Start
-
-### 1. Clone with submodules
+**First-time setup takes 15-30 minutes** (downloads LLVM for AOT compilation, compiles WAMR from source).
 
 ```bash
 git clone --recursive https://github.com/kogum4/moonvst.git
 cd moonvst
+
+./scripts/setup-windows.ps1   # Windows (PowerShell)
+./scripts/setup-macos.sh      # macOS
 ```
 
-If you already cloned without submodules:
+The setup script installs MoonBit, builds WAMR/wamrc, and runs `npm install`.
+
+## Dev Loop
 
 ```bash
-git submodule update --init --recursive
+npm run dev                   # -> http://localhost:5173
 ```
 
-### 2. Run platform setup
+Edit DSP in `products/template/dsp-entry/`, edit UI in `products/template/ui-entry/` -- changes reflect instantly in the browser.
 
-Windows (PowerShell):
-
-```powershell
-./scripts/setup-windows.ps1
-```
-
-macOS:
-
-```bash
-./scripts/setup-macos.sh
-```
-
-These scripts install/check MoonBit, build WAMR, build `wamrc`, and install npm dependencies.
-
-## Development Workflows
-
-### Web development mode (fast iteration)
-
-```bash
-npm run dev
-```
-
-This runs in parallel:
-- DSP watcher (`scripts/dev-dsp.js`) that rebuilds MoonBit WASM
-- Vite dev server for UI at `http://localhost:5173`
-
-Use this to iterate quickly on DSP and UI without rebuilding the native plugin each edit.
-
-### Showcase development mode
-
-```bash
-npm run dev:showcase
-```
-
-This switches product wiring to `showcase` (DSP + UI).
-
-### Native plugin build
-
-```bash
-npm run build:dsp
-npm run build:ui
-npm run configure:plugin
-npm run build:plugin
-```
-
-Or run all in one:
+## Build a Plugin
 
 ```bash
 npm run release:vst
 ```
 
-Showcase build pipeline:
+Output: `build/plugin/MoonVST_<product>_artefacts/Release/VST3/`
+
+## Scaffold a New Plugin
 
 ```bash
-npm run release:vst:showcase
+npm run scaffold:product -- --name my-effect --from template
+npm run dev:my-effect           # develop
+npm run release:vst:my-effect   # build VST3
 ```
 
-Unity Native Audio Plugin output included all in one:
+Each product gets its own DSP entry + UI entry, sharing the core engine and plugin host. The scaffold script auto-generates all per-product npm scripts (`dev:`, `build:dsp:`, `release:vst:`, etc.).
 
-```bash
-npm run release:unity
+## Customize Your Plugin
+
+Most work happens in two places -- no C++ required:
+
+**1. Define parameters** (`products/<name>/dsp-entry/params.mbt`)
+
+```moonbit
+let param_defs : Array[ParamDef] = [
+  { name: "gain", min: 0.0, max: 1.5, default_val: 1.0 },
+]
+
+// One default value per param — must stay in sync with param_defs order
+let param_values : Array[Float] = [1.0]
 ```
 
-## Output Artifacts
+**2. Implement DSP** (`products/<name>/dsp-entry/lib.mbt`)
 
-After native build, artifacts are under:
-
-- `build/plugin/MoonVST_<product>_artefacts/Release/VST3/`
-- `build/plugin/MoonVST_<product>_artefacts/Release/Standalone/`
-
-On macOS, AU is also built.
-
-Unity Native Audio Plugin output is optional. Enable it at configure time:
-
-```bash
-npm run configure:plugin:unity
-npm run build:plugin
+```moonbit
+fn process_audio(num_samples : Int) -> Unit {
+  let gain = param_values[0]
+  for i = 0; i < num_samples; i = i + 1 {
+    let offset = i * 4
+    // Input/output offsets are framework-provided constants into shared WASM memory
+    let out_l = @utils.load_f32(@utils.input_left_offset + offset) * gain
+    let out_r = @utils.load_f32(@utils.input_right_offset + offset) * gain
+    @utils.store_f32(@utils.output_left_offset + offset, out_l)
+    @utils.store_f32(@utils.output_right_offset + offset, out_r)
+  }
+}
 ```
 
-When enabled, Unity Native Audio Plugin artifacts are under:
+Audio I/O uses shared WASM linear memory. The `@utils` helpers handle buffer layout so you can focus on the signal math.
 
-- `build/plugin/MoonVST_<product>_artefacts/Release/Unity/`
+**3. Build UI controls** (`products/<name>/ui-entry/App.tsx`)
 
-You can also pass options directly through npm:
+UI controls bind to DSP parameters by name via the `useParam` hook. See `products/template/ui-entry/App.tsx` for a working example with `GainSlider` and `LevelMeter`.
 
-```bash
-npm run configure:plugin -- -DMOONVST_ENABLE_UNITY=ON
-npm run configure:plugin -- -DMOONVST_ENABLE_UNITY=OFF
-```
+The parameter system auto-syncs across MoonBit DSP, the JUCE host bridge, and the React UI.
 
-## Plugin Name And Vendor Metadata
+**4. Set vendor metadata** (`plugin/CMakeLists.txt`)
 
-`PRODUCT_NAME` (the name shown in DAWs/Unity) is derived from `MOONVST_PRODUCT`, which matches the scaffolded product name.
+Plugin name is derived from the product name automatically. Vendor name and manufacturer code are shared across all products:
 
-- Vendor name: `COMPANY_NAME` in `plugin/CMakeLists.txt`
-- Manufacturer code (4 chars): `PLUGIN_MANUFACTURER_CODE` in `plugin/CMakeLists.txt`
-
-## First Customization Steps
-
-The template is designed so most feature work does not require C++ edits.
-
-### 1. Add or modify DSP parameters
-
-Edit product entrypoint params:
-
-- `products/template/dsp-entry/params.mbt`
-- `products/showcase/dsp-entry/params.mbt`
-
-- add parameter definitions in `param_defs`
-- keep `param_values` aligned with your parameter count/defaults
-
-### 2. Implement DSP logic
-
-Edit product entrypoint DSP:
-
-- `products/template/dsp-entry/lib.mbt`
-- `products/showcase/dsp-entry/lib.mbt`
-
-### 3. Keep exported DSP API available
-
-`packages/dsp-core/src/exports.mbt` contains the generic host API used by C++/UI:
-- `get_param_count`
-- `get_param_name`
-- `get_param_default`
-- `get_param_min`
-- `get_param_max`
-- `set_param`
-- `get_param`
-- `process_block`
-
-Do not remove these unless you also update the host bridge.
-
-### 4. Build UI controls
-
-Edit React UI under `packages/ui-core/src`.
-
-`useParam` (`packages/ui-core/src/hooks/useParam.ts`) already maps controls to DSP parameters by name.
-
-Product UI entrypoints:
-
-- `products/template/ui-entry/App.tsx`
-- `products/showcase/ui-entry/App.tsx`
-
-## Project Layout
-
-```text
-products/           product wiring (template/showcase)
-packages/           shared core modules
-packages/dsp-core/  MoonBit DSP source and exports
-packages/ui-core/   React/Vite UI
-plugin/             JUCE plugin + WAMR host bridge
-scripts/            setup/build helper scripts
-libs/               submodules (JUCE, WAMR)
-tests/cpp/          native WASM integration test
-```
-
-Create a new product scaffold:
-
-```bash
-npm run scaffold:product -- --name my-product --from template
+```cmake
+COMPANY_NAME "MoonVST"                # your vendor name
+PLUGIN_MANUFACTURER_CODE Wvst         # 4-char unique ID
 ```
 
 ## Testing
 
-DSP unit tests (MoonBit only):
-
 ```bash
-npm run test:dsp
+npm run test:dsp          # MoonBit unit tests
+npm run test:ui:unit      # React unit tests
+npm run test:ui:component # Component tests (Testing Library)
+npm run test:ui:e2e       # E2E tests (Playwright)
 ```
 
-UI tests:
+CI runs all tests on every PR.
 
-```bash
-npm run test:ui
+## Project Layout
+
+```text
+products/           Product-specific wiring (DSP entry + UI entry)
+packages/dsp-core/  Shared MoonBit DSP engine
+packages/ui-core/   Shared React components and hooks
+plugin/             JUCE plugin host (shared, product-agnostic)
+scripts/            Setup and build helpers
+libs/               Submodules (JUCE, WAMR)
 ```
 
-Run by layer:
+## Requirements
 
-```bash
-npm run test:ui:unit
-npm run test:ui:component
-npm run test:ui:e2e
-```
+|                  | Windows                          | macOS                     |
+|------------------|----------------------------------|---------------------------|
+| **Toolchain**    | Visual Studio 2022 (MSVC)        | Xcode Command Line Tools  |
+| **Package mgr**  | winget                           | Homebrew                  |
+| **Common**       | Node.js 20+, CMake 3.22+, Git                                 |
 
-There is a C++ integration test in `tests/cpp/wasm_dsp_test.cpp`.
+MoonBit CLI is installed automatically by the setup script. Linux is not currently supported.
 
-Example build with tests enabled:
-
-```bash
-cmake -B build -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-ctest --test-dir build -C Release --output-on-failure
-```
-
-CI runs DSP tests and UI tests (unit/component/E2E) on every pull request and push to `main` via `.github/workflows/test.yml`.
+Windows is fully verified. macOS builds but has not been extensively tested in DAW hosts.
 
 ## Troubleshooting
 
-- `WAMR runtime library not found`
-  - run platform setup script again (`setup-windows.ps1` or `setup-macos.sh`)
+| Problem | Fix |
+|---------|-----|
+| `WAMR runtime library not found` | Re-run the setup script |
+| `wamrc not found` | Re-run the setup script |
+| UI shows `JUCE bridge not available` | Start Vite dev server (`npm run dev`) or run `npm run build:ui` before `npm run build:plugin` |
+| JUCE/WAMR build issues | Run `git submodule update --init --recursive` |
 
-- `wamrc not found`
-  - setup script did not finish successfully; rerun it
+## Additional Targets
 
-- UI shows `JUCE bridge not available`
-  - when running plugin debug mode, ensure Vite dev server is running (`npm run dev`)
-  - for release build, run `npm run build:ui` before `npm run build:plugin`
+```bash
+npm run release:vst:showcase  # Showcase product (Dattorro reverb demo)
+npm run release:unity         # Unity Native Audio Plugin (template product)
+```
 
-- Clone/build issues around JUCE or WAMR
-  - confirm submodules are initialized (`git submodule update --init --recursive`)
+<details>
+<summary>Unity and advanced build options</summary>
+
+```bash
+npm run configure:plugin:unity    # Enable Unity output
+npm run configure:plugin -- -DMOONVST_ENABLE_UNITY=ON   # or via flag
+```
+
+Artifacts: `build/plugin/MoonVST_<product>_artefacts/Release/Unity/`
+
+Plugin metadata (vendor name, manufacturer code) is configured in `plugin/CMakeLists.txt`.
+
+</details>
 
 ## Acknowledgements
 
-This project references and includes ideas and/or code derived from:
-
-- https://github.com/yuichkun/suna
-- https://github.com/juce-framework/JUCE
-- https://github.com/bytecodealliance/wasm-micro-runtime
+Built on [JUCE](https://github.com/juce-framework/JUCE), [WAMR](https://github.com/bytecodealliance/wasm-micro-runtime), and [MoonBit](https://www.moonbitlang.com/). Inspired by [suna](https://github.com/yuichkun/suna).
 
 ## License
 
