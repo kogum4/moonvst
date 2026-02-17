@@ -145,8 +145,8 @@ npm run release:unity
 
 After native build, artifacts are under:
 
-- `build/plugin/MoonVST_artefacts/Release/VST3/`
-- `build/plugin/MoonVST_artefacts/Release/Standalone/`
+- `build/plugin/MoonVST_<product>_artefacts/Release/VST3/`
+- `build/plugin/MoonVST_<product>_artefacts/Release/Standalone/`
 
 On macOS, AU is also built.
 
@@ -159,7 +159,7 @@ npm run build:plugin
 
 When enabled, Unity Native Audio Plugin artifacts are under:
 
-- `build/plugin/MoonVST_artefacts/Release/Unity/`
+- `build/plugin/MoonVST_<product>_artefacts/Release/Unity/`
 
 You can also pass options directly through npm:
 
@@ -167,6 +167,13 @@ You can also pass options directly through npm:
 npm run configure:plugin -- -DMOONVST_ENABLE_UNITY=ON
 npm run configure:plugin -- -DMOONVST_ENABLE_UNITY=OFF
 ```
+
+## Plugin Name And Vendor Metadata
+
+`PRODUCT_NAME` (the name shown in DAWs/Unity) is derived from `MOONVST_PRODUCT`, which matches the scaffolded product name.
+
+- Vendor name: `COMPANY_NAME` in `plugin/CMakeLists.txt`
+- Manufacturer code (4 chars): `PLUGIN_MANUFACTURER_CODE` in `plugin/CMakeLists.txt`
 
 ## First Customization Steps
 
