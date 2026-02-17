@@ -106,9 +106,8 @@ jobs:
       - name: Build and test scaffolded product
         run: |
           PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
-          npm run "build:dsp:$PRODUCT_NAME"
           MOONVST_PRODUCT="$PRODUCT_NAME" node scripts/select-product.js --product "$PRODUCT_NAME"
-          (cd build/dsp-active && moon test)
+          (cd build/dsp-active && moon build --target wasm && moon test)
           npm run "build:ui:$PRODUCT_NAME"
 
       - name: Validate scaffold duplicate-name failure
