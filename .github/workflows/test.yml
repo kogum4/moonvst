@@ -54,6 +54,10 @@ jobs:
 
   scaffold-smoke:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        source_product: [template, showcase]
     steps:
       - uses: actions/checkout@v4
 
@@ -61,28 +65,56 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install UI dependencies
+        working-directory: packages/ui-core
+        run: npm ci
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Generate product scaffold
-        run: node scripts/scaffold-product.js --name ci-smoke --from template
+        run: |
+          PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
+          node scripts/scaffold-product.js --name "$PRODUCT_NAME" --from "${{ matrix.source_product }}"
 
       - name: Validate scaffold output files
         run: |
-          test -f products/ci-smoke/dsp-entry/lib.mbt
-          test -f products/ci-smoke/dsp-entry/params.mbt
-          test -f products/ci-smoke/dsp-entry/lib_test.mbt
-          test -f products/ci-smoke/ui-entry/App.tsx
-          test -f products/ci-smoke/product.config.json
-          test -f products/ci-smoke/README.md
-          test -f tests/dsp/ci-smoke/README.md
-          test -f tests/ui/ci-smoke/README.md
+          PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
+          test -f "products/$PRODUCT_NAME/dsp-entry/lib.mbt"
+          test -f "products/$PRODUCT_NAME/dsp-entry/params.mbt"
+          test -f "products/$PRODUCT_NAME/dsp-entry/lib_test.mbt"
+          test -f "products/$PRODUCT_NAME/ui-entry/App.tsx"
+          test -f "products/$PRODUCT_NAME/product.config.json"
+          test -f "products/$PRODUCT_NAME/README.md"
+          test -f "tests/dsp/$PRODUCT_NAME/README.md"
+          test -f "tests/ui/$PRODUCT_NAME/README.md"
 
       - name: Validate scaffolded npm scripts
+        env:
+          PRODUCT_NAME: ci-smoke-${{ matrix.source_product }}
         run: |
-          node -e 'const p=require("./package.json");const required=["dev:ci-smoke","dev:ui:ci-smoke","build:dsp:ci-smoke","build:ui:ci-smoke","release:vst:ci-smoke","release:unity:ci-smoke"];for(const key of required){if(!p.scripts[key]){throw new Error("missing script: "+key)}}'
+          node -e 'const p=require("./package.json");const name=process.env.PRODUCT_NAME;const required=[`dev:${name}`,`dev:ui:${name}`,`build:dsp:${name}`,`build:ui:${name}`,`release:vst:${name}`,`release:unity:${name}`];for(const key of required){if(!p.scripts[key]){throw new Error("missing script: "+key)}}'
+
+      - name: Build and test scaffolded product
+        run: |
+          PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
+          npm run "build:dsp:$PRODUCT_NAME"
+          MOONVST_PRODUCT="$PRODUCT_NAME" node scripts/select-product.js --product "$PRODUCT_NAME"
+          (cd build/dsp-active && moon test)
+          npm run "build:ui:$PRODUCT_NAME"
 
       - name: Validate scaffold duplicate-name failure
         run: |
-          if node scripts/scaffold-product.js --name ci-smoke --from template; then
+          PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
+          if node scripts/scaffold-product.js --name "$PRODUCT_NAME" --from "${{ matrix.source_product }}"; then
             echo "Expected duplicate product name to fail"
             exit 1
           fi
