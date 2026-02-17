@@ -1,4 +1,4 @@
-# MoonVST
+﻿# MoonVST
 
 **Build native audio plugins at web-dev speed.**
 
@@ -183,4 +183,10 @@ Built on [JUCE](https://github.com/juce-framework/JUCE), [WAMR](https://github.c
 
 ## License
 
-Apache-2.0
+This project uses a split license:
+
+- **`packages/`**, **`products/`**, **`scripts/`** -- [Apache-2.0](LICENSE)
+- **`plugin/`** -- [AGPLv3](plugin/LICENSE) by default for JUCE-linked distribution (or JUCE commercial terms if you hold a commercial license)
+- **`libs/`** -- Each submodule retains its own license (JUCE: AGPLv3, WAMR: Apache-2.0)
+
+If you only use the WASM DSP or React UI components without the JUCE plugin host, Apache-2.0 applies.
