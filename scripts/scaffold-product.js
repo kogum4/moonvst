@@ -46,8 +46,10 @@ function addScriptsToPackageJson(root, productName) {
   nextScripts[`dev:ui:${productName}`] = `cd packages/ui-core && cross-env VITE_PRODUCT=${productName} npx vite`;
   nextScripts[`build:dsp:${productName}`] = `cross-env MOONVST_PRODUCT=${productName} node scripts/build-dsp-product.js`;
   nextScripts[`build:ui:${productName}`] = `cd packages/ui-core && cross-env VITE_PRODUCT=${productName} cross-env VITE_BUILD_TARGET=juce npx vite build`;
-  nextScripts[`release:vst:${productName}`] = `npm run build:dsp:${productName} && npm run build:ui:${productName} && npm run build:plugin`;
-  nextScripts[`release:unity:${productName}`] = `npm run build:dsp:${productName} && npm run build:ui:${productName} && npm run configure:plugin:unity && npm run build:plugin`;
+  nextScripts[`configure:plugin:${productName}`] = `cross-env MOONVST_PRODUCT=${productName} node scripts/configure-plugin.js`;
+  nextScripts[`configure:plugin:unity:${productName}`] = `cross-env MOONVST_PRODUCT=${productName} node scripts/configure-plugin.js --unity`;
+  nextScripts[`release:vst:${productName}`] = `npm run build:dsp:${productName} && npm run build:ui:${productName} && npm run configure:plugin:${productName} && npm run build:plugin`;
+  nextScripts[`release:unity:${productName}`] = `npm run build:dsp:${productName} && npm run build:ui:${productName} && npm run configure:plugin:unity:${productName} && npm run build:plugin`;
 
   packageJson.scripts = Object.fromEntries(Object.entries(nextScripts).sort(([a], [b]) => a.localeCompare(b)));
   fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');

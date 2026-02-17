@@ -26,6 +26,20 @@ set(WAMR_INCLUDE_DIRS
 
 # Optional Unity native plugin format (off by default)
 option(MOONVST_ENABLE_UNITY "Build Unity native plugin output" OFF)
+set(MOONVST_PRODUCT "template" CACHE STRING "Active moonvst product name")
+
+if(NOT MOONVST_PRODUCT MATCHES "^[a-z0-9][a-z0-9-]*$")
+    message(FATAL_ERROR "Invalid MOONVST_PRODUCT: ${MOONVST_PRODUCT}")
+endif()
+
+string(TOLOWER "${MOONVST_PRODUCT}" MOONVST_PRODUCT_SAFE)
+string(REPLACE "-" "_" MOONVST_PRODUCT_TARGET_SUFFIX "${MOONVST_PRODUCT_SAFE}")
+set(MOONVST_PLUGIN_TARGET "MoonVST_${MOONVST_PRODUCT_TARGET_SUFFIX}")
+set(MOONVST_PLUGIN_NAME "MoonVST-${MOONVST_PRODUCT_SAFE}")
+string(MD5 MOONVST_PRODUCT_HASH "${MOONVST_PRODUCT_SAFE}")
+string(SUBSTRING "${MOONVST_PRODUCT_HASH}" 0 4 MOONVST_PLUGIN_CODE)
+string(TOUPPER "${MOONVST_PLUGIN_CODE}" MOONVST_PLUGIN_CODE)
+message(STATUS "Configuring product '${MOONVST_PRODUCT_SAFE}' as plugin '${MOONVST_PLUGIN_NAME}' (code ${MOONVST_PLUGIN_CODE})")
 
 # Plugin formats (AU only on macOS)
 set(PLUGIN_FORMATS VST3 Standalone)
@@ -36,12 +50,13 @@ if(APPLE)
     list(APPEND PLUGIN_FORMATS AU)
 endif()
 
-juce_add_plugin(MoonVST
+juce_add_plugin(${MOONVST_PLUGIN_TARGET}
     COMPANY_NAME "MoonVST"
     PLUGIN_MANUFACTURER_CODE Wvst
-    PLUGIN_CODE Wvs1
+    PLUGIN_CODE ${MOONVST_PLUGIN_CODE}
     FORMATS ${PLUGIN_FORMATS}
-    PRODUCT_NAME "MoonVST"
+    PRODUCT_NAME "${MOONVST_PLUGIN_NAME}"
+    BUNDLE_ID "dev.moonvst.${MOONVST_PRODUCT_SAFE}"
     NEEDS_WEB_BROWSER TRUE
     NEEDS_WEBVIEW2 TRUE
 )
@@ -85,31 +100,31 @@ else()
     )
 endif()
 
-target_sources(MoonVST PRIVATE
+target_sources(${MOONVST_PLUGIN_TARGET} PRIVATE
     src/WasmDSP.cpp
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
 )
 
-target_include_directories(MoonVST PRIVATE
+target_include_directories(${MOONVST_PLUGIN_TARGET} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${WAMR_INCLUDE_DIRS}
 )
 
-target_compile_definitions(MoonVST PUBLIC
+target_compile_definitions(${MOONVST_PLUGIN_TARGET} PUBLIC
     JUCE_WEB_BROWSER=1
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
 )
 
 if(WIN32)
-    target_compile_definitions(MoonVST PRIVATE
+    target_compile_definitions(${MOONVST_PLUGIN_TARGET} PRIVATE
         JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1
         WASM_RUNTIME_API_EXTERN=
     )
 endif()
 
-target_link_libraries(MoonVST PRIVATE
+target_link_libraries(${MOONVST_PLUGIN_TARGET} PRIVATE
     ${WAMR_LIB}
     MoonVSTBinaryData
     MoonVSTUIBinaryData
@@ -118,5 +133,5 @@ target_link_libraries(MoonVST PRIVATE
 )
 
 if(NOT WIN32)
-    target_link_libraries(MoonVST PRIVATE pthread m dl)
+    target_link_libraries(${MOONVST_PLUGIN_TARGET} PRIVATE pthread m dl)
 endif()
