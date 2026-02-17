@@ -44,13 +44,28 @@ add_test(NAME WasmDSPTest COMMAND wasm_dsp_test)
 
 add_executable(plugin_smoke_test plugin_smoke_test.cpp)
 
+if(NOT DEFINED MOONVST_PRODUCT)
+    set(MOONVST_PRODUCT "template")
+endif()
+string(TOLOWER "${MOONVST_PRODUCT}" MOONVST_PRODUCT_SAFE)
+string(REPLACE "-" "_" MOONVST_PRODUCT_TARGET_SUFFIX "${MOONVST_PRODUCT_SAFE}")
+set(MOONVST_PLUGIN_TARGET "MoonVST_${MOONVST_PRODUCT_TARGET_SUFFIX}")
+
+if(NOT TARGET ${MOONVST_PLUGIN_TARGET})
+    message(FATAL_ERROR "Expected plugin target not found: ${MOONVST_PLUGIN_TARGET}")
+endif()
+
 target_include_directories(plugin_smoke_test PRIVATE
     ${CMAKE_SOURCE_DIR}/plugin/src
     ${CMAKE_SOURCE_DIR}/libs/juce/modules
 )
 
 target_link_libraries(plugin_smoke_test PRIVATE
-    MoonVST
+    ${MOONVST_PLUGIN_TARGET}
+)
+
+target_compile_definitions(plugin_smoke_test PRIVATE
+    JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1
 )
 
 add_test(NAME PluginSmokeTest COMMAND plugin_smoke_test)
