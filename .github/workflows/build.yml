@@ -162,8 +162,8 @@ jobs:
           products='${{ needs.discover-products.outputs.products }}'
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Testing product: $product ==="
-            test -d "products/$product/plugin/VST3/MoonVST-${product}.vst3"
-            test -f "products/$product/plugin/Standalone/MoonVST-${product}.app/Contents/MacOS/MoonVST-${product}"
+            test -d "products/$product/plugin/VST3/${product}.vst3"
+            test -f "products/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
             chmod +x "products/$product/tests/wasm_dsp_test" "products/$product/tests/plugin_smoke_test"
             (cd "products/$product/tests" && ./wasm_dsp_test && ./plugin_smoke_test)
           done
@@ -184,8 +184,8 @@ jobs:
           $products = '${{ needs.discover-products.outputs.products }}' | ConvertFrom-Json
           foreach ($product in $products) {
             Write-Host "=== Testing product: $product ==="
-            if (-not (Test-Path "products/$product/plugin/VST3/MoonVST-$product.vst3")) { throw "VST3 artifact missing for $product" }
-            if (-not (Test-Path "products/$product/plugin/Standalone/MoonVST-$product.exe")) { throw "Standalone artifact missing for $product" }
+            if (-not (Test-Path "products/$product/plugin/VST3/$product.vst3")) { throw "VST3 artifact missing for $product" }
+            if (-not (Test-Path "products/$product/plugin/Standalone/$product.exe")) { throw "Standalone artifact missing for $product" }
             Push-Location "products/$product/tests"
             & "./wasm_dsp_test.exe"
             if ($LASTEXITCODE -ne 0) { throw "wasm_dsp_test failed with code $LASTEXITCODE for $product" }
@@ -221,10 +221,10 @@ jobs:
           mkdir -p package/macos package/windows
           cp -R "macos-products/$product/plugin/." package/macos/
           cp -R "windows-products/$product/plugin/." package/windows/
-          test -d "package/macos/VST3/MoonVST-${product}.vst3"
-          test -f "package/macos/Standalone/MoonVST-${product}.app/Contents/MacOS/MoonVST-${product}"
-          test -d "package/windows/VST3/MoonVST-${product}.vst3"
-          test -f "package/windows/Standalone/MoonVST-${product}.exe"
+          test -d "package/macos/VST3/${product}.vst3"
+          test -f "package/macos/Standalone/${product}.app/Contents/MacOS/${product}"
+          test -d "package/windows/VST3/${product}.vst3"
+          test -f "package/windows/Standalone/${product}.exe"
 
       - name: Create release archives
         run: |
