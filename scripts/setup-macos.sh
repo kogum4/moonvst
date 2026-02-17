@@ -50,7 +50,7 @@ make -j$(sysctl -n hw.ncpu)
 
 # 5. Install UI dependencies
 echo "=== Installing UI dependencies ==="
-cd "$ROOT_DIR/ui"
+cd "$ROOT_DIR/packages/ui-core"
 npm install
 
 # 6. Install root dependencies

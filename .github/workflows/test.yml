@@ -6,18 +6,117 @@ on:
   pull_request:
 
 jobs:
-  dsp-test:
+  dsp-test-template:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
 
       - name: Install MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
-      - name: Run DSP tests
+      - name: Run template DSP tests
         run: npm run test:dsp
+
+  dsp-test-showcase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Run showcase DSP tests
+        run: npm run test:dsp:showcase
+
+  scaffold-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        source_product: [template, showcase]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install UI dependencies
+        working-directory: packages/ui-core
+        run: npm ci
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Generate product scaffold
+        run: |
+          PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
+          node scripts/scaffold-product.js --name "$PRODUCT_NAME" --from "${{ matrix.source_product }}"
+
+      - name: Validate scaffold output files
+        run: |
+          PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
+          test -f "products/$PRODUCT_NAME/dsp-entry/lib.mbt"
+          test -f "products/$PRODUCT_NAME/dsp-entry/params.mbt"
+          test -f "products/$PRODUCT_NAME/dsp-entry/lib_test.mbt"
+          test -f "products/$PRODUCT_NAME/ui-entry/App.tsx"
+          test -f "products/$PRODUCT_NAME/product.config.json"
+          test -f "products/$PRODUCT_NAME/README.md"
+          test -f "tests/dsp/$PRODUCT_NAME/README.md"
+          test -f "tests/ui/$PRODUCT_NAME/README.md"
+
+      - name: Validate scaffolded npm scripts
+        env:
+          PRODUCT_NAME: ci-smoke-${{ matrix.source_product }}
+        run: |
+          node -e 'const p=require("./package.json");const name=process.env.PRODUCT_NAME;const required=[`dev:${name}`,`dev:ui:${name}`,`build:dsp:${name}`,`build:ui:${name}`,`release:vst:${name}`,`release:unity:${name}`];for(const key of required){if(!p.scripts[key]){throw new Error("missing script: "+key)}}'
+
+      - name: Build and test scaffolded product
+        run: |
+          PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
+          MOONVST_PRODUCT="$PRODUCT_NAME" node scripts/select-product.js --product "$PRODUCT_NAME"
+          (cd build/dsp-active && moon build --target wasm && moon test)
+          npm run "build:ui:$PRODUCT_NAME"
+
+      - name: Validate scaffold duplicate-name failure
+        run: |
+          PRODUCT_NAME="ci-smoke-${{ matrix.source_product }}"
+          if node scripts/scaffold-product.js --name "$PRODUCT_NAME" --from "${{ matrix.source_product }}"; then
+            echo "Expected duplicate product name to fail"
+            exit 1
+          fi
 
   ui-test:
     runs-on: ubuntu-latest
@@ -29,24 +128,24 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: ui/package-lock.json
+          cache-dependency-path: packages/ui-core/package-lock.json
 
       - name: Install UI dependencies
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm ci
 
       - name: Run UI unit tests
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm run test:unit
 
       - name: Run UI component tests
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm run test:component
 
       - name: Install Playwright browser
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npx playwright install --with-deps chromium
 
       - name: Run UI E2E tests
-        working-directory: ui
+        working-directory: packages/ui-core
         run: npm run test:e2e

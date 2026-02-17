@@ -5,14 +5,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "=== Building MoonBit DSP ==="
-cd "$ROOT_DIR/dsp"
+cd "$ROOT_DIR/build/dsp-active"
 moon build --target wasm
 
 WASM_PATH="_build/wasm/debug/build/src/src.wasm"
 
 echo "=== Copying WASM to UI public ==="
-mkdir -p "$ROOT_DIR/ui/public/wasm"
-cp "$WASM_PATH" "$ROOT_DIR/ui/public/wasm/moonvst_dsp.wasm"
+mkdir -p "$ROOT_DIR/packages/ui-core/public/wasm"
+cp "$WASM_PATH" "$ROOT_DIR/packages/ui-core/public/wasm/moonvst_dsp.wasm"
 
 echo "=== AOT Compiling ==="
 WAMRC="$ROOT_DIR/libs/wamr/wamr-compiler/build/wamrc"
@@ -23,7 +23,13 @@ if [ ! -f "$WAMRC" ]; then
 fi
 
 mkdir -p "$ROOT_DIR/plugin/resources"
-$WAMRC --opt-level=3 \
+WAMRC_ARGS=(--opt-level=3)
+if [ "$(uname -m)" = "x86_64" ]; then
+    # Keep CI artifacts portable across different x86_64 runners.
+    WAMRC_ARGS+=(--target=x86_64 --cpu=x86-64)
+fi
+
+$WAMRC "${WAMRC_ARGS[@]}" \
     -o "$ROOT_DIR/plugin/resources/moonvst_dsp.aot" \
     "$WASM_PATH"
 

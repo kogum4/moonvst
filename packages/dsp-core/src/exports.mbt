@@ -5,7 +5,7 @@ fn init {
       param_values[i] = param_defs[i].default_val
     }
   }
-  reset_reverb_state()
+  product_reset()
 }
 
 /// Explicit init for host to call
@@ -15,7 +15,7 @@ pub fn dsp_init() -> Unit {
       param_values[i] = param_defs[i].default_val
     }
   }
-  reset_reverb_state()
+  product_reset()
 }
 
 /// Process audio block — main DSP loop

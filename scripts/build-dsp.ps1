@@ -4,12 +4,12 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir
 
 Write-Host "=== Building MoonBit DSP ==="
-Set-Location "$RootDir/dsp"
+Set-Location "$RootDir/build/dsp-active"
 moon build --target wasm
 
 Write-Host "=== Copying WASM to UI public ==="
-New-Item -ItemType Directory -Force -Path "$RootDir/ui/public/wasm" | Out-Null
-Copy-Item "_build/wasm/debug/build/src/src.wasm" "$RootDir/ui/public/wasm/moonvst_dsp.wasm"
+New-Item -ItemType Directory -Force -Path "$RootDir/packages/ui-core/public/wasm" | Out-Null
+Copy-Item "_build/wasm/debug/build/src/src.wasm" "$RootDir/packages/ui-core/public/wasm/moonvst_dsp.wasm"
 
 Write-Host "=== AOT Compiling ==="
 $wamrcCandidates = @(
@@ -24,7 +24,9 @@ if (-not $wamrc) {
 }
 
 New-Item -ItemType Directory -Force -Path "$RootDir/plugin/resources" | Out-Null
+$targetArgs = @("--target=x86_64", "--cpu=x86-64")
 & $wamrc --opt-level=3 `
+    $targetArgs `
     -o "$RootDir/plugin/resources/moonvst_dsp.aot" `
     "_build/wasm/debug/build/src/src.wasm"
 

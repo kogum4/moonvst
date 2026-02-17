@@ -10,8 +10,8 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 
 ## Repository Map
 
-- `dsp/`: MoonBit DSP source (WASM-first)
-- `ui/`: React + Vite frontend
+- `packages/dsp-core/`: MoonBit DSP source (WASM-first)
+- `packages/ui-core/`: React + Vite frontend
 - `plugin/`: JUCE plugin and host bridge
 - `scripts/`: setup and build helpers
 - `tests/cpp/`: C++ integration tests
@@ -24,6 +24,16 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 - Do not commit generated outputs (`build/`, `node_modules/`)
 - If requirements are unclear, keep scope narrow and avoid broad speculative changes
 - Do not implement speculative design changes without explicit user approval
+
+## Product Architecture Rules
+
+- Keep `plugin/` shared and product-agnostic. Do not add product branching in C++ unless explicitly requested.
+- Treat `packages/*` as shared implementation and `products/*` as product wiring only.
+- Keep DSP product-specific files in `products/*/dsp-entry/` and do not write generated entry files into tracked `packages/dsp-core/src`.
+- Keep UI product-specific composition in `products/*/ui-entry/App.tsx`; keep business logic/components in `packages/ui-core`.
+- Keep CSS split by responsibility: shared styles in `packages/ui-core`, product-specific theme overrides in `products/*/ui-entry`.
+- Keep `App.tsx` thin (composition and wiring only). If product-specific UI grows, create `products/<name>/ui-entry/components/*` instead of moving logic into `packages/ui-core` conditionals.
+- Do not duplicate core logic into `products/*`; when shared behavior appears, move it back to `packages/*`.
 
 ## TDD Rules
 
@@ -90,8 +100,8 @@ This file defines working rules for AI or automation agents in the `moonvst` rep
 
 ## DSP/API Compatibility Notes
 
-- Keep `dsp/src/exports.mbt` host API compatible unless bridge changes are intentional
-- When changing parameters in `dsp/src/params.mbt`, verify matching behavior in `ui/src`
+- Keep `packages/dsp-core/src/exports.mbt` host API compatible unless bridge changes are intentional
+- When changing parameters in `products/*/dsp-entry/params.mbt` or `packages/dsp-core/src/api/params.mbt`, verify matching behavior in `packages/ui-core/src`
 - If parameter names change, update UI references accordingly
 
 ## Done Criteria

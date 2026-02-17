@@ -43,7 +43,7 @@ private:
     wasm_function_inst_t fn_set_param_ = nullptr;
     wasm_function_inst_t fn_get_param_ = nullptr;
 
-    // Memory layout offsets (must match dsp/src/utils/constants.mbt)
+    // Memory layout offsets (must match packages/dsp-core/src/utils/constants.mbt)
     static constexpr int INPUT_LEFT_OFFSET  = 0x10000;
     static constexpr int INPUT_RIGHT_OFFSET = 0x20000;
     static constexpr int OUTPUT_LEFT_OFFSET = 0x30000;

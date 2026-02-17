@@ -1,9 +1,9 @@
-import { useRuntime } from './runtime/useRuntime'
-import { GainSlider } from './components/GainSlider'
-import { LevelMeter } from './components/LevelMeter'
-import { WebAudioMenu } from './components/WebAudioMenu'
-import type { WebAudioRuntime } from './runtime/types'
-import styles from './App.module.css'
+﻿import { useRuntime } from '../../../packages/ui-core/src/runtime/useRuntime'
+import { GainSlider } from '../../../packages/ui-core/src/components/GainSlider'
+import { LevelMeter } from '../../../packages/ui-core/src/components/LevelMeter'
+import { WebAudioMenu } from '../../../packages/ui-core/src/components/WebAudioMenu'
+import type { WebAudioRuntime } from '../../../packages/ui-core/src/runtime/types'
+import styles from '../../../packages/ui-core/src/App.module.css'
 
 function isWebAudioRuntime(runtime: { type: 'juce' | 'web' }): runtime is WebAudioRuntime {
   return runtime.type === 'web'
