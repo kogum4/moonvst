@@ -40,9 +40,6 @@ jobs:
       - name: Run macOS setup script
         run: bash scripts/setup-macos.sh
 
-      - name: Configure plugin
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
-
       - name: Build all products
         shell: bash
         run: |
@@ -51,6 +48,8 @@ jobs:
           mkdir -p ci-artifacts
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Building product: $product ==="
+            target_suffix="${product//-/_}"
+
             if [ "$product" = "template" ]; then
               npm run build:dsp
               npm run build:ui
@@ -58,15 +57,17 @@ jobs:
               npm run "build:dsp:$product"
               npm run "build:ui:$product"
             fi
+
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON -DMOONVST_PRODUCT="$product"
             npm run build:plugin
 
             product_dir="ci-artifacts/$product"
             mkdir -p "$product_dir/plugin" "$product_dir/tests"
-            cp -R build/plugin/MoonVST_artefacts/Release/VST3 "$product_dir/plugin/VST3"
-            cp -R build/plugin/MoonVST_artefacts/Release/Standalone "$product_dir/plugin/Standalone"
-            cp -R build/plugin/MoonVST_artefacts/Release/Unity "$product_dir/plugin/Unity"
-            if [ -d build/plugin/MoonVST_artefacts/Release/AU ]; then
-              cp -R build/plugin/MoonVST_artefacts/Release/AU "$product_dir/plugin/AU"
+            cp -R "build/plugin/MoonVST_${target_suffix}_artefacts/Release/VST3" "$product_dir/plugin/VST3"
+            cp -R "build/plugin/MoonVST_${target_suffix}_artefacts/Release/Standalone" "$product_dir/plugin/Standalone"
+            cp -R "build/plugin/MoonVST_${target_suffix}_artefacts/Release/Unity" "$product_dir/plugin/Unity"
+            if [ -d "build/plugin/MoonVST_${target_suffix}_artefacts/Release/AU" ]; then
+              cp -R "build/plugin/MoonVST_${target_suffix}_artefacts/Release/AU" "$product_dir/plugin/AU"
             fi
             cp build/tests/cpp/plugin_smoke_test "$product_dir/tests/plugin_smoke_test"
             cp build/tests/cpp/wasm_dsp_test "$product_dir/tests/wasm_dsp_test"
@@ -106,9 +107,6 @@ jobs:
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1
 
-      - name: Configure plugin
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON
-
       - name: Build all products
         shell: pwsh
         run: |
@@ -116,6 +114,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path "ci-artifacts" | Out-Null
           foreach ($product in $products) {
             Write-Host "=== Building product: $product ==="
+            $targetSuffix = $product -replace '-', '_'
+
             if ($product -eq "template") {
               npm run build:dsp
               npm run build:ui
@@ -123,14 +123,16 @@ jobs:
               npm run "build:dsp:$product"
               npm run "build:ui:$product"
             }
+
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON -DMOONVST_PRODUCT="$product"
             npm run build:plugin
 
             $productDir = "ci-artifacts/$product"
             New-Item -ItemType Directory -Force -Path "$productDir/plugin" | Out-Null
             New-Item -ItemType Directory -Force -Path "$productDir/tests" | Out-Null
-            Copy-Item "build/plugin/MoonVST_artefacts/Release/VST3" "$productDir/plugin/VST3" -Recurse
-            Copy-Item "build/plugin/MoonVST_artefacts/Release/Standalone" "$productDir/plugin/Standalone" -Recurse
-            Copy-Item "build/plugin/MoonVST_artefacts/Release/Unity" "$productDir/plugin/Unity" -Recurse
+            Copy-Item "build/plugin/MoonVST_${targetSuffix}_artefacts/Release/VST3" "$productDir/plugin/VST3" -Recurse
+            Copy-Item "build/plugin/MoonVST_${targetSuffix}_artefacts/Release/Standalone" "$productDir/plugin/Standalone" -Recurse
+            Copy-Item "build/plugin/MoonVST_${targetSuffix}_artefacts/Release/Unity" "$productDir/plugin/Unity" -Recurse
             Copy-Item "build/tests/cpp/Release/plugin_smoke_test.exe" "$productDir/tests/plugin_smoke_test.exe"
             Copy-Item "build/tests/cpp/Release/wasm_dsp_test.exe" "$productDir/tests/wasm_dsp_test.exe"
             Copy-Item "build/tests/cpp/Release/moonvst_dsp.aot" "$productDir/tests/moonvst_dsp.aot"
@@ -160,8 +162,8 @@ jobs:
           products='${{ needs.discover-products.outputs.products }}'
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Testing product: $product ==="
-            test -d "products/$product/plugin/VST3/MoonVST.vst3"
-            test -f "products/$product/plugin/Standalone/MoonVST.app/Contents/MacOS/MoonVST"
+            test -d "products/$product/plugin/VST3/MoonVST-${product}.vst3"
+            test -f "products/$product/plugin/Standalone/MoonVST-${product}.app/Contents/MacOS/MoonVST-${product}"
             chmod +x "products/$product/tests/wasm_dsp_test" "products/$product/tests/plugin_smoke_test"
             (cd "products/$product/tests" && ./wasm_dsp_test && ./plugin_smoke_test)
           done
@@ -182,8 +184,8 @@ jobs:
           $products = '${{ needs.discover-products.outputs.products }}' | ConvertFrom-Json
           foreach ($product in $products) {
             Write-Host "=== Testing product: $product ==="
-            if (-not (Test-Path "products/$product/plugin/VST3/MoonVST.vst3")) { throw "VST3 artifact missing for $product" }
-            if (-not (Test-Path "products/$product/plugin/Standalone/MoonVST.exe")) { throw "Standalone artifact missing for $product" }
+            if (-not (Test-Path "products/$product/plugin/VST3/MoonVST-$product.vst3")) { throw "VST3 artifact missing for $product" }
+            if (-not (Test-Path "products/$product/plugin/Standalone/MoonVST-$product.exe")) { throw "Standalone artifact missing for $product" }
             Push-Location "products/$product/tests"
             & "./wasm_dsp_test.exe"
             if ($LASTEXITCODE -ne 0) { throw "wasm_dsp_test failed with code $LASTEXITCODE for $product" }
@@ -219,10 +221,10 @@ jobs:
           mkdir -p package/macos package/windows
           cp -R "macos-products/$product/plugin/." package/macos/
           cp -R "windows-products/$product/plugin/." package/windows/
-          test -d package/macos/VST3/MoonVST.vst3
-          test -f package/macos/Standalone/MoonVST.app/Contents/MacOS/MoonVST
-          test -d package/windows/VST3/MoonVST.vst3
-          test -f package/windows/Standalone/MoonVST.exe
+          test -d "package/macos/VST3/MoonVST-${product}.vst3"
+          test -f "package/macos/Standalone/MoonVST-${product}.app/Contents/MacOS/MoonVST-${product}"
+          test -d "package/windows/VST3/MoonVST-${product}.vst3"
+          test -f "package/windows/Standalone/MoonVST-${product}.exe"
 
       - name: Create release archives
         run: |
