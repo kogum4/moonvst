@@ -13,9 +13,9 @@ Status legend:
 
 ## Progress Dashboard
 
-- Overall stories done: `1 / 10`
-- Overall tasks done: `6 / 38`
-- Current story: `S2`
+- Overall stories done: `2 / 10`
+- Overall tasks done: `13 / 38`
+- Current story: `S3`
 - Last updated: `2026-02-18`
 
 ## Update Rules
@@ -62,13 +62,20 @@ Validation:
 
 ## Story S2: Reusable Node Components (Pencil Mapping)
 
-- [ ] `P2-S2-R-01` RED: Add component tests for `EffectNode` (`TLTED`) structure and props.
-- [ ] `P2-S2-R-02` RED: Add component tests for `IONode` (`3w2LY`) in/out variants.
-- [ ] `P2-S2-R-03` RED: Add component tests for `LibItem`, `ParamSlider`, `PortIn/Out`, `ParamRow`.
-- [ ] `P2-S2-G-01` GREEN: Implement `EffectNode`.
-- [ ] `P2-S2-G-02` GREEN: Implement `IONode`.
-- [ ] `P2-S2-G-03` GREEN: Implement `LibItem`, `ParamSlider`, `PortIn`, `PortOut`, `ParamRow`.
-- [ ] `P2-S2-F-01` REFACTOR: Normalize props/types and extract shared primitives.
+- [x] `P2-S2-R-01` RED: Add component tests for `EffectNode` (`TLTED`) structure and props.
+  - Evidence: `EffectNode (TLTED) > renders structure and applies props` added in `packages/ui-core/src/nodeEditorPrimitives.component.test.tsx`; suite failed pre-implementation via `npm run test:ui:component -- --runInBand` (`Failed to resolve import "./node_editor/NodePrimitives"`).
+- [x] `P2-S2-R-02` RED: Add component tests for `IONode` (`3w2LY`) in/out variants.
+  - Evidence: `IONode (3w2LY) > renders input variant` and `renders output variant` added in `packages/ui-core/src/nodeEditorPrimitives.component.test.tsx`; same RED failure captured before implementation.
+- [x] `P2-S2-R-03` RED: Add component tests for `LibItem`, `ParamSlider`, `PortIn/Out`, `ParamRow`.
+  - Evidence: `LibItem / ParamSlider / PortIn-Out / ParamRow` suite added with four tests in `packages/ui-core/src/nodeEditorPrimitives.component.test.tsx`; same RED failure captured before implementation.
+- [x] `P2-S2-G-01` GREEN: Implement `EffectNode`.
+  - Evidence: `packages/ui-core/src/node_editor/NodePrimitives.tsx` now exports `EffectNode` (`data-pencil-id="TLTED"`); `npm run test:ui:component -- --runInBand` passes.
+- [x] `P2-S2-G-02` GREEN: Implement `IONode`.
+  - Evidence: `packages/ui-core/src/node_editor/NodePrimitives.tsx` now exports `IONode` (`data-pencil-id="3w2LY"` with `input/output` variants); component tests pass.
+- [x] `P2-S2-G-03` GREEN: Implement `LibItem`, `ParamSlider`, `PortIn`, `PortOut`, `ParamRow`.
+  - Evidence: `packages/ui-core/src/node_editor/NodePrimitives.tsx` now exports all five components with mapped Pencil IDs (`T4R15`, `UQsji`, `zGscn`, `VLHGQ`, `n7CSX`); component tests pass.
+- [x] `P2-S2-F-01` REFACTOR: Normalize props/types and extract shared primitives.
+  - Evidence: Shared primitive styles extracted to `packages/ui-core/src/node_editor/NodePrimitives.module.css` and `NodeEditorShell` updated to compose `LibItem`, `ParamRow`, `EffectNode`, `IONode`.
 
 Validation:
 - `npm run test:ui:component`
@@ -204,4 +211,5 @@ Validation:
 
 ## Change Log
 
+- `2026-02-18`: Completed Story S2 (`P2-S2-R/G/F`), added reusable node primitive tests/components and refactored `NodeEditorShell` to consume primitives.
 - `2026-02-18`: Rewritten to strict TDD task ordering (`RED -> GREEN -> REFACTOR` per story).

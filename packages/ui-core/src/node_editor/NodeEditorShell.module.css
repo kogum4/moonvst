@@ -162,33 +162,6 @@
   align-items: center;
 }
 
-.libItem {
-  border: 0;
-  background: transparent;
-  height: 32px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: left;
-  font-family: var(--font-sans);
-}
-
-.libItemIcon { color: var(--text-secondary); }
-
-.libItemDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-}
-
-.libItemText {
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 500;
-}
-
 .canvas {
   position: relative;
   min-height: 480px;
@@ -205,31 +178,12 @@
   font-weight: 500;
 }
 
-.eqCard {
+.eqNode {
   position: absolute;
   left: 180px;
   top: 30px;
   width: 460px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-  background: #1E293B;
 }
-
-.eqHeader {
-  height: 34px;
-  background: #A3E635;
-  color: #0A0F1C;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.eqBody { height: 296px; background: #0A0F1C; }
 
 .ioNodeInput,
 .ioNodeOutput,
@@ -238,25 +192,15 @@
 .fxNodeGhostB,
 .fxNodeReverb {
   position: absolute;
-  width: 220px;
-  height: 66px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #1E293B;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 1px;
+  width: fit-content;
 }
 
-.ioNodeInput { left: 16px; top: 200px; color: #4ADE80; }
-.ioNodeOutput { left: 400px; top: 420px; color: #FB923C; }
-.fxNodeMain { left: 180px; top: 420px; color: #F97316; }
-.fxNodeGhostA { left: 670px; top: 30px; color: #818CF8; opacity: 0.45; }
-.fxNodeGhostB { left: 670px; top: 230px; color: #22D3EE; opacity: 0.45; }
-.fxNodeReverb { left: 670px; top: 430px; color: #38BDF8; }
+.ioNodeInput { left: 16px; top: 200px; }
+.ioNodeOutput { left: 400px; top: 420px; }
+.fxNodeMain { left: 180px; top: 420px; }
+.fxNodeGhostA { left: 670px; top: 30px; opacity: 0.45; }
+.fxNodeGhostB { left: 670px; top: 230px; opacity: 0.45; }
+.fxNodeReverb { left: 670px; top: 430px; }
 
 .inspector {
   width: 260px;
@@ -323,59 +267,10 @@
   letter-spacing: 1.5px;
 }
 
-.paramRow {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .paramsList {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.paramTop {
-  display: flex;
-  justify-content: space-between;
-}
-
-.paramLabel {
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 500;
-}
-
-.paramValue {
-  color: #22D3EE;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.paramTrack {
-  position: relative;
-  height: 4px;
-  border-radius: 2px;
-  background: #1E293B;
-}
-
-.paramFill {
-  display: block;
-  height: 100%;
-  background: #22D3EE;
-  border-radius: 2px;
-}
-
-.paramThumb {
-  position: absolute;
-  top: -3px;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #22D3EE;
-  box-shadow: 0 0 0 2px #0A0F1C;
 }
 
 .connRow {

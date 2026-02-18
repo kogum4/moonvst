@@ -23,17 +23,18 @@ import {
   ZoomIn,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { EffectNode, EqNodeLarge, IONode, LibItem, ParamRow } from './NodePrimitives'
 import styles from './NodeEditorShell.module.css'
 
-type LibItem = { icon: LucideIcon; label: string; color: string }
-type ParamRow = { label: string; value: string; progress: number }
+type LibraryItem = { icon: LucideIcon; label: string; color: string }
+type ParamItem = { label: string; valueText: string; value: number }
 
-const ioItems: LibItem[] = [
+const ioItems: LibraryItem[] = [
   { icon: LogIn, label: 'Stereo Input', color: '#4ADE80' },
   { icon: LogOut, label: 'Stereo Output', color: '#FB923C' },
 ]
 
-const fxItems: LibItem[] = [
+const fxItems: LibraryItem[] = [
   { icon: Waves, label: 'Chorus', color: '#818CF8' },
   { icon: Gauge, label: 'Compressor', color: '#F97316' },
   { icon: Timer, label: 'Delay', color: '#22D3EE' },
@@ -43,13 +44,13 @@ const fxItems: LibItem[] = [
   { icon: Airplay, label: 'Reverb (Dattorro)', color: '#38BDF8' },
 ]
 
-const params: ParamRow[] = [
-  { label: 'Decay', value: '2.4 s', progress: 56 },
-  { label: 'Damping', value: '0.70', progress: 64 },
-  { label: 'Pre-Delay', value: '20 ms', progress: 18 },
-  { label: 'Size', value: '0.85', progress: 78 },
-  { label: 'Diffusion', value: '0.65', progress: 59 },
-  { label: 'Mix', value: '30%', progress: 28 },
+const params: ParamItem[] = [
+  { label: 'Decay', valueText: '2.4 s', value: 56 },
+  { label: 'Damping', valueText: '0.70', value: 64 },
+  { label: 'Pre-Delay', valueText: '20 ms', value: 18 },
+  { label: 'Size', valueText: '0.85', value: 78 },
+  { label: 'Diffusion', valueText: '0.65', value: 59 },
+  { label: 'Mix', valueText: '30%', value: 28 },
 ]
 
 function TopBar() {
@@ -73,27 +74,22 @@ function TopBar() {
   )
 }
 
-function LibraryItem({ item }: { item: LibItem }) {
-  const Icon = item.icon
-  return (
-    <button className={styles.libItem} type="button">
-      <span className={styles.libItemDot} style={{ backgroundColor: item.color }} />
-      <Icon className={styles.libItemIcon} size={14} />
-      <span className={styles.libItemText}>{item.label}</span>
-    </button>
-  )
-}
-
 function NodeLibraryPanel() {
   return (
     <nav aria-label="Node Library" className={styles.library} data-region-id="XQtg4">
       <div className={styles.libHeader}><Blocks size={14} />NODE LIBRARY</div>
       <div className={styles.sep} />
       <div className={styles.libSection}>I/O</div>
-      {ioItems.map((item) => <LibraryItem key={item.label} item={item} />)}
+      {ioItems.map((item) => {
+        const Icon = item.icon
+        return <LibItem key={item.label} color={item.color} icon={<Icon size={14} />} label={item.label} />
+      })}
       <div className={styles.sep} />
       <div className={styles.libSection}>EFFECTS</div>
-      {fxItems.map((item) => <LibraryItem key={item.label} item={item} />)}
+      {fxItems.map((item) => {
+        const Icon = item.icon
+        return <LibItem key={item.label} color={item.color} icon={<Icon size={14} />} label={item.label} />
+      })}
     </nav>
   )
 }
@@ -102,26 +98,58 @@ function GraphCanvasRegion() {
   return (
     <main aria-label="Graph Canvas" className={styles.canvas} data-region-id="jJBPL">
       <div className={styles.canvasLabel}>DAG · Stereo · 8/16 nodes</div>
-      <div className={styles.eqCard}><div className={styles.eqHeader}>EQ</div><div className={styles.eqBody} /></div>
-      <div className={styles.ioNodeInput}>INPUT</div>
-      <div className={styles.ioNodeOutput}>OUTPUT</div>
-      <div className={styles.fxNodeMain}>COMPRESSOR</div>
-      <div className={styles.fxNodeGhostA}>CHORUS</div>
-      <div className={styles.fxNodeGhostB}>DELAY</div>
-      <div className={styles.fxNodeReverb}>REVERB</div>
-    </main>
-  )
-}
-
-function ParamSliderRow({ row }: { row: ParamRow }) {
-  return (
-    <div className={styles.paramRow}>
-      <div className={styles.paramTop}>
-        <span className={styles.paramLabel}>{row.label}</span>
-        <span className={styles.paramValue}>{row.value}</span>
+      <div className={styles.eqNode}><EqNodeLarge /></div>
+      <div className={styles.ioNodeInput}><IONode icon={<LogIn size={12} />} variant="input" /></div>
+      <div className={styles.ioNodeOutput}><IONode icon={<LogOut size={12} />} variant="output" /></div>
+      <div className={styles.fxNodeMain}>
+        <EffectNode
+          color="#F97316"
+          icon={<Gauge size={12} />}
+          label="Compressor"
+          rows={[
+            { key: 'threshold', label: 'Threshold', value: '-18 dB' },
+            { key: 'ratio', label: 'Ratio', value: '4:1' },
+            { key: 'attack', label: 'Attack', value: '10 ms' },
+          ]}
+        />
       </div>
-      <div className={styles.paramTrack}><span className={styles.paramFill} style={{ width: `${row.progress}%` }} /><span className={styles.paramThumb} style={{ left: `calc(${row.progress}% - 5px)` }} /></div>
-    </div>
+      <div className={styles.fxNodeGhostA}>
+        <EffectNode
+          color="#818CF8"
+          icon={<Waves size={12} />}
+          label="Chorus"
+          rows={[
+            { key: 'rate', label: 'Rate', value: '1.2 Hz' },
+            { key: 'depth', label: 'Depth', value: '60%' },
+            { key: 'mix', label: 'Mix', value: '40%' },
+          ]}
+        />
+      </div>
+      <div className={styles.fxNodeGhostB}>
+        <EffectNode
+          color="#22D3EE"
+          icon={<Timer size={12} />}
+          label="Delay"
+          rows={[
+            { key: 'time', label: 'Time', value: '375 ms' },
+            { key: 'feedback', label: 'Feedback', value: '35%' },
+            { key: 'mix', label: 'Mix', value: '25%' },
+          ]}
+        />
+      </div>
+      <div className={styles.fxNodeReverb}>
+        <EffectNode
+          color="#38BDF8"
+          icon={<Airplay size={12} />}
+          label="Reverb"
+          rows={[
+            { key: 'decay', label: 'Decay', value: '2.4 s' },
+            { key: 'damping', label: 'Damping', value: '0.7' },
+            { key: 'mix', label: 'Mix', value: '30%' },
+          ]}
+        />
+      </div>
+    </main>
   )
 }
 
@@ -143,7 +171,7 @@ function InspectorPanel() {
       <section className={styles.propsSection}>
         <div className={styles.sectionLabel}>PARAMETERS</div>
         <div className={styles.paramsList}>
-          {params.map((row) => <ParamSliderRow key={row.label} row={row} />)}
+          {params.map((row) => <ParamRow key={row.label} label={row.label} value={row.value} valueText={row.valueText} />)}
         </div>
       </section>
       <section className={styles.propsSection}>
