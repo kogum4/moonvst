@@ -13,9 +13,9 @@ Status legend:
 
 ## Progress Dashboard
 
-- Overall stories done: `2 / 10`
-- Overall tasks done: `13 / 38`
-- Current story: `S3`
+- Overall stories done: `3 / 10`
+- Overall tasks done: `21 / 38`
+- Current story: `S4`
 - Last updated: `2026-02-18`
 
 ## Update Rules
@@ -84,14 +84,22 @@ Validation:
 
 ## Story S3: Graph State Model and DAG Rules
 
-- [ ] `P2-S3-R-01` RED: Add unit tests for graph defaults (fixed input/output nodes, initial state).
-- [ ] `P2-S3-R-02` RED: Add unit tests for node limit behavior (default 8, configurable to 16).
-- [ ] `P2-S3-R-03` RED: Add unit tests for connect/disconnect and cycle rejection.
-- [ ] `P2-S3-R-04` RED: Add unit tests for I/O deletion guard and param update/bypass actions.
-- [ ] `P2-S3-G-01` GREEN: Implement `products/showcase/ui-entry/state/graphTypes.ts` and default graph factory.
-- [ ] `P2-S3-G-02` GREEN: Implement `products/showcase/ui-entry/state/graphReducer.ts` actions (add/remove/connect/disconnect/select/update/bypass).
-- [ ] `P2-S3-G-03` GREEN: Implement DAG/cycle detection and deterministic invalid-edge errors.
-- [ ] `P2-S3-F-01` REFACTOR: Simplify reducer logic and centralize graph utility helpers.
+- [x] `P2-S3-R-01` RED: Add unit tests for graph defaults (fixed input/output nodes, initial state).
+  - Evidence: `products/showcase/ui-entry/state/graphReducer.unit.test.ts` added and failed pre-implementation with `Failed to resolve import "./graphReducer"` via `npm run test:ui:unit -- --runInBand ../../products/showcase/ui-entry/state/graphReducer.unit.test.ts`.
+- [x] `P2-S3-R-02` RED: Add unit tests for node limit behavior (default 8, configurable to 16).
+  - Evidence: `supports configurable node limit and enforces default/additional limits` added in `products/showcase/ui-entry/state/graphReducer.unit.test.ts`; failed in RED run before `graphReducer.ts` existed.
+- [x] `P2-S3-R-03` RED: Add unit tests for connect/disconnect and cycle rejection.
+  - Evidence: `connects and disconnects edges and rejects connections that create cycles` added in `products/showcase/ui-entry/state/graphReducer.unit.test.ts`; failed in RED run before `graphReducer.ts` existed.
+- [x] `P2-S3-R-04` RED: Add unit tests for I/O deletion guard and param update/bypass actions.
+  - Evidence: `guards fixed I/O nodes from deletion, and supports select/update-param/toggle-bypass actions` added in `products/showcase/ui-entry/state/graphReducer.unit.test.ts`; failed in RED run before `graphReducer.ts` existed.
+- [x] `P2-S3-G-01` GREEN: Implement `products/showcase/ui-entry/state/graphTypes.ts` and default graph factory.
+  - Evidence: `products/showcase/ui-entry/state/graphTypes.ts` and `createDefaultGraphState` in `products/showcase/ui-entry/state/graphReducer.ts` now define fixed `input/output` nodes, initial passthrough edge, `nodeLimit`, and error state.
+- [x] `P2-S3-G-02` GREEN: Implement `products/showcase/ui-entry/state/graphReducer.ts` actions (add/remove/connect/disconnect/select/update/bypass).
+  - Evidence: `graphReducer` now supports `addNode/removeNode/connect/disconnect/selectNode/updateNodeParam/toggleNodeBypass`; targeted and full unit suites pass.
+- [x] `P2-S3-G-03` GREEN: Implement DAG/cycle detection and deterministic invalid-edge errors.
+  - Evidence: `graphReducer.ts` includes cycle detection (`wouldCreateCycle`) and deterministic error codes (`ERR_CYCLE_DETECTED`, `ERR_EDGE_ALREADY_EXISTS`, `ERR_NODE_NOT_FOUND`, etc.).
+- [x] `P2-S3-F-01` REFACTOR: Simplify reducer logic and centralize graph utility helpers.
+  - Evidence: Shared reducer helpers (`clearError`, `withError`, `nodeExists`, `hasEdge`, `createEdgeId`, `wouldCreateCycle`) extracted and reused inside `graphReducer.ts` without behavior changes.
 
 Validation:
 - `npm run test:ui:unit`
@@ -211,5 +219,6 @@ Validation:
 
 ## Change Log
 
+- `2026-02-18`: Completed Story S3 (`P2-S3-R/G/F`), added showcase graph reducer unit tests and implemented graph state model/reducer with node limit, I/O guard, connect/disconnect, param updates, bypass, and DAG cycle rejection.
 - `2026-02-18`: Completed Story S2 (`P2-S2-R/G/F`), added reusable node primitive tests/components and refactored `NodeEditorShell` to consume primitives.
 - `2026-02-18`: Rewritten to strict TDD task ordering (`RED -> GREEN -> REFACTOR` per story).
