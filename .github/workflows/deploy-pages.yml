@@ -38,8 +38,9 @@ jobs:
           node scripts/select-product.js --product showcase
           cd build/dsp-active
           moon build --target wasm
-          mkdir -p ../ui-core/public/wasm
-          cp _build/wasm/debug/build/src/src.wasm ../ui-core/public/wasm/moonvst_dsp.wasm
+          mkdir -p ../../packages/ui-core/public/wasm
+          cp _build/wasm/debug/build/src/src.wasm ../../packages/ui-core/public/wasm/moonvst_dsp.wasm
+          test -f ../../packages/ui-core/public/wasm/moonvst_dsp.wasm
 
       - name: Install UI dependencies
         working-directory: packages/ui-core
