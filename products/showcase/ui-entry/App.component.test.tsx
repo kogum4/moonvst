@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen } from '../../../packages/ui-core/src/test/testing'
 import { describe, expect, test } from 'vitest'
-import ShowcaseApp from '../../../products/showcase/ui-entry/App'
+import ShowcaseApp from './App'
 
 describe('showcase product app', () => {
   test('renders node editor shell regions', () => {

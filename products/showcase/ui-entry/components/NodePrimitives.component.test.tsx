@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '../../../../packages/ui-core/src/test/testing'
 import { describe, expect, test } from 'vitest'
 import {
   EffectNode,
@@ -8,7 +8,7 @@ import {
   ParamSlider,
   PortIn,
   PortOut,
-} from './node_editor/NodePrimitives'
+} from './NodePrimitives'
 
 describe('EffectNode (TLTED)', () => {
   test('renders structure and applies props', () => {

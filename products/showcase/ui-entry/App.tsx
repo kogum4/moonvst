@@ -1,4 +1,4 @@
-import { NodeEditorShell } from '../../../packages/ui-core/src/node_editor/NodeEditorShell'
+import { NodeEditorShell } from './components/NodeEditorShell'
 
 export default function App() {
   return <NodeEditorShell />

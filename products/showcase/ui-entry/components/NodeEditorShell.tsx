@@ -1,9 +1,4 @@
-﻿import '@fontsource/inter/500.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/inter/700.css'
-import '@fontsource/jetbrains-mono/500.css'
-import '@fontsource/jetbrains-mono/600.css'
-import {
+﻿import {
   Airplay,
   ArrowLeft,
   ArrowRight,
@@ -21,8 +16,9 @@ import {
   Waves,
   Zap,
   ZoomIn,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '../../../../packages/ui-core/src/vendor/lucide'
+import type { LucideIcon } from '../../../../packages/ui-core/src/vendor/lucide'
+import '../../../../packages/ui-core/src/styles/showcaseFonts'
 import { EffectNode, EqNodeLarge, IONode, LibItem, ParamRow } from './NodePrimitives'
 import styles from './NodeEditorShell.module.css'
 
@@ -97,7 +93,7 @@ function NodeLibraryPanel() {
 function GraphCanvasRegion() {
   return (
     <main aria-label="Graph Canvas" className={styles.canvas} data-region-id="jJBPL">
-      <div className={styles.canvasLabel}>DAG · Stereo · 8/16 nodes</div>
+      <div className={styles.canvasLabel}>DAG | Stereo | 8/16 nodes</div>
       <div className={styles.eqNode}><EqNodeLarge /></div>
       <div className={styles.ioNodeInput}><IONode icon={<LogIn size={12} />} variant="input" /></div>
       <div className={styles.ioNodeOutput}><IONode icon={<LogOut size={12} />} variant="output" /></div>
@@ -166,7 +162,7 @@ function InspectorPanel() {
           <span className={styles.nodeDot} />
           <span className={styles.nodeTitleText}>Reverb (Dattorro)</span>
         </div>
-        <div className={styles.monoSub}>Stereo effect · Algorithmic reverb</div>
+        <div className={styles.monoSub}>Stereo effect | Algorithmic reverb</div>
       </section>
       <section className={styles.propsSection}>
         <div className={styles.sectionLabel}>PARAMETERS</div>
@@ -187,7 +183,7 @@ function StatusBar() {
   return (
     <footer aria-label="Status Bar" className={styles.statusBar} data-region-id="gkrb8">
       <div className={styles.statusLeft}><span>CPU: 4.2%</span><span>Latency: 256 smp</span><span>48kHz / 32-bit</span></div>
-      <div className={styles.statusRight}><span>8 nodes · 7 connections</span><span className={styles.zoomBadge}><ZoomIn size={10} />100%</span></div>
+      <div className={styles.statusRight}><span>8 nodes | 7 connections</span><span className={styles.zoomBadge}><ZoomIn size={10} />100%</span></div>
     </footer>
   )
 }
@@ -205,3 +201,5 @@ export function NodeEditorShell() {
     </div>
   )
 }
+
+

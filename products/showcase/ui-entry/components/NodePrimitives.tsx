@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal } from '../../../../packages/ui-core/src/vendor/lucide'
 import styles from './NodePrimitives.module.css'
 
 const clamp01 = (value: number) => Math.max(0, Math.min(100, value))

@@ -41,18 +41,18 @@ Validation:
 
 ## Story S1: Showcase UI Shell (Pencil Layout)
 
-- [x] `P2-S1-R-01` RED: Update `packages/ui-core/src/showcaseApp.component.test.tsx` to expect node-editor shell (Top/Library/Canvas/Inspector/Status).
+- [x] `P2-S1-R-01` RED: Update `products/showcase/ui-entry/App.component.test.tsx` to expect node-editor shell (Top/Library/Canvas/Inspector/Status).
   - Evidence: `showcase product app > renders node editor shell regions` failed before implementation via `npm run test:ui:component -- --runInBand`.
 - [x] `P2-S1-R-02` RED: Add component test for Pencil region IDs/roles (structural assertions).
-  - Evidence: `node editor shell layout` suite failed pre-implementation (`Failed to resolve import "./node_editor/NodeEditorShell"`), then passed.
+  - Evidence: `node editor shell layout` suite failed pre-implementation (`Failed to resolve import "./components/NodeEditorShell"`), then passed.
 - [x] `P2-S1-G-01` GREEN: Implement thin `products/showcase/ui-entry/App.tsx` composition only.
   - Evidence: `products/showcase/ui-entry/App.tsx` now renders `NodeEditorShell` only.
-- [x] `P2-S1-G-02` GREEN: Add `packages/ui-core/src/node_editor/*` shell components and render all five layout regions.
-  - Evidence: `packages/ui-core/src/node_editor/NodeEditorShell.tsx` with `TopBar/NodeLibraryPanel/GraphCanvasRegion/InspectorPanel/StatusBar` passes component tests.
+- [x] `P2-S1-G-02` GREEN: Add `products/showcase/ui-entry/components/*` shell components and render all five layout regions.
+  - Evidence: `products/showcase/ui-entry/components/NodeEditorShell.tsx` with `TopBar/NodeLibraryPanel/GraphCanvasRegion/InspectorPanel/StatusBar` passes component tests.
 - [x] `P2-S1-G-03` GREEN: Add shared style tokens and apply Pencil color/typography variables.
-  - Evidence: `packages/ui-core/src/node_editor/NodeEditorShell.module.css` defines shared CSS variables (`--bg-*`, `--text-*`, `--accent-*`, `--node-*`, `--font-*`).
+  - Evidence: `products/showcase/ui-entry/components/NodeEditorShell.module.css` defines shared CSS variables (`--bg-*`, `--text-*`, `--accent-*`, `--node-*`, `--font-*`).
 - [x] `P2-S1-F-01` REFACTOR: Simplify shell component boundaries and remove duplication.
-  - Evidence: Introduced `packages/ui-core/src/node_editor/RegionPane.tsx` and refactored three region components to reuse it.
+  - Evidence: `products/showcase/ui-entry/components/NodeEditorShell.tsx` maintains thin showcase composition with region components while preserving the same shell behavior.
 
 Validation:
 - `npm run build:ui`
@@ -63,19 +63,19 @@ Validation:
 ## Story S2: Reusable Node Components (Pencil Mapping)
 
 - [x] `P2-S2-R-01` RED: Add component tests for `EffectNode` (`TLTED`) structure and props.
-  - Evidence: `EffectNode (TLTED) > renders structure and applies props` added in `packages/ui-core/src/nodeEditorPrimitives.component.test.tsx`; suite failed pre-implementation via `npm run test:ui:component -- --runInBand` (`Failed to resolve import "./node_editor/NodePrimitives"`).
+  - Evidence: `EffectNode (TLTED) > renders structure and applies props` added in `products/showcase/ui-entry/components/NodePrimitives.component.test.tsx`; suite failed pre-implementation via `npm run test:ui:component -- --runInBand` (`Failed to resolve import "./NodePrimitives"`).
 - [x] `P2-S2-R-02` RED: Add component tests for `IONode` (`3w2LY`) in/out variants.
-  - Evidence: `IONode (3w2LY) > renders input variant` and `renders output variant` added in `packages/ui-core/src/nodeEditorPrimitives.component.test.tsx`; same RED failure captured before implementation.
+  - Evidence: `IONode (3w2LY) > renders input variant` and `renders output variant` added in `products/showcase/ui-entry/components/NodePrimitives.component.test.tsx`; same RED failure captured before implementation.
 - [x] `P2-S2-R-03` RED: Add component tests for `LibItem`, `ParamSlider`, `PortIn/Out`, `ParamRow`.
-  - Evidence: `LibItem / ParamSlider / PortIn-Out / ParamRow` suite added with four tests in `packages/ui-core/src/nodeEditorPrimitives.component.test.tsx`; same RED failure captured before implementation.
+  - Evidence: `LibItem / ParamSlider / PortIn-Out / ParamRow` suite added with four tests in `products/showcase/ui-entry/components/NodePrimitives.component.test.tsx`; same RED failure captured before implementation.
 - [x] `P2-S2-G-01` GREEN: Implement `EffectNode`.
-  - Evidence: `packages/ui-core/src/node_editor/NodePrimitives.tsx` now exports `EffectNode` (`data-pencil-id="TLTED"`); `npm run test:ui:component -- --runInBand` passes.
+  - Evidence: `products/showcase/ui-entry/components/NodePrimitives.tsx` now exports `EffectNode` (`data-pencil-id="TLTED"`); `npm run test:ui:component -- --runInBand` passes.
 - [x] `P2-S2-G-02` GREEN: Implement `IONode`.
-  - Evidence: `packages/ui-core/src/node_editor/NodePrimitives.tsx` now exports `IONode` (`data-pencil-id="3w2LY"` with `input/output` variants); component tests pass.
+  - Evidence: `products/showcase/ui-entry/components/NodePrimitives.tsx` now exports `IONode` (`data-pencil-id="3w2LY"` with `input/output` variants); component tests pass.
 - [x] `P2-S2-G-03` GREEN: Implement `LibItem`, `ParamSlider`, `PortIn`, `PortOut`, `ParamRow`.
-  - Evidence: `packages/ui-core/src/node_editor/NodePrimitives.tsx` now exports all five components with mapped Pencil IDs (`T4R15`, `UQsji`, `zGscn`, `VLHGQ`, `n7CSX`); component tests pass.
+  - Evidence: `products/showcase/ui-entry/components/NodePrimitives.tsx` now exports all five components with mapped Pencil IDs (`T4R15`, `UQsji`, `zGscn`, `VLHGQ`, `n7CSX`); component tests pass.
 - [x] `P2-S2-F-01` REFACTOR: Normalize props/types and extract shared primitives.
-  - Evidence: Shared primitive styles extracted to `packages/ui-core/src/node_editor/NodePrimitives.module.css` and `NodeEditorShell` updated to compose `LibItem`, `ParamRow`, `EffectNode`, `IONode`.
+  - Evidence: Shared primitive styles are defined in `products/showcase/ui-entry/components/NodePrimitives.module.css`, and `NodeEditorShell` composes `LibItem`, `ParamRow`, `EffectNode`, `IONode` from the same showcase component set.
 
 Validation:
 - `npm run test:ui:component`
@@ -88,8 +88,8 @@ Validation:
 - [ ] `P2-S3-R-02` RED: Add unit tests for node limit behavior (default 8, configurable to 16).
 - [ ] `P2-S3-R-03` RED: Add unit tests for connect/disconnect and cycle rejection.
 - [ ] `P2-S3-R-04` RED: Add unit tests for I/O deletion guard and param update/bypass actions.
-- [ ] `P2-S3-G-01` GREEN: Implement `graphTypes.ts` and default graph factory.
-- [ ] `P2-S3-G-02` GREEN: Implement `graphReducer.ts` actions (add/remove/connect/disconnect/select/update/bypass).
+- [ ] `P2-S3-G-01` GREEN: Implement `products/showcase/ui-entry/state/graphTypes.ts` and default graph factory.
+- [ ] `P2-S3-G-02` GREEN: Implement `products/showcase/ui-entry/state/graphReducer.ts` actions (add/remove/connect/disconnect/select/update/bypass).
 - [ ] `P2-S3-G-03` GREEN: Implement DAG/cycle detection and deterministic invalid-edge errors.
 - [ ] `P2-S3-F-01` REFACTOR: Simplify reducer logic and centralize graph utility helpers.
 
@@ -103,8 +103,8 @@ Validation:
 - [ ] `P2-S4-R-01` RED: Add component test for library click -> node added.
 - [ ] `P2-S4-R-02` RED: Add component test for connect flow (out port -> in port) with DAG constraints.
 - [ ] `P2-S4-R-03` RED: Add component test for disconnect and selection behavior.
-- [ ] `P2-S4-G-01` GREEN: Implement node creation flow from `NodePalette`.
-- [ ] `P2-S4-G-02` GREEN: Implement edge connect/disconnect in `GraphCanvas` + `EdgeLayer`.
+- [ ] `P2-S4-G-01` GREEN: Implement node creation flow from `products/showcase/ui-entry/components/NodePalette`.
+- [ ] `P2-S4-G-02` GREEN: Implement edge connect/disconnect in `products/showcase/ui-entry/components/GraphCanvas` + `EdgeLayer`.
 - [ ] `P2-S4-G-03` GREEN: Implement deterministic node placement and visual selection states.
 - [ ] `P2-S4-F-01` REFACTOR: Extract interaction hooks/utilities and reduce view logic complexity.
 
@@ -167,7 +167,7 @@ Validation:
 - [ ] `P2-S8-R-02` RED: Add UI/runtime test for emitting payload on graph edit.
 - [ ] `P2-S8-R-03` RED: Add DSP-side test for payload validation and apply behavior.
 - [ ] `P2-S8-G-01` GREEN: Implement versioned graph payload schema and validators.
-- [ ] `P2-S8-G-02` GREEN: Implement runtime transport in `packages/ui-core/src/runtime/*`.
+- [ ] `P2-S8-G-02` GREEN: Implement runtime transport in `products/showcase/ui-entry/runtime/*`.
 - [ ] `P2-S8-G-03` GREEN: Refactor `products/showcase/dsp-entry/lib.mbt` to wiring-only contract apply path.
 - [ ] `P2-S8-F-01` REFACTOR: Consolidate contract constants and error mapping.
 

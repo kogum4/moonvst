@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen } from '../../../../packages/ui-core/src/test/testing'
 import { describe, expect, test } from 'vitest'
-import { NodeEditorShell } from './node_editor/NodeEditorShell'
+import { NodeEditorShell } from './NodeEditorShell'
 
 describe('node editor shell layout', () => {
   test('renders Pencil-mapped regions with semantic roles and region ids', () => {
