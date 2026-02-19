@@ -10,6 +10,14 @@
   width: 100%;
 }
 
+.libItem[draggable='true']:hover {
+  cursor: grab;
+}
+
+.libItem[draggable='true']:active {
+  cursor: grabbing;
+}
+
 .libItemDot {
   width: 8px;
   height: 8px;
