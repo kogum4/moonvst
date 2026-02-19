@@ -35,22 +35,26 @@ describe('canvas interaction flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delay' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Input OUT port' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Chorus IN port' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Chorus OUT port' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Delay IN port' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Delay OUT port' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Chorus IN port' }))
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Input OUT port' }), { clientX: 200, clientY: 220 })
+    fireEvent.pointerMove(window, { clientX: 320, clientY: 220 })
+    fireEvent.pointerUp(screen.getByRole('button', { name: 'Chorus IN port' }), { clientX: 320, clientY: 220 })
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Chorus OUT port' }), { clientX: 380, clientY: 220 })
+    fireEvent.pointerMove(window, { clientX: 540, clientY: 220 })
+    fireEvent.pointerUp(screen.getByRole('button', { name: 'Delay IN port' }), { clientX: 540, clientY: 220 })
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Delay OUT port' }), { clientX: 580, clientY: 220 })
+    fireEvent.pointerMove(window, { clientX: 340, clientY: 220 })
+    fireEvent.pointerUp(screen.getByRole('button', { name: 'Chorus IN port' }), { clientX: 340, clientY: 220 })
 
     expect(screen.getAllByText('ERR_CYCLE_DETECTED').length).toBeGreaterThan(0)
+    expect(screen.getByLabelText('Wire Input -> Output')).toBeInTheDocument()
   })
 
   test('disconnects edge and updates selection state', async () => {
     render(<NodeEditorShell />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Input OUT port' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Chorus IN port' }))
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Input OUT port' }), { clientX: 200, clientY: 220 })
+    fireEvent.pointerUp(screen.getByRole('button', { name: 'Chorus IN port' }), { clientX: 320, clientY: 220 })
 
     const chorusNode = screen.getByRole('group', { name: 'Effect Node Chorus' })
     fireEvent.click(chorusNode)

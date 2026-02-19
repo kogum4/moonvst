@@ -195,23 +195,49 @@
 
 .edgeLayer {
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  inset: 0;
+  pointer-events: none;
 }
 
-.edgePill {
+.edgeSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.edgeWire,
+.edgeWirePreview {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.edgeWire {
+  stroke: #22D3EE;
+  opacity: 0.75;
+}
+
+.edgeWirePreview {
+  stroke: #38BDF8;
+  opacity: 0.45;
+  stroke-dasharray: 5 4;
+}
+
+.edgeDisconnect {
+  position: absolute;
+  width: 20px;
+  height: 20px;
   border: 1px solid #334155;
+  border-radius: 999px;
   background: #0F172A;
   color: #94A3B8;
-  border-radius: 999px;
-  padding: 2px 8px;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 10px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .connectionHint {

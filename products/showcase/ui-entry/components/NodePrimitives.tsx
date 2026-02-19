@@ -1,4 +1,4 @@
-import type { DragEvent, ReactNode } from 'react'
+import type { DragEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { SlidersHorizontal } from '../../../../packages/ui-core/src/vendor/lucide'
 import styles from './NodePrimitives.module.css'
 
@@ -7,21 +7,31 @@ const clamp01 = (value: number) => Math.max(0, Math.min(100, value))
 export function PortIn({
   ariaLabel = 'IN port',
   color = '#22D3EE',
+  nodeId,
   onClick,
+  onPointerUp,
 }: {
   ariaLabel?: string
   color?: string
+  nodeId?: string
   onClick?: () => void
+  onPointerUp?: () => void
 }) {
   return (
     <button
       aria-label={ariaLabel}
       className={styles.portIn}
+      data-node-id={nodeId}
+      data-port-side="in"
       data-pencil-id="zGscn"
       data-testid="port-in"
       onClick={(event) => {
         event.stopPropagation()
         onClick?.()
+      }}
+      onPointerUp={(event) => {
+        event.stopPropagation()
+        onPointerUp?.()
       }}
       type="button"
     >
@@ -34,21 +44,31 @@ export function PortIn({
 export function PortOut({
   ariaLabel = 'OUT port',
   color = '#22D3EE',
+  nodeId,
   onClick,
+  onPointerDown,
 }: {
   ariaLabel?: string
   color?: string
+  nodeId?: string
   onClick?: () => void
+  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void
 }) {
   return (
     <button
       aria-label={ariaLabel}
       className={styles.portOut}
+      data-node-id={nodeId}
+      data-port-side="out"
       data-pencil-id="VLHGQ"
       data-testid="port-out"
       onClick={(event) => {
         event.stopPropagation()
         onClick?.()
+      }}
+      onPointerDown={(event) => {
+        event.stopPropagation()
+        onPointerDown?.(event)
       }}
       type="button"
     >
@@ -135,10 +155,13 @@ export function EffectNode({
   icon,
   inCount = 1,
   inPortAriaLabel,
+  nodeId,
   label,
   onClick,
   onInPortClick,
+  onInPortPointerUp,
   onOutPortClick,
+  onOutPortPointerDown,
   outCount = 1,
   outPortAriaLabel,
   rows = [
@@ -153,10 +176,13 @@ export function EffectNode({
   icon?: ReactNode
   inCount?: number
   inPortAriaLabel?: string
+  nodeId?: string
   label: string
   onClick?: () => void
   onInPortClick?: () => void
+  onInPortPointerUp?: () => void
   onOutPortClick?: () => void
+  onOutPortPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void
   outCount?: number
   outPortAriaLabel?: string
   rows?: Array<{ key: string; label: string; value: string }>
@@ -196,7 +222,9 @@ export function EffectNode({
               <PortIn
                 ariaLabel={inPortAriaLabel ?? `${label} IN port`}
                 key={`in-${index}`}
+                nodeId={nodeId}
                 onClick={onInPortClick}
+                onPointerUp={onInPortPointerUp}
               />
             ))}
           </div>
@@ -205,7 +233,9 @@ export function EffectNode({
               <PortOut
                 ariaLabel={outPortAriaLabel ?? `${label} OUT port`}
                 key={`out-${index}`}
+                nodeId={nodeId}
                 onClick={onOutPortClick}
+                onPointerDown={onOutPortPointerDown}
               />
             ))}
           </div>
@@ -218,18 +248,24 @@ export function EffectNode({
 export function IONode({
   icon,
   inPortAriaLabel,
+  nodeId,
   onClick,
   onInPortClick,
+  onInPortPointerUp,
   onOutPortClick,
+  onOutPortPointerDown,
   outPortAriaLabel,
   selected = false,
   variant,
 }: {
   icon?: ReactNode
   inPortAriaLabel?: string
+  nodeId?: string
   onClick?: () => void
   onInPortClick?: () => void
+  onInPortPointerUp?: () => void
   onOutPortClick?: () => void
+  onOutPortPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void
   outPortAriaLabel?: string
   selected?: boolean
   variant: 'input' | 'output'
@@ -262,8 +298,22 @@ export function IONode({
           <span className={styles.inlineValue}>0 dB</span>
         </div>
         <div className={`${styles.ioPortsRow} ${isInput ? styles.ioPortsRowEnd : styles.ioPortsRowStart}`}>
-          {isInput ? <PortOut ariaLabel={outPortAriaLabel ?? `${label} OUT port`} onClick={onOutPortClick} /> : null}
-          {!isInput ? <PortIn ariaLabel={inPortAriaLabel ?? `${label} IN port`} onClick={onInPortClick} /> : null}
+          {isInput ? (
+            <PortOut
+              ariaLabel={outPortAriaLabel ?? `${label} OUT port`}
+              nodeId={nodeId}
+              onClick={onOutPortClick}
+              onPointerDown={onOutPortPointerDown}
+            />
+          ) : null}
+          {!isInput ? (
+            <PortIn
+              ariaLabel={inPortAriaLabel ?? `${label} IN port`}
+              nodeId={nodeId}
+              onClick={onInPortClick}
+              onPointerUp={onInPortPointerUp}
+            />
+          ) : null}
         </div>
       </div>
     </article>

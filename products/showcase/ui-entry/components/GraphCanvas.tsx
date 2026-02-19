@@ -1,5 +1,5 @@
 import { LogIn, LogOut } from '../../../../packages/ui-core/src/vendor/lucide'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { DragEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { EdgeLayer } from './EdgeLayer'
 import { EffectNode, IONode } from './NodePrimitives'
@@ -16,6 +16,12 @@ type DragNodeState = {
   originY: number
   startClientX: number
   startClientY: number
+}
+
+type DragConnectionState = {
+  fromNodeId: NodeId
+  pointerX: number
+  pointerY: number
 }
 
 type GraphCanvasProps = {
@@ -39,10 +45,12 @@ export function GraphCanvas({
   pendingFromNodeId,
   state,
 }: GraphCanvasProps) {
+  const canvasRef = useRef<HTMLElement | null>(null)
   const [dragNode, setDragNode] = useState<DragNodeState | null>(null)
+  const [dragConnection, setDragConnection] = useState<DragConnectionState | null>(null)
 
   useEffect(() => {
-    if (!dragNode) {
+    if (!dragNode && !dragConnection) {
       return
     }
 
@@ -50,13 +58,32 @@ export function GraphCanvas({
     document.body.style.userSelect = 'none'
 
     const handlePointerMove = (event: PointerEvent) => {
-      const nextX = Math.max(0, Math.round(dragNode.originX + event.clientX - dragNode.startClientX))
-      const nextY = Math.max(0, Math.round(dragNode.originY + event.clientY - dragNode.startClientY))
-      onMoveNode(dragNode.nodeId, nextX, nextY)
+      if (dragNode) {
+        const nextX = Math.max(0, Math.round(dragNode.originX + event.clientX - dragNode.startClientX))
+        const nextY = Math.max(0, Math.round(dragNode.originY + event.clientY - dragNode.startClientY))
+        onMoveNode(dragNode.nodeId, nextX, nextY)
+      }
+      if (dragConnection) {
+        const canvas = canvasRef.current
+        const nextPointer = canvas
+          ? {
+              x: event.clientX - canvas.getBoundingClientRect().left + canvas.scrollLeft,
+              y: event.clientY - canvas.getBoundingClientRect().top + canvas.scrollTop,
+            }
+          : { x: event.clientX, y: event.clientY }
+        setDragConnection((current) => current
+          ? {
+              ...current,
+              pointerX: nextPointer.x,
+              pointerY: nextPointer.y,
+            }
+          : null)
+      }
     }
 
     const handlePointerUp = () => {
       setDragNode(null)
+      setDragConnection(null)
     }
 
     window.addEventListener('pointermove', handlePointerMove)
@@ -66,7 +93,7 @@ export function GraphCanvas({
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
     }
-  }, [dragNode, onMoveNode])
+  }, [dragConnection, dragNode, onMoveNode])
 
   const handleNodePointerDown = (event: ReactPointerEvent<HTMLDivElement>, nodeId: NodeId, originX: number, originY: number) => {
     const target = event.target as HTMLElement
@@ -98,12 +125,50 @@ export function GraphCanvas({
     event.preventDefault()
   }
 
+  const toCanvasPoint = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current
+    if (!canvas) {
+      return { x: clientX, y: clientY }
+    }
+    const rect = canvas.getBoundingClientRect()
+    return {
+      x: clientX - rect.left + canvas.scrollLeft,
+      y: clientY - rect.top + canvas.scrollTop,
+    }
+  }
+
+  const handleOutPortPointerDown = (fromNodeId: NodeId, event: ReactPointerEvent<HTMLButtonElement>) => {
+    const pointer = toCanvasPoint(event.clientX, event.clientY)
+    onStartConnection(fromNodeId)
+    setDragConnection({
+      fromNodeId,
+      pointerX: pointer.x,
+      pointerY: pointer.y,
+    })
+  }
+
+  const handleInPortPointerUp = (toNodeId: NodeId) => {
+    if (!pendingFromNodeId) {
+      return
+    }
+    onCompleteConnection(toNodeId)
+    setDragConnection(null)
+  }
+
+  const previewEdge = dragConnection
+    ? {
+        fromNodeId: dragConnection.fromNodeId,
+        toX: dragConnection.pointerX,
+        toY: dragConnection.pointerY,
+      }
+    : null
+
   return (
-    <main aria-label="Graph Canvas" className={styles.canvas} data-region-id="jJBPL" onDragOver={handleDragOver} onDrop={handleDrop}>
+    <main aria-label="Graph Canvas" className={styles.canvas} data-region-id="jJBPL" onDragOver={handleDragOver} onDrop={handleDrop} ref={canvasRef}>
       <div className={styles.canvasLabel}>
         DAG | Stereo | {state.nodes.length}/{state.nodeLimit} nodes
       </div>
-      <EdgeLayer edges={state.edges} nodes={state.nodes} onDisconnect={onDisconnect} />
+      <EdgeLayer canvasRef={canvasRef} edges={state.edges} nodes={state.nodes} onDisconnect={onDisconnect} previewEdge={previewEdge} />
       {state.nodes.map((node) => {
         const isSelected = state.selectedNodeId === node.id
         const nodeLabel = getNodeLabel(node.kind)
@@ -120,8 +185,10 @@ export function GraphCanvas({
             >
               <IONode
                 icon={<LogIn size={12} />}
+                nodeId={node.id}
                 onClick={() => onSelectNode(node.id)}
                 onOutPortClick={() => onStartConnection(node.id)}
+                onOutPortPointerDown={(event) => handleOutPortPointerDown(node.id, event)}
                 outPortAriaLabel="Input OUT port"
                 selected={isSelected}
                 variant="input"
@@ -142,8 +209,10 @@ export function GraphCanvas({
               <IONode
                 icon={<LogOut size={12} />}
                 inPortAriaLabel="Output IN port"
+                nodeId={node.id}
                 onClick={() => onSelectNode(node.id)}
                 onInPortClick={() => onCompleteConnection(node.id)}
+                onInPortPointerUp={() => handleInPortPointerUp(node.id)}
                 selected={isSelected}
                 variant="output"
               />
@@ -166,9 +235,12 @@ export function GraphCanvas({
               icon={<Icon size={12} />}
               inPortAriaLabel={`${nodeLabel} IN port`}
               label={visual.label}
+              nodeId={node.id}
               onClick={() => onSelectNode(node.id)}
               onInPortClick={() => onCompleteConnection(node.id)}
+              onInPortPointerUp={() => handleInPortPointerUp(node.id)}
               onOutPortClick={() => onStartConnection(node.id)}
+              onOutPortPointerDown={(event) => handleOutPortPointerDown(node.id, event)}
               outPortAriaLabel={`${nodeLabel} OUT port`}
               rows={visual.rows}
               selected={isSelected}
