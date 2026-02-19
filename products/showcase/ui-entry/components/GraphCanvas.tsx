@@ -9,10 +9,13 @@ import type { GraphState, NodeId } from '../state/graphTypes'
 import styles from './NodeEditorShell.module.css'
 
 const DRAG_EFFECT_KIND = 'application/x-moonvst-effect-kind'
+const DRAG_EFFECT_ANCHOR = 'application/x-moonvst-effect-anchor'
 const CANVAS_SCROLLBAR_COLOR = 'rgba(56, 189, 248, 0.55) rgba(15, 23, 42, 0.85)'
 const HIDDEN_SCROLLBAR_COLOR = 'transparent transparent'
 const SCROLL_OVERFLOW_EPSILON_PX = 2
 const NODE_BOUNDS_PADDING_PX = 24
+const DEFAULT_DROP_OFFSET_X = 90
+const DEFAULT_DROP_OFFSET_Y = 16
 
 const getNodeBounds = (kind: string) => {
   if (kind === 'input' || kind === 'output') {
@@ -179,12 +182,25 @@ export function GraphCanvas({
   const handleDrop = (event: DragEvent<HTMLElement>) => {
     event.preventDefault()
     const rect = event.currentTarget.getBoundingClientRect()
+    const canvasLeft = Number.isFinite(rect.left) ? rect.left : 0
+    const canvasTop = Number.isFinite(rect.top) ? rect.top : 0
 
     const effectKind = event.dataTransfer.getData(DRAG_EFFECT_KIND) as EffectKind
     if (!effectKind) {
       return
     }
-    onAddNodeAt(effectKind, Math.max(0, Math.round(event.clientX - rect.left - 90)), Math.max(0, Math.round(event.clientY - rect.top - 40)))
+    const anchorRaw = event.dataTransfer.getData(DRAG_EFFECT_ANCHOR)
+    const [anchorXRaw, anchorYRaw] = anchorRaw.split(',')
+    const anchorX = Number(anchorXRaw)
+    const anchorY = Number(anchorYRaw)
+    const offsetX = Number.isFinite(anchorX) ? anchorX : DEFAULT_DROP_OFFSET_X
+    const offsetY = Number.isFinite(anchorY) ? anchorY : DEFAULT_DROP_OFFSET_Y
+
+    onAddNodeAt(
+      effectKind,
+      Math.max(0, Math.round(event.clientX - canvasLeft - offsetX)),
+      Math.max(0, Math.round(event.clientY - canvasTop - offsetY)),
+    )
   }
 
   const handleDragOver = (event: DragEvent<HTMLElement>) => {

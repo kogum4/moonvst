@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from '../../../../packages/ui-core/src/test
 import { describe, expect, test } from 'vitest'
 import { NodeEditorShell } from './NodeEditorShell'
 
+const DRAG_EFFECT_ANCHOR = 'application/x-moonvst-effect-anchor'
+
 const createDataTransfer = () => {
   const store = new Map<string, string>()
   return {
@@ -20,6 +22,7 @@ describe('canvas interaction flow', () => {
 
     const dataTransfer = createDataTransfer()
     fireEvent.dragStart(screen.getByRole('button', { name: 'Delay' }), { dataTransfer })
+    expect(dataTransfer.getData(DRAG_EFFECT_ANCHOR)).toBe('90,16')
     fireEvent.dragOver(screen.getByRole('main', { name: 'Graph Canvas' }), { dataTransfer })
     fireEvent.drop(screen.getByRole('main', { name: 'Graph Canvas' }), {
       clientX: 520,
