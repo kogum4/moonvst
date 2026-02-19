@@ -34,4 +34,17 @@ describe('node editor shell layout', () => {
     expect(screen.getByRole('group', { name: 'Parameter Row Decay' })).toHaveAttribute('data-param-color', '#FB923C')
     expect(screen.getByTestId('connection-dot-in-0')).toHaveAttribute('data-node-color', '#4ADE80')
   })
+
+  test('keeps fixed connection value slots for IN and OUT rows', () => {
+    render(<NodeEditorShell />)
+
+    expect(screen.getByTestId('connections-in-value')).toBeInTheDocument()
+    expect(screen.getByTestId('connections-out-value')).toBeInTheDocument()
+
+    const inputNode = screen.getByRole('group', { name: 'I/O Node INPUT' })
+    fireEvent.click(inputNode)
+
+    expect(screen.getByTestId('connections-in-value')).toBeInTheDocument()
+    expect(screen.getByTestId('connections-out-value')).toBeInTheDocument()
+  })
 })

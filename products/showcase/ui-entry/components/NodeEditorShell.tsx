@@ -78,29 +78,33 @@ function InspectorPanel({
           {params.map((row) => <ParamRow color={nodeColor} key={row.label} label={row.label} value={row.value} valueText={row.valueText} />)}
         </div>
       </section>
-      <section className={styles.propsSection}>
+      <section className={`${styles.propsSection} ${styles.connectionsSection}`}>
         <div className={styles.sectionLabel}>CONNECTIONS</div>
         <div className={styles.connRow}>
           <span className={styles.connLabel}>IN</span>
-          {incomingConnections.length > 0
-            ? incomingConnections.map((connection, index) => (
-                <span className={styles.connTag} key={`in-${connection.label}-${index}`}>
-                  <span className={styles.connDot} data-node-color={connection.color} data-testid={`connection-dot-in-${index}`} style={{ backgroundColor: connection.color }} />
-                  {connection.label}
-                </span>
-              ))
-            : <span className={styles.monoSub}>none</span>}
+          <span className={styles.connValue} data-testid="connections-in-value">
+            {incomingConnections.length > 0
+              ? incomingConnections.map((connection, index) => (
+                  <span className={styles.connTag} key={`in-${connection.label}-${index}`}>
+                    <span className={styles.connDot} data-node-color={connection.color} data-testid={`connection-dot-in-${index}`} style={{ backgroundColor: connection.color }} />
+                    {connection.label}
+                  </span>
+                ))
+              : null}
+          </span>
         </div>
         <div className={styles.connRow}>
           <span className={styles.connLabel}>OUT</span>
-          {outgoingConnections.length > 0
-            ? outgoingConnections.map((connection, index) => (
-                <span className={styles.connTag} key={`out-${connection.label}-${index}`}>
-                  <span className={styles.connDot} data-node-color={connection.color} data-testid={`connection-dot-out-${index}`} style={{ backgroundColor: connection.color }} />
-                  {connection.label}
-                </span>
-              ))
-            : <span className={styles.monoSub}>none</span>}
+          <span className={styles.connValue} data-testid="connections-out-value">
+            {outgoingConnections.length > 0
+              ? outgoingConnections.map((connection, index) => (
+                  <span className={styles.connTag} key={`out-${connection.label}-${index}`}>
+                    <span className={styles.connDot} data-node-color={connection.color} data-testid={`connection-dot-out-${index}`} style={{ backgroundColor: connection.color }} />
+                    {connection.label}
+                  </span>
+                ))
+              : null}
+          </span>
         </div>
       </section>
     </aside>

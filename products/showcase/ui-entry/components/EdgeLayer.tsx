@@ -1,6 +1,7 @@
 import type { GraphEdge, GraphNode, NodeId } from '../state/graphTypes'
 import { getNodeLabel } from './graphUi'
 import styles from './NodeEditorShell.module.css'
+import { useLayoutEffect, useReducer } from 'react'
 import type { RefObject } from 'react'
 
 type EdgeLayerProps = {
@@ -52,6 +53,13 @@ const getWireMidpoint = (fromX: number, fromY: number, toX: number, toY: number)
 })
 
 export function EdgeLayer({ canvasRef, edges, nodes, onDisconnect, previewEdge = null }: EdgeLayerProps) {
+  const [, forceMeasure] = useReducer((value: number) => value + 1, 0)
+
+  useLayoutEffect(() => {
+    // Measure once after mount/update so initial edges use actual port positions.
+    forceMeasure()
+  }, [edges, nodes])
+
   const connectedWires = edges.map((edge) => {
     const from = findNode(nodes, edge.fromNodeId)
     const to = findNode(nodes, edge.toNodeId)
