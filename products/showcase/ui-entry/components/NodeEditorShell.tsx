@@ -10,7 +10,7 @@ import { useMemo } from 'react'
 import { GraphCanvas } from './GraphCanvas'
 import { NodePalette } from './NodePalette'
 import { ParamRow } from './NodePrimitives'
-import { getNodeLabel } from './graphUi'
+import { getNodeColor, getNodeLabel } from './graphUi'
 import { useGraphInteraction } from './useGraphInteraction'
 import styles from './NodeEditorShell.module.css'
 
@@ -46,17 +46,15 @@ function TopBar() {
   )
 }
 
-function Tag({ color, text }: { color: string; text: string }) {
-  return <span className={styles.connTag}><span className={styles.connDot} style={{ backgroundColor: color }} />{text}</span>
-}
-
 function InspectorPanel({
-  incomingLabels,
-  outgoingLabels,
+  incomingConnections,
+  nodeColor,
+  outgoingConnections,
   selectedNodeLabel,
 }: {
-  incomingLabels: string[]
-  outgoingLabels: string[]
+  incomingConnections: Array<{ color: string; label: string }>
+  nodeColor: string
+  outgoingConnections: Array<{ color: string; label: string }>
   selectedNodeLabel: string
 }) {
   return (
@@ -64,7 +62,12 @@ function InspectorPanel({
       <div className={styles.propsHeader}><Settings2 size={14} />PROPERTIES</div>
       <section className={styles.propsSection}>
         <div className={styles.nodeInfo}>
-          <span className={styles.nodeDot} />
+          <span
+            className={styles.nodeDot}
+            data-node-color={nodeColor}
+            data-testid="inspector-node-dot"
+            style={{ backgroundColor: nodeColor }}
+          />
           <span className={styles.nodeTitleText}>{selectedNodeLabel}</span>
         </div>
         <div className={styles.monoSub}>Stereo effect | Showcase editor</div>
@@ -72,18 +75,32 @@ function InspectorPanel({
       <section className={styles.propsSection}>
         <div className={styles.sectionLabel}>PARAMETERS</div>
         <div className={styles.paramsList}>
-          {params.map((row) => <ParamRow key={row.label} label={row.label} value={row.value} valueText={row.valueText} />)}
+          {params.map((row) => <ParamRow color={nodeColor} key={row.label} label={row.label} value={row.value} valueText={row.valueText} />)}
         </div>
       </section>
       <section className={styles.propsSection}>
         <div className={styles.sectionLabel}>CONNECTIONS</div>
         <div className={styles.connRow}>
           <span className={styles.connLabel}>IN</span>
-          {incomingLabels.length > 0 ? incomingLabels.map((label) => <Tag color="#22D3EE" key={`in-${label}`} text={label} />) : <span className={styles.monoSub}>none</span>}
+          {incomingConnections.length > 0
+            ? incomingConnections.map((connection, index) => (
+                <span className={styles.connTag} key={`in-${connection.label}-${index}`}>
+                  <span className={styles.connDot} data-node-color={connection.color} data-testid={`connection-dot-in-${index}`} style={{ backgroundColor: connection.color }} />
+                  {connection.label}
+                </span>
+              ))
+            : <span className={styles.monoSub}>none</span>}
         </div>
         <div className={styles.connRow}>
           <span className={styles.connLabel}>OUT</span>
-          {outgoingLabels.length > 0 ? outgoingLabels.map((label) => <Tag color="#22D3EE" key={`out-${label}`} text={label} />) : <span className={styles.monoSub}>none</span>}
+          {outgoingConnections.length > 0
+            ? outgoingConnections.map((connection, index) => (
+                <span className={styles.connTag} key={`out-${connection.label}-${index}`}>
+                  <span className={styles.connDot} data-node-color={connection.color} data-testid={`connection-dot-out-${index}`} style={{ backgroundColor: connection.color }} />
+                  {connection.label}
+                </span>
+              ))
+            : <span className={styles.monoSub}>none</span>}
         </div>
       </section>
     </aside>
@@ -117,7 +134,14 @@ export function NodeEditorShell() {
     return getNodeLabel(selectedNode.kind)
   }, [selectedNode])
 
-  const incomingLabels = useMemo(() => {
+  const selectedNodeColor = useMemo(() => {
+    if (!selectedNode) {
+      return '#38BDF8'
+    }
+    return getNodeColor(selectedNode.kind)
+  }, [selectedNode])
+
+  const incomingConnections = useMemo(() => {
     if (!selectedNode) {
       return []
     }
@@ -125,10 +149,13 @@ export function NodeEditorShell() {
       .filter((edge) => edge.toNodeId === selectedNode.id)
       .map((edge) => state.nodes.find((node) => node.id === edge.fromNodeId))
       .filter((node): node is NonNullable<typeof node> => node !== undefined)
-      .map((node) => getNodeLabel(node.kind))
+      .map((node) => ({
+        color: getNodeColor(node.kind),
+        label: getNodeLabel(node.kind),
+      }))
   }, [selectedNode, state.edges, state.nodes])
 
-  const outgoingLabels = useMemo(() => {
+  const outgoingConnections = useMemo(() => {
     if (!selectedNode) {
       return []
     }
@@ -136,7 +163,10 @@ export function NodeEditorShell() {
       .filter((edge) => edge.fromNodeId === selectedNode.id)
       .map((edge) => state.nodes.find((node) => node.id === edge.toNodeId))
       .filter((node): node is NonNullable<typeof node> => node !== undefined)
-      .map((node) => getNodeLabel(node.kind))
+      .map((node) => ({
+        color: getNodeColor(node.kind),
+        label: getNodeLabel(node.kind),
+      }))
   }, [selectedNode, state.edges, state.nodes])
 
   return (
@@ -155,8 +185,9 @@ export function NodeEditorShell() {
           state={state}
         />
         <InspectorPanel
-          incomingLabels={incomingLabels}
-          outgoingLabels={outgoingLabels}
+          incomingConnections={incomingConnections}
+          nodeColor={selectedNodeColor}
+          outgoingConnections={outgoingConnections}
           selectedNodeLabel={selectedNodeLabel}
         />
       </section>

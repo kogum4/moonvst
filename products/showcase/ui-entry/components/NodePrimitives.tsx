@@ -78,7 +78,7 @@ export function PortOut({
   )
 }
 
-export function ParamSlider({ value }: { value: number }) {
+export function ParamSlider({ color = '#22D3EE', value }: { color?: string; value: number }) {
   const clamped = clamp01(value)
 
   return (
@@ -91,28 +91,30 @@ export function ParamSlider({ value }: { value: number }) {
       data-pencil-id="UQsji"
       role="slider"
     >
-      <span className={styles.paramFill} style={{ width: `${clamped}%` }} />
-      <span className={styles.paramThumb} style={{ left: `calc(${clamped}% - 5px)` }} />
+      <span className={styles.paramFill} style={{ backgroundColor: color, width: `${clamped}%` }} />
+      <span className={styles.paramThumb} style={{ backgroundColor: color, left: `calc(${clamped}% - 5px)` }} />
     </div>
   )
 }
 
 export function ParamRow({
+  color = '#22D3EE',
   label,
   valueText,
   value,
 }: {
+  color?: string
   label: string
   valueText: string
   value: number
 }) {
   return (
-    <div aria-label={`Parameter Row ${label}`} className={styles.paramRow} data-pencil-id="n7CSX" role="group">
+    <div aria-label={`Parameter Row ${label}`} className={styles.paramRow} data-param-color={color} data-pencil-id="n7CSX" role="group">
       <div className={styles.paramTop}>
         <span className={styles.paramLabel}>{label}</span>
-        <span className={styles.paramValue}>{valueText}</span>
+        <span className={styles.paramValue} style={{ color }}>{valueText}</span>
       </div>
-      <ParamSlider value={value} />
+      <ParamSlider color={color} value={value} />
     </div>
   )
 }

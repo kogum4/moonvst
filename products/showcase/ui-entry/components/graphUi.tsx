@@ -117,6 +117,16 @@ export function getNodeLabel(kind: NodeKind): string {
   return EFFECT_VISUALS[kind].label
 }
 
+export function getNodeColor(kind: NodeKind): string {
+  if (kind === 'input') {
+    return IO_NODE_VISUALS.input.color
+  }
+  if (kind === 'output') {
+    return IO_NODE_VISUALS.output.color
+  }
+  return EFFECT_VISUALS[kind].color
+}
+
 export function getEffectVisual(kind: EffectKind): EffectVisual {
   return EFFECT_VISUALS[kind]
 }
