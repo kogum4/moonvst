@@ -165,9 +165,46 @@
 
 .canvas {
   position: relative;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.canvasFrame {
+  position: relative;
   min-height: 480px;
   background: #0A0F1C;
-  overflow: auto;
+}
+
+.canvas::-webkit-scrollbar:vertical {
+  width: 0;
+}
+
+.canvas::-webkit-scrollbar:horizontal {
+  height: 0;
+}
+
+.canvas[data-can-scroll-y="true"]::-webkit-scrollbar:vertical {
+  width: 10px;
+}
+
+.canvas[data-can-scroll-x="true"]::-webkit-scrollbar:horizontal {
+  height: 10px;
+}
+
+.canvas::-webkit-scrollbar-track {
+  background: #0F172AD9;
+}
+
+.canvas::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid #0A0F1C;
+  background: #38BDF88C;
+}
+
+.canvas::-webkit-scrollbar-thumb:hover {
+  background: #22D3EECC;
 }
 
 .canvasLabel {
@@ -242,20 +279,26 @@
 
 .connectionHint {
   position: absolute;
-  right: 12px;
-  top: 12px;
+  right: 24px;
+  top: 14px;
   color: #64748B;
   font-family: var(--font-mono);
   font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .canvasError {
   position: absolute;
-  right: 12px;
-  top: 30px;
+  right: 24px;
+  top: 32px;
   color: #FCA5A5;
   font-family: var(--font-mono);
   font-size: 9px;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .ioNodeInput,

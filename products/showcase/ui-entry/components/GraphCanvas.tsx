@@ -1,5 +1,5 @@
 import { LogIn, LogOut } from '../../../../packages/ui-core/src/vendor/lucide'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { EdgeLayer } from './EdgeLayer'
 import { EffectNode, IONode } from './NodePrimitives'
@@ -9,6 +9,17 @@ import type { GraphState, NodeId } from '../state/graphTypes'
 import styles from './NodeEditorShell.module.css'
 
 const DRAG_EFFECT_KIND = 'application/x-moonvst-effect-kind'
+const CANVAS_SCROLLBAR_COLOR = 'rgba(56, 189, 248, 0.55) rgba(15, 23, 42, 0.85)'
+const HIDDEN_SCROLLBAR_COLOR = 'transparent transparent'
+const SCROLL_OVERFLOW_EPSILON_PX = 2
+const NODE_BOUNDS_PADDING_PX = 24
+
+const getNodeBounds = (kind: string) => {
+  if (kind === 'input' || kind === 'output') {
+    return { height: 120, width: 140 }
+  }
+  return { height: 160, width: 180 }
+}
 
 type DragNodeState = {
   nodeId: NodeId
@@ -48,6 +59,7 @@ export function GraphCanvas({
   const canvasRef = useRef<HTMLElement | null>(null)
   const [dragNode, setDragNode] = useState<DragNodeState | null>(null)
   const [dragConnection, setDragConnection] = useState<DragConnectionState | null>(null)
+  const [canvasViewport, setCanvasViewport] = useState({ height: 0, width: 0 })
 
   useEffect(() => {
     if (!dragNode && !dragConnection) {
@@ -94,6 +106,60 @@ export function GraphCanvas({
       window.removeEventListener('pointerup', handlePointerUp)
     }
   }, [dragConnection, dragNode, onMoveNode])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) {
+      return
+    }
+
+    const updateViewport = () => {
+      const rect = canvas.getBoundingClientRect()
+      setCanvasViewport({
+        height: Math.round(rect.height),
+        width: Math.round(rect.width),
+      })
+    }
+
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+
+    let resizeObserver: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(updateViewport)
+      resizeObserver.observe(canvas)
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateViewport)
+      resizeObserver?.disconnect()
+    }
+  }, [])
+
+  const { canScrollX, canScrollY } = useMemo(() => {
+    if (canvasViewport.width <= 0 || canvasViewport.height <= 0) {
+      return { canScrollX: false, canScrollY: false }
+    }
+
+    const content = state.nodes.reduce(
+      (acc, node) => {
+        const bounds = getNodeBounds(node.kind)
+        return {
+          maxX: Math.max(acc.maxX, node.x + bounds.width),
+          maxY: Math.max(acc.maxY, node.y + bounds.height),
+        }
+      },
+      { maxX: 0, maxY: 0 },
+    )
+
+    const requiredWidth = content.maxX + NODE_BOUNDS_PADDING_PX
+    const requiredHeight = content.maxY + NODE_BOUNDS_PADDING_PX
+
+    return {
+      canScrollX: requiredWidth - canvasViewport.width > SCROLL_OVERFLOW_EPSILON_PX,
+      canScrollY: requiredHeight - canvasViewport.height > SCROLL_OVERFLOW_EPSILON_PX,
+    }
+  }, [canvasViewport.height, canvasViewport.width, state.nodes])
 
   const handleNodePointerDown = (event: ReactPointerEvent<HTMLDivElement>, nodeId: NodeId, originX: number, originY: number) => {
     const target = event.target as HTMLElement
@@ -164,12 +230,26 @@ export function GraphCanvas({
     : null
 
   return (
-    <main aria-label="Graph Canvas" className={styles.canvas} data-region-id="jJBPL" onDragOver={handleDragOver} onDrop={handleDrop} ref={canvasRef}>
-      <div className={styles.canvasLabel}>
-        DAG | Stereo | {state.nodes.length}/{state.nodeLimit} nodes
-      </div>
-      <EdgeLayer canvasRef={canvasRef} edges={state.edges} nodes={state.nodes} onDisconnect={onDisconnect} previewEdge={previewEdge} />
-      {state.nodes.map((node) => {
+    <div className={styles.canvasFrame}>
+      <main
+        aria-label="Graph Canvas"
+        className={styles.canvas}
+        data-region-id="jJBPL"
+        data-can-scroll-x={canScrollX ? 'true' : 'false'}
+        data-can-scroll-y={canScrollY ? 'true' : 'false'}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        ref={canvasRef}
+        style={{
+          scrollbarColor: canScrollX || canScrollY ? CANVAS_SCROLLBAR_COLOR : HIDDEN_SCROLLBAR_COLOR,
+          scrollbarWidth: canScrollX || canScrollY ? 'thin' : 'none',
+        }}
+      >
+        <div className={styles.canvasLabel}>
+          DAG | Stereo | {state.nodes.length}/{state.nodeLimit} nodes
+        </div>
+        <EdgeLayer canvasRef={canvasRef} edges={state.edges} nodes={state.nodes} onDisconnect={onDisconnect} previewEdge={previewEdge} />
+        {state.nodes.map((node) => {
         const isSelected = state.selectedNodeId === node.id
         const nodeLabel = getNodeLabel(node.kind)
         const style = { left: `${node.x}px`, top: `${node.y}px` }
@@ -247,11 +327,12 @@ export function GraphCanvas({
             />
           </div>
         )
-      })}
+        })}
+      </main>
       <div className={styles.connectionHint}>
         {pendingFromNodeId ? `Connecting from ${pendingFromNodeId}...` : 'Select OUT then IN to connect'}
       </div>
       {state.lastError ? <div className={styles.canvasError}>{state.lastError}</div> : null}
-    </main>
+    </div>
   )
 }

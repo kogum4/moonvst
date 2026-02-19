@@ -47,4 +47,17 @@ describe('node editor shell layout', () => {
     expect(screen.getByTestId('connections-in-value')).toBeInTheDocument()
     expect(screen.getByTestId('connections-out-value')).toBeInTheDocument()
   })
+
+  test('applies themed canvas scrollbar styling', () => {
+    render(<NodeEditorShell />)
+
+    const canvas = screen.getByRole('main', { name: 'Graph Canvas' })
+    expect(canvas).toHaveStyle({
+      scrollbarWidth: 'none',
+      scrollbarColor: 'transparent transparent',
+    })
+    expect(canvas).toHaveAttribute('data-can-scroll-x', 'false')
+    expect(canvas).toHaveAttribute('data-can-scroll-y', 'false')
+  })
+
 })
