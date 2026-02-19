@@ -29,6 +29,7 @@ describe('GraphCanvas', () => {
         onCompleteConnection={vi.fn()}
         onDisconnect={vi.fn()}
         onMoveNode={vi.fn()}
+        onRemoveNode={vi.fn()}
         onSelectNode={vi.fn()}
         onStartConnection={vi.fn()}
         pendingFromNodeId={null}

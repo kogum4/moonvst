@@ -68,4 +68,64 @@ describe('canvas interaction flow', () => {
     expect(screen.queryByRole('button', { name: 'Disconnect Input -> Chorus' })).not.toBeInTheDocument()
   })
 
+  test('deletes selected node via Delete and Backspace keys', async () => {
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delay' }))
+
+    const chorusNode = screen.getByRole('group', { name: 'Effect Node Chorus' })
+    fireEvent.click(chorusNode)
+    expect(chorusNode).toHaveAttribute('data-selected', 'true')
+
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
+
+    const delayNode = screen.getByRole('group', { name: 'Effect Node Delay' })
+    fireEvent.click(delayNode)
+    fireEvent.keyDown(window, { key: 'Backspace' })
+    expect(screen.queryByRole('group', { name: 'Effect Node Delay' })).not.toBeInTheDocument()
+  })
+
+  test('deletes node from right-click context menu', async () => {
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
+
+    const chorusNode = screen.getByRole('group', { name: 'Effect Node Chorus' })
+    fireEvent.contextMenu(chorusNode)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+
+    expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
+  })
+
+  test('does not emit IO-required error when deleting fixed input/output nodes via keyboard', async () => {
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('group', { name: 'I/O Node INPUT' }))
+    fireEvent.keyDown(window, { key: 'Delete' })
+    expect(screen.queryByText('ERR_IO_NODE_REQUIRED')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('group', { name: 'I/O Node OUTPUT' }))
+    fireEvent.keyDown(window, { key: 'Backspace' })
+    expect(screen.queryByText('ERR_IO_NODE_REQUIRED')).not.toBeInTheDocument()
+  })
+
+  test('deletes connected node and removes its incident wires', async () => {
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Input OUT port' }), { clientX: 200, clientY: 220 })
+    fireEvent.pointerUp(screen.getByRole('button', { name: 'Chorus IN port' }), { clientX: 320, clientY: 220 })
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Chorus OUT port' }), { clientX: 380, clientY: 220 })
+    fireEvent.pointerUp(screen.getByRole('button', { name: 'Output IN port' }), { clientX: 540, clientY: 220 })
+
+    const chorusNode = screen.getByRole('group', { name: 'Effect Node Chorus' })
+    fireEvent.click(chorusNode)
+    fireEvent.keyDown(window, { key: 'Delete' })
+
+    expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Wire Input -> Chorus')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Wire Chorus -> Output')).not.toBeInTheDocument()
+  })
 })

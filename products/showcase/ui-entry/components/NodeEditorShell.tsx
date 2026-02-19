@@ -6,7 +6,7 @@ import {
   ZoomIn,
 } from '../../../../packages/ui-core/src/vendor/lucide'
 import '../../../../packages/ui-core/src/styles/showcaseFonts'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { GraphCanvas } from './GraphCanvas'
 import { NodePalette } from './NodePalette'
 import { ParamRow } from './NodePrimitives'
@@ -15,6 +15,12 @@ import { useGraphInteraction } from './useGraphInteraction'
 import styles from './NodeEditorShell.module.css'
 
 type ParamItem = { label: string; valueText: string; value: number }
+const isEditableElement = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+  return target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+}
 
 const params: ParamItem[] = [
   { label: 'Decay', valueText: '2.4 s', value: 56 },
@@ -173,6 +179,24 @@ export function NodeEditorShell() {
       }))
   }, [selectedNode, state.edges, state.nodes])
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Delete' && event.key !== 'Backspace') {
+        return
+      }
+      if (isEditableElement(event.target) || !selectedNode || selectedNode.kind === 'input' || selectedNode.kind === 'output') {
+        return
+      }
+      interaction.removeNode(selectedNode.id)
+      event.preventDefault()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [interaction, selectedNode])
+
   return (
     <div className={styles.shell} data-region-id="kvMK5">
       <TopBar />
@@ -183,6 +207,7 @@ export function NodeEditorShell() {
           onCompleteConnection={interaction.completeConnection}
           onDisconnect={interaction.disconnect}
           onMoveNode={interaction.moveNode}
+          onRemoveNode={interaction.removeNode}
           onSelectNode={interaction.selectNode}
           onStartConnection={interaction.startConnection}
           pendingFromNodeId={pendingFromNodeId}

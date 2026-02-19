@@ -62,12 +62,24 @@ export function useGraphInteraction() {
     dispatch({ type: 'moveNode', nodeId, x, y })
   }
 
+  const removeNode = (nodeId: NodeId) => {
+    const target = state.nodes.find((node) => node.id === nodeId)
+    if (!target || target.kind === 'input' || target.kind === 'output') {
+      return
+    }
+    dispatch({ type: 'removeNode', nodeId })
+    if (pendingFromNodeId === nodeId) {
+      setPendingFromNodeId(null)
+    }
+  }
+
   return {
     addNode,
     addNodeAt,
     completeConnection,
     disconnect,
     moveNode,
+    removeNode,
     pendingFromNodeId,
     selectNode,
     startConnection,

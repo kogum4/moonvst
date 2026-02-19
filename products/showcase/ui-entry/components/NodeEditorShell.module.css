@@ -230,6 +230,40 @@
   cursor: grab;
 }
 
+.contextMenu {
+  position: fixed;
+  z-index: 20;
+  min-width: 120px;
+  padding: 4px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0F172A;
+  box-shadow: 0 6px 18px #02061799;
+}
+
+.contextMenuItem {
+  width: 100%;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #F8FAFC;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.contextMenuItem:hover:enabled {
+  background: #1E293B;
+}
+
+.contextMenuItem:disabled {
+  color: #64748B;
+  cursor: not-allowed;
+}
+
 .edgeLayer {
   position: absolute;
   inset: 0;

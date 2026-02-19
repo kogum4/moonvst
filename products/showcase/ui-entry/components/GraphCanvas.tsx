@@ -43,6 +43,7 @@ type GraphCanvasProps = {
   onCompleteConnection: (toNodeId: NodeId) => void
   onDisconnect: (fromNodeId: NodeId, toNodeId: NodeId) => void
   onMoveNode: (nodeId: NodeId, x: number, y: number) => void
+  onRemoveNode: (nodeId: NodeId) => void
   onSelectNode: (nodeId: NodeId) => void
   onStartConnection: (fromNodeId: NodeId) => void
   pendingFromNodeId: NodeId | null
@@ -54,15 +55,18 @@ export function GraphCanvas({
   onCompleteConnection,
   onDisconnect,
   onMoveNode,
+  onRemoveNode,
   onSelectNode,
   onStartConnection,
   pendingFromNodeId,
   state,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLElement | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement | null>(null)
   const [dragNode, setDragNode] = useState<DragNodeState | null>(null)
   const [dragConnection, setDragConnection] = useState<DragConnectionState | null>(null)
   const [canvasViewport, setCanvasViewport] = useState({ height: 0, width: 0 })
+  const [contextMenu, setContextMenu] = useState<{ nodeId: NodeId; x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!dragNode && !dragConnection) {
@@ -109,6 +113,31 @@ export function GraphCanvas({
       window.removeEventListener('pointerup', handlePointerUp)
     }
   }, [dragConnection, dragNode, onMoveNode])
+
+  useEffect(() => {
+    if (!contextMenu) {
+      return
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (contextMenuRef.current?.contains(event.target as Node)) {
+        return
+      }
+      setContextMenu(null)
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setContextMenu(null)
+      }
+    }
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [contextMenu])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -179,6 +208,17 @@ export function GraphCanvas({
     })
   }
 
+  const handleNodeContextMenu = (event: ReactPointerEvent<HTMLDivElement>, nodeId: NodeId) => {
+    event.preventDefault()
+    event.stopPropagation()
+    onSelectNode(nodeId)
+    setContextMenu({
+      nodeId,
+      x: event.clientX,
+      y: event.clientY,
+    })
+  }
+
   const handleDrop = (event: DragEvent<HTMLElement>) => {
     event.preventDefault()
     const rect = event.currentTarget.getBoundingClientRect()
@@ -245,6 +285,27 @@ export function GraphCanvas({
       }
     : null
 
+  const contextMenuNode = contextMenu
+    ? state.nodes.find((node) => node.id === contextMenu.nodeId) ?? null
+    : null
+  const canDeleteContextMenuNode = contextMenuNode
+    ? contextMenuNode.kind !== 'input' && contextMenuNode.kind !== 'output'
+    : false
+  const handleContextMenuDelete = () => {
+    if (!contextMenu || !canDeleteContextMenuNode) {
+      return
+    }
+    onRemoveNode(contextMenu.nodeId)
+    setContextMenu(null)
+  }
+
+  const handleCanvasPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (contextMenuRef.current?.contains(event.target as Node)) {
+      return
+    }
+    setContextMenu(null)
+  }
+
   return (
     <div className={styles.canvasFrame}>
       <main
@@ -255,6 +316,7 @@ export function GraphCanvas({
         data-can-scroll-y={canScrollY ? 'true' : 'false'}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        onPointerDown={handleCanvasPointerDown}
         ref={canvasRef}
         style={{
           scrollbarColor: canScrollX || canScrollY ? CANVAS_SCROLLBAR_COLOR : HIDDEN_SCROLLBAR_COLOR,
@@ -276,6 +338,7 @@ export function GraphCanvas({
               className={styles.canvasNode}
               data-testid={`canvas-node-${node.id}`}
               key={node.id}
+              onContextMenu={(event) => handleNodeContextMenu(event, node.id)}
               onPointerDown={(event) => handleNodePointerDown(event, node.id, node.x, node.y)}
               style={style}
             >
@@ -299,6 +362,7 @@ export function GraphCanvas({
               className={styles.canvasNode}
               data-testid={`canvas-node-${node.id}`}
               key={node.id}
+              onContextMenu={(event) => handleNodeContextMenu(event, node.id)}
               onPointerDown={(event) => handleNodePointerDown(event, node.id, node.x, node.y)}
               style={style}
             >
@@ -323,6 +387,7 @@ export function GraphCanvas({
             className={styles.canvasNode}
             data-testid={`canvas-node-${node.id}`}
             key={node.id}
+            onContextMenu={(event) => handleNodeContextMenu(event, node.id)}
             onPointerDown={(event) => handleNodePointerDown(event, node.id, node.x, node.y)}
             style={style}
           >
@@ -344,6 +409,24 @@ export function GraphCanvas({
           </div>
         )
         })}
+        {contextMenu ? (
+          <div
+            className={styles.contextMenu}
+            ref={contextMenuRef}
+            role="menu"
+            style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+          >
+            <button
+              className={styles.contextMenuItem}
+              disabled={!canDeleteContextMenuNode}
+              onClick={handleContextMenuDelete}
+              role="menuitem"
+              type="button"
+            >
+              Delete
+            </button>
+          </div>
+        ) : null}
       </main>
       <div className={styles.connectionHint}>
         {pendingFromNodeId ? `Connecting from ${pendingFromNodeId}...` : 'Select OUT then IN to connect'}
