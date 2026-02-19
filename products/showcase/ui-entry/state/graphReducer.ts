@@ -157,6 +157,24 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
       }
     }
 
+    case 'moveNode': {
+      if (!nodeExists(state, action.nodeId)) {
+        return withError(state, 'ERR_NODE_NOT_FOUND')
+      }
+      return {
+        ...clearError(state),
+        nodes: state.nodes.map((node) =>
+          node.id === action.nodeId
+            ? {
+                ...node,
+                x: action.x,
+                y: action.y,
+              }
+            : node,
+        ),
+      }
+    }
+
     case 'connect': {
       if (action.fromNodeId === action.toNodeId) {
         return withError(state, 'ERR_SELF_EDGE_FORBIDDEN')

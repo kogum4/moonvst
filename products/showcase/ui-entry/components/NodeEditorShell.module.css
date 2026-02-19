@@ -82,10 +82,11 @@
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 500;
+  text-decoration: none;
 }
 
 .addNodeIcon {
-  color: #22D3EE;
+  color: var(--text-secondary);
 }
 
 .resetIcon {
@@ -166,6 +167,7 @@
   position: relative;
   min-height: 480px;
   background: #0A0F1C;
+  overflow: auto;
 }
 
 .canvasLabel {
@@ -183,6 +185,51 @@
   left: 180px;
   top: 30px;
   width: 460px;
+}
+
+.canvasNode {
+  position: absolute;
+  width: fit-content;
+  cursor: grab;
+}
+
+.edgeLayer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.edgePill {
+  border: 1px solid #334155;
+  background: #0F172A;
+  color: #94A3B8;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.connectionHint {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  color: #64748B;
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.canvasError {
+  position: absolute;
+  right: 12px;
+  top: 30px;
+  color: #FCA5A5;
+  font-family: var(--font-mono);
+  font-size: 9px;
 }
 
 .ioNodeInput,

@@ -1,44 +1,20 @@
-﻿import {
-  Airplay,
-  ArrowLeft,
-  ArrowRight,
-  Blocks,
-  Filter,
-  Gauge,
-  LogIn,
-  LogOut,
+import {
+  Github,
   Moon,
-  Plus,
   RotateCcw,
   Settings2,
-  SlidersHorizontal,
-  Timer,
-  Waves,
-  Zap,
   ZoomIn,
 } from '../../../../packages/ui-core/src/vendor/lucide'
-import type { LucideIcon } from '../../../../packages/ui-core/src/vendor/lucide'
 import '../../../../packages/ui-core/src/styles/showcaseFonts'
-import { EffectNode, EqNodeLarge, IONode, LibItem, ParamRow } from './NodePrimitives'
+import { useMemo } from 'react'
+import { GraphCanvas } from './GraphCanvas'
+import { NodePalette } from './NodePalette'
+import { ParamRow } from './NodePrimitives'
+import { getNodeLabel } from './graphUi'
+import { useGraphInteraction } from './useGraphInteraction'
 import styles from './NodeEditorShell.module.css'
 
-type LibraryItem = { icon: LucideIcon; label: string; color: string }
 type ParamItem = { label: string; valueText: string; value: number }
-
-const ioItems: LibraryItem[] = [
-  { icon: LogIn, label: 'Stereo Input', color: '#4ADE80' },
-  { icon: LogOut, label: 'Stereo Output', color: '#FB923C' },
-]
-
-const fxItems: LibraryItem[] = [
-  { icon: Waves, label: 'Chorus', color: '#818CF8' },
-  { icon: Gauge, label: 'Compressor', color: '#F97316' },
-  { icon: Timer, label: 'Delay', color: '#22D3EE' },
-  { icon: Zap, label: 'Distortion', color: '#EF4444' },
-  { icon: SlidersHorizontal, label: 'EQ', color: '#A3E635' },
-  { icon: Filter, label: 'Filter', color: '#E879F9' },
-  { icon: Airplay, label: 'Reverb (Dattorro)', color: '#38BDF8' },
-]
 
 const params: ParamItem[] = [
   { label: 'Decay', valueText: '2.4 s', value: 56 },
@@ -61,7 +37,7 @@ function TopBar() {
         <span className={styles.presetName}>Default Preset</span>
       </div>
       <div className={styles.topRight}>
-        <button className={styles.ghostButton} type="button"><Plus className={styles.addNodeIcon} size={14} />Add Node</button>
+        <a className={styles.ghostButton} href="https://github.com/kogum4/moonvst" rel="noreferrer" target="_blank"><Github className={styles.addNodeIcon} size={14} />GitHub</a>
         <button className={styles.ghostButton} type="button"><RotateCcw className={styles.resetIcon} size={14} />Reset</button>
         <div className={styles.vDivider} />
         <button className={styles.activeButton} type="button"><span className={styles.activeDot} />Active</button>
@@ -70,99 +46,28 @@ function TopBar() {
   )
 }
 
-function NodeLibraryPanel() {
-  return (
-    <nav aria-label="Node Library" className={styles.library} data-region-id="XQtg4">
-      <div className={styles.libHeader}><Blocks size={14} />NODE LIBRARY</div>
-      <div className={styles.sep} />
-      <div className={styles.libSection}>I/O</div>
-      {ioItems.map((item) => {
-        const Icon = item.icon
-        return <LibItem key={item.label} color={item.color} icon={<Icon size={14} />} label={item.label} />
-      })}
-      <div className={styles.sep} />
-      <div className={styles.libSection}>EFFECTS</div>
-      {fxItems.map((item) => {
-        const Icon = item.icon
-        return <LibItem key={item.label} color={item.color} icon={<Icon size={14} />} label={item.label} />
-      })}
-    </nav>
-  )
-}
-
-function GraphCanvasRegion() {
-  return (
-    <main aria-label="Graph Canvas" className={styles.canvas} data-region-id="jJBPL">
-      <div className={styles.canvasLabel}>DAG | Stereo | 8/16 nodes</div>
-      <div className={styles.eqNode}><EqNodeLarge /></div>
-      <div className={styles.ioNodeInput}><IONode icon={<LogIn size={12} />} variant="input" /></div>
-      <div className={styles.ioNodeOutput}><IONode icon={<LogOut size={12} />} variant="output" /></div>
-      <div className={styles.fxNodeMain}>
-        <EffectNode
-          color="#F97316"
-          icon={<Gauge size={12} />}
-          label="Compressor"
-          rows={[
-            { key: 'threshold', label: 'Threshold', value: '-18 dB' },
-            { key: 'ratio', label: 'Ratio', value: '4:1' },
-            { key: 'attack', label: 'Attack', value: '10 ms' },
-          ]}
-        />
-      </div>
-      <div className={styles.fxNodeGhostA}>
-        <EffectNode
-          color="#818CF8"
-          icon={<Waves size={12} />}
-          label="Chorus"
-          rows={[
-            { key: 'rate', label: 'Rate', value: '1.2 Hz' },
-            { key: 'depth', label: 'Depth', value: '60%' },
-            { key: 'mix', label: 'Mix', value: '40%' },
-          ]}
-        />
-      </div>
-      <div className={styles.fxNodeGhostB}>
-        <EffectNode
-          color="#22D3EE"
-          icon={<Timer size={12} />}
-          label="Delay"
-          rows={[
-            { key: 'time', label: 'Time', value: '375 ms' },
-            { key: 'feedback', label: 'Feedback', value: '35%' },
-            { key: 'mix', label: 'Mix', value: '25%' },
-          ]}
-        />
-      </div>
-      <div className={styles.fxNodeReverb}>
-        <EffectNode
-          color="#38BDF8"
-          icon={<Airplay size={12} />}
-          label="Reverb"
-          rows={[
-            { key: 'decay', label: 'Decay', value: '2.4 s' },
-            { key: 'damping', label: 'Damping', value: '0.7' },
-            { key: 'mix', label: 'Mix', value: '30%' },
-          ]}
-        />
-      </div>
-    </main>
-  )
-}
-
 function Tag({ color, text }: { color: string; text: string }) {
   return <span className={styles.connTag}><span className={styles.connDot} style={{ backgroundColor: color }} />{text}</span>
 }
 
-function InspectorPanel() {
+function InspectorPanel({
+  incomingLabels,
+  outgoingLabels,
+  selectedNodeLabel,
+}: {
+  incomingLabels: string[]
+  outgoingLabels: string[]
+  selectedNodeLabel: string
+}) {
   return (
     <aside aria-label="Properties Panel" className={styles.inspector} data-region-id="P0JNl">
       <div className={styles.propsHeader}><Settings2 size={14} />PROPERTIES</div>
       <section className={styles.propsSection}>
         <div className={styles.nodeInfo}>
           <span className={styles.nodeDot} />
-          <span className={styles.nodeTitleText}>Reverb (Dattorro)</span>
+          <span className={styles.nodeTitleText}>{selectedNodeLabel}</span>
         </div>
-        <div className={styles.monoSub}>Stereo effect | Algorithmic reverb</div>
+        <div className={styles.monoSub}>Stereo effect | Showcase editor</div>
       </section>
       <section className={styles.propsSection}>
         <div className={styles.sectionLabel}>PARAMETERS</div>
@@ -172,34 +77,90 @@ function InspectorPanel() {
       </section>
       <section className={styles.propsSection}>
         <div className={styles.sectionLabel}>CONNECTIONS</div>
-        <div className={styles.connRow}><ArrowRight size={12} /><span className={styles.connLabel}>IN</span><Tag color="#818CF8" text="Chorus" /><Tag color="#22D3EE" text="Delay" /></div>
-        <div className={styles.connRow}><ArrowLeft size={12} /><span className={styles.connLabel}>OUT</span><Tag color="#FB923C" text="Output" /></div>
+        <div className={styles.connRow}>
+          <span className={styles.connLabel}>IN</span>
+          {incomingLabels.length > 0 ? incomingLabels.map((label) => <Tag color="#22D3EE" key={`in-${label}`} text={label} />) : <span className={styles.monoSub}>none</span>}
+        </div>
+        <div className={styles.connRow}>
+          <span className={styles.connLabel}>OUT</span>
+          {outgoingLabels.length > 0 ? outgoingLabels.map((label) => <Tag color="#22D3EE" key={`out-${label}`} text={label} />) : <span className={styles.monoSub}>none</span>}
+        </div>
       </section>
     </aside>
   )
 }
 
-function StatusBar() {
+function StatusBar({ connectionCount, lastError, nodeCount }: { connectionCount: number; lastError: string | null; nodeCount: number }) {
   return (
     <footer aria-label="Status Bar" className={styles.statusBar} data-region-id="gkrb8">
-      <div className={styles.statusLeft}><span>CPU: 4.2%</span><span>Latency: 256 smp</span><span>48kHz / 32-bit</span></div>
-      <div className={styles.statusRight}><span>8 nodes | 7 connections</span><span className={styles.zoomBadge}><ZoomIn size={10} />100%</span></div>
+      <div className={styles.statusLeft}>
+        <span>CPU: 4.2%</span>
+        <span>Latency: 256 smp</span>
+        <span>{lastError ?? 'Ready'}</span>
+      </div>
+      <div className={styles.statusRight}><span>{nodeCount} nodes | {connectionCount} connections</span><span className={styles.zoomBadge}><ZoomIn size={10} />100%</span></div>
     </footer>
   )
 }
 
 export function NodeEditorShell() {
+  const interaction = useGraphInteraction()
+  const { pendingFromNodeId, state } = interaction
+  const selectedNode = state.selectedNodeId
+    ? state.nodes.find((node) => node.id === state.selectedNodeId) ?? null
+    : null
+
+  const selectedNodeLabel = useMemo(() => {
+    if (!selectedNode) {
+      return 'No node selected'
+    }
+    return getNodeLabel(selectedNode.kind)
+  }, [selectedNode])
+
+  const incomingLabels = useMemo(() => {
+    if (!selectedNode) {
+      return []
+    }
+    return state.edges
+      .filter((edge) => edge.toNodeId === selectedNode.id)
+      .map((edge) => state.nodes.find((node) => node.id === edge.fromNodeId))
+      .filter((node): node is NonNullable<typeof node> => node !== undefined)
+      .map((node) => getNodeLabel(node.kind))
+  }, [selectedNode, state.edges, state.nodes])
+
+  const outgoingLabels = useMemo(() => {
+    if (!selectedNode) {
+      return []
+    }
+    return state.edges
+      .filter((edge) => edge.fromNodeId === selectedNode.id)
+      .map((edge) => state.nodes.find((node) => node.id === edge.toNodeId))
+      .filter((node): node is NonNullable<typeof node> => node !== undefined)
+      .map((node) => getNodeLabel(node.kind))
+  }, [selectedNode, state.edges, state.nodes])
+
   return (
     <div className={styles.shell} data-region-id="kvMK5">
       <TopBar />
       <section className={styles.contentArea} data-region-id="PdXfK">
-        <NodeLibraryPanel />
-        <GraphCanvasRegion />
-        <InspectorPanel />
+        <NodePalette onAddNode={interaction.addNode} />
+        <GraphCanvas
+          onAddNodeAt={interaction.addNodeAt}
+          onCompleteConnection={interaction.completeConnection}
+          onDisconnect={interaction.disconnect}
+          onMoveNode={interaction.moveNode}
+          onSelectNode={interaction.selectNode}
+          onStartConnection={interaction.startConnection}
+          pendingFromNodeId={pendingFromNodeId}
+          state={state}
+        />
+        <InspectorPanel
+          incomingLabels={incomingLabels}
+          outgoingLabels={outgoingLabels}
+          selectedNodeLabel={selectedNodeLabel}
+        />
       </section>
-      <StatusBar />
+      <StatusBar connectionCount={state.edges.length} lastError={state.lastError} nodeCount={state.nodes.length} />
     </div>
   )
 }
-
-

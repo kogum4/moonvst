@@ -133,4 +133,15 @@ describe('showcase graph reducer', () => {
     })
     expect(removed.nodes.some((node) => node.id === 'fx-2')).toBe(false)
   })
+
+  test('moves node coordinates', () => {
+    const moved = graphReducer(createDefaultGraphState(), {
+      type: 'moveNode',
+      nodeId: 'input',
+      x: 300,
+      y: 210,
+    })
+
+    expect(moved.nodes.find((node) => node.id === 'input')).toMatchObject({ x: 300, y: 210 })
+  })
 })

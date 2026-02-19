@@ -1,32 +1,60 @@
-import type { ReactNode } from 'react'
+import type { DragEvent, ReactNode } from 'react'
 import { SlidersHorizontal } from '../../../../packages/ui-core/src/vendor/lucide'
 import styles from './NodePrimitives.module.css'
 
 const clamp01 = (value: number) => Math.max(0, Math.min(100, value))
 
-export function PortIn({ color = '#22D3EE' }: { color?: string }) {
+export function PortIn({
+  ariaLabel = 'IN port',
+  color = '#22D3EE',
+  onClick,
+}: {
+  ariaLabel?: string
+  color?: string
+  onClick?: () => void
+}) {
   return (
-    <span
+    <button
+      aria-label={ariaLabel}
       className={styles.portIn}
       data-pencil-id="zGscn"
       data-testid="port-in"
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick?.()
+      }}
+      type="button"
     >
       <span className={styles.portDot} style={{ backgroundColor: color }} />
       <span className={styles.portLabel}>IN</span>
-    </span>
+    </button>
   )
 }
 
-export function PortOut({ color = '#22D3EE' }: { color?: string }) {
+export function PortOut({
+  ariaLabel = 'OUT port',
+  color = '#22D3EE',
+  onClick,
+}: {
+  ariaLabel?: string
+  color?: string
+  onClick?: () => void
+}) {
   return (
-    <span
+    <button
+      aria-label={ariaLabel}
       className={styles.portOut}
       data-pencil-id="VLHGQ"
       data-testid="port-out"
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick?.()
+      }}
+      type="button"
     >
       <span className={styles.portLabel}>OUT</span>
       <span className={styles.portDot} style={{ backgroundColor: color }} />
-    </span>
+    </button>
   )
 }
 
@@ -71,15 +99,28 @@ export function ParamRow({
 
 export function LibItem({
   color,
+  draggable = false,
   icon,
   label,
+  onClick,
+  onDragStart,
 }: {
   color: string
+  draggable?: boolean
   icon?: ReactNode
   label: string
+  onClick?: () => void
+  onDragStart?: (event: DragEvent<HTMLButtonElement>) => void
 }) {
   return (
-    <button className={styles.libItem} data-pencil-id="T4R15" type="button">
+    <button
+      className={styles.libItem}
+      data-pencil-id="T4R15"
+      draggable={draggable}
+      onClick={onClick}
+      onDragStart={onDragStart}
+      type="button"
+    >
       <span className={styles.libItemDot} style={{ backgroundColor: color }} />
       {icon ? <span className={styles.libItemIcon}>{icon}</span> : null}
       <span className={styles.libItemText}>{label}</span>
@@ -88,24 +129,36 @@ export function LibItem({
 }
 
 export function EffectNode({
+  selected = false,
   bypassed = false,
   color,
   icon,
   inCount = 1,
+  inPortAriaLabel,
   label,
+  onClick,
+  onInPortClick,
+  onOutPortClick,
   outCount = 1,
+  outPortAriaLabel,
   rows = [
     { key: 'mix', label: 'Mix', value: '100%' },
     { key: 'param1', label: 'Param 1', value: '0.5' },
     { key: 'param2', label: 'Param 2', value: '0.0' },
   ],
 }: {
+  selected?: boolean
   bypassed?: boolean
   color: string
   icon?: ReactNode
   inCount?: number
+  inPortAriaLabel?: string
   label: string
+  onClick?: () => void
+  onInPortClick?: () => void
+  onOutPortClick?: () => void
   outCount?: number
+  outPortAriaLabel?: string
   rows?: Array<{ key: string; label: string; value: string }>
 }) {
   const inPorts = Array.from({ length: inCount })
@@ -114,9 +167,11 @@ export function EffectNode({
   return (
     <article
       aria-label={`Effect Node ${label}`}
-      className={`${styles.effectNode} ${bypassed ? styles.nodeBypassed : ''}`.trim()}
+      className={`${styles.effectNode} ${bypassed ? styles.nodeBypassed : ''} ${selected ? styles.nodeSelected : ''}`.trim()}
       data-bypassed={bypassed}
       data-pencil-id="TLTED"
+      data-selected={selected}
+      onClick={onClick}
       role="group"
     >
       <div className={styles.nodeHeader} style={{ backgroundColor: color }}>
@@ -137,10 +192,22 @@ export function EffectNode({
         </div>
         <div className={styles.portsRow}>
           <div className={styles.inPortsGroup}>
-            {inPorts.map((_, index) => <PortIn key={`in-${index}`} />)}
+            {inPorts.map((_, index) => (
+              <PortIn
+                ariaLabel={inPortAriaLabel ?? `${label} IN port`}
+                key={`in-${index}`}
+                onClick={onInPortClick}
+              />
+            ))}
           </div>
           <div className={styles.outPortsGroup}>
-            {outPorts.map((_, index) => <PortOut key={`out-${index}`} />)}
+            {outPorts.map((_, index) => (
+              <PortOut
+                ariaLabel={outPortAriaLabel ?? `${label} OUT port`}
+                key={`out-${index}`}
+                onClick={onOutPortClick}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -148,7 +215,25 @@ export function EffectNode({
   )
 }
 
-export function IONode({ icon, variant }: { icon?: ReactNode; variant: 'input' | 'output' }) {
+export function IONode({
+  icon,
+  inPortAriaLabel,
+  onClick,
+  onInPortClick,
+  onOutPortClick,
+  outPortAriaLabel,
+  selected = false,
+  variant,
+}: {
+  icon?: ReactNode
+  inPortAriaLabel?: string
+  onClick?: () => void
+  onInPortClick?: () => void
+  onOutPortClick?: () => void
+  outPortAriaLabel?: string
+  selected?: boolean
+  variant: 'input' | 'output'
+}) {
   const isInput = variant === 'input'
   const label = isInput ? 'INPUT' : 'OUTPUT'
   const color = isInput ? '#4ADE80' : '#FB923C'
@@ -156,9 +241,11 @@ export function IONode({ icon, variant }: { icon?: ReactNode; variant: 'input' |
   return (
     <article
       aria-label={`I/O Node ${label}`}
-      className={styles.ioNode}
+      className={`${styles.ioNode} ${selected ? styles.nodeSelected : ''}`.trim()}
       data-pencil-id="3w2LY"
+      data-selected={selected}
       data-variant={variant}
+      onClick={onClick}
       role="group"
     >
       <div className={styles.nodeHeader} style={{ backgroundColor: color }}>
@@ -175,7 +262,8 @@ export function IONode({ icon, variant }: { icon?: ReactNode; variant: 'input' |
           <span className={styles.inlineValue}>0 dB</span>
         </div>
         <div className={`${styles.ioPortsRow} ${isInput ? styles.ioPortsRowEnd : styles.ioPortsRowStart}`}>
-          {isInput ? <PortOut /> : <PortIn />}
+          {isInput ? <PortOut ariaLabel={outPortAriaLabel ?? `${label} OUT port`} onClick={onOutPortClick} /> : null}
+          {!isInput ? <PortIn ariaLabel={inPortAriaLabel ?? `${label} IN port`} onClick={onInPortClick} /> : null}
         </div>
       </div>
     </article>

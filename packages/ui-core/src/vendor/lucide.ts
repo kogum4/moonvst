@@ -5,6 +5,7 @@ export {
   Blocks,
   Filter,
   Gauge,
+  Github,
   LogIn,
   LogOut,
   Moon,

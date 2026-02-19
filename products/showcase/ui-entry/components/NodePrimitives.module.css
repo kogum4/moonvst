@@ -31,10 +31,14 @@
 
 .portIn,
 .portOut {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
   height: 16px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 0;
 }
 
 .portLabel {
@@ -120,6 +124,10 @@
 
 .nodeBypassed {
   opacity: 0.55;
+}
+
+.nodeSelected {
+  box-shadow: 0 0 0 2px #22D3EEAA;
 }
 
 .nodeHeader {

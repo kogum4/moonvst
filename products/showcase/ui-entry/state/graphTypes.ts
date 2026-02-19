@@ -52,6 +52,7 @@ export interface CreateDefaultGraphOptions {
 
 export type GraphAction =
   | { type: 'addNode'; kind: Exclude<NodeKind, 'input' | 'output'>; x: number; y: number; id?: NodeId }
+  | { type: 'moveNode'; nodeId: NodeId; x: number; y: number }
   | { type: 'removeNode'; nodeId: NodeId }
   | { type: 'connect'; fromNodeId: NodeId; toNodeId: NodeId }
   | { type: 'disconnect'; fromNodeId: NodeId; toNodeId: NodeId }

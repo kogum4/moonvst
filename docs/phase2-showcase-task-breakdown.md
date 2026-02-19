@@ -13,9 +13,9 @@ Status legend:
 
 ## Progress Dashboard
 
-- Overall stories done: `3 / 10`
-- Overall tasks done: `21 / 38`
-- Current story: `S4`
+- Overall stories done: `4 / 10`
+- Overall tasks done: `28 / 38`
+- Current story: `S5`
 - Last updated: `2026-02-18`
 
 ## Update Rules
@@ -108,13 +108,20 @@ Validation:
 
 ## Story S4: Canvas Interaction Flow
 
-- [ ] `P2-S4-R-01` RED: Add component test for library click -> node added.
-- [ ] `P2-S4-R-02` RED: Add component test for connect flow (out port -> in port) with DAG constraints.
-- [ ] `P2-S4-R-03` RED: Add component test for disconnect and selection behavior.
-- [ ] `P2-S4-G-01` GREEN: Implement node creation flow from `products/showcase/ui-entry/components/NodePalette`.
-- [ ] `P2-S4-G-02` GREEN: Implement edge connect/disconnect in `products/showcase/ui-entry/components/GraphCanvas` + `EdgeLayer`.
-- [ ] `P2-S4-G-03` GREEN: Implement deterministic node placement and visual selection states.
-- [ ] `P2-S4-F-01` REFACTOR: Extract interaction hooks/utilities and reduce view logic complexity.
+- [x] `P2-S4-R-01` RED: Add component test for library click -> node added.
+  - Evidence: `products/showcase/ui-entry/components/CanvasInteraction.component.test.tsx` (`adds a node when clicking library item`) failed before implementation because `Effect Node Delay` was already statically rendered in the legacy canvas.
+- [x] `P2-S4-R-02` RED: Add component test for connect flow (out port -> in port) with DAG constraints.
+  - Evidence: `connects out->in and rejects cycle-producing connection` failed in RED (`Unable to find role "button" with name "Output OUT port"`), confirming connect affordances were missing.
+- [x] `P2-S4-R-03` RED: Add component test for disconnect and selection behavior.
+  - Evidence: `disconnects edge and updates selection state` failed in RED (`Unable to find role "button" with name "Input OUT port"`), confirming disconnect/selection flow was unimplemented.
+- [x] `P2-S4-G-01` GREEN: Implement node creation flow from `products/showcase/ui-entry/components/NodePalette`.
+  - Evidence: Added `products/showcase/ui-entry/components/NodePalette.tsx` and wired add-node actions via reducer-backed `NodeEditorShell`; `CanvasInteraction.component.test.tsx` add-node test now passes.
+- [x] `P2-S4-G-02` GREEN: Implement edge connect/disconnect in `products/showcase/ui-entry/components/GraphCanvas` + `EdgeLayer`.
+  - Evidence: Added `GraphCanvas.tsx` and `EdgeLayer.tsx` with OUT->IN connect and edge disconnect controls; DAG error path now surfaces `ERR_CYCLE_DETECTED` and disconnect button removal is verified by component tests.
+- [x] `P2-S4-G-03` GREEN: Implement deterministic node placement and visual selection states.
+  - Evidence: Deterministic placement grid (`x/y`) and `data-selected` visual state are applied through graph state; selection assertion in `CanvasInteraction.component.test.tsx` now passes.
+- [x] `P2-S4-F-01` REFACTOR: Extract interaction hooks/utilities and reduce view logic complexity.
+  - Evidence: Added `products/showcase/ui-entry/components/useGraphInteraction.ts` and `graphUi.tsx`, with `NodeEditorShell.tsx` reduced to composition/wiring.
 
 Validation:
 - `npm run test:ui:component`
@@ -219,6 +226,7 @@ Validation:
 
 ## Change Log
 
+- `2026-02-18`: Completed Story S4 (`P2-S4-R/G/F`), added showcase canvas interaction component tests and implemented reducer-driven `NodePalette`/`GraphCanvas`/`EdgeLayer` flows (add/connect/disconnect/select) with deterministic placement and extracted interaction hook/utilities.
 - `2026-02-18`: Completed Story S3 (`P2-S3-R/G/F`), added showcase graph reducer unit tests and implemented graph state model/reducer with node limit, I/O guard, connect/disconnect, param updates, bypass, and DAG cycle rejection.
 - `2026-02-18`: Completed Story S2 (`P2-S2-R/G/F`), added reusable node primitive tests/components and refactored `NodeEditorShell` to consume primitives.
 - `2026-02-18`: Rewritten to strict TDD task ordering (`RED -> GREEN -> REFACTOR` per story).

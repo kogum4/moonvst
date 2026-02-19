@@ -1,1 +1,1 @@
-export { render, screen, within } from '@testing-library/react'
+export { fireEvent, render, screen, within } from '@testing-library/react'
