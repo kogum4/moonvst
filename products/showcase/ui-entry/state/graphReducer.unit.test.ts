@@ -10,6 +10,8 @@ describe('showcase graph reducer', () => {
     expect(state.lastError).toBeNull()
     expect(state.nodes.map((node) => node.kind)).toEqual(['input', 'output'])
     expect(state.nodes.map((node) => node.id)).toEqual(['input', 'output'])
+    expect(state.nodes.find((node) => node.id === 'input')).toMatchObject({ x: 80, y: 120 })
+    expect(state.nodes.find((node) => node.id === 'output')).toMatchObject({ x: 460, y: 120 })
     expect(state.edges).toEqual([
       {
         id: 'edge-input-output',
