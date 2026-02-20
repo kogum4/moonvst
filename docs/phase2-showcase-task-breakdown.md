@@ -13,9 +13,9 @@ Status legend:
 
 ## Progress Dashboard
 
-- Overall stories done: `5 / 10`
-- Overall tasks done: `35 / 38`
-- Current story: `S6`
+- Overall stories done: `6 / 10`
+- Overall tasks done: `42 / 45`
+- Current story: `S7`
 - Last updated: `2026-02-20`
 
 ## Update Rules
@@ -152,13 +152,20 @@ Validation:
 
 ## Story S6: DSP Graph Executor Base
 
-- [ ] `P2-S6-R-01` RED: Add MoonBit tests for topological execution order.
-- [ ] `P2-S6-R-02` RED: Add MoonBit tests for bypass pass-through behavior.
-- [ ] `P2-S6-R-03` RED: Add MoonBit tests for invalid graph fallback behavior.
-- [ ] `P2-S6-G-01` GREEN: Create `packages/dsp-core/src/engine/graph_executor.mbt`.
-- [ ] `P2-S6-G-02` GREEN: Implement topological scheduling and stereo block execution.
-- [ ] `P2-S6-G-03` GREEN: Implement bypass and invalid-graph safety fallback.
-- [ ] `P2-S6-F-01` REFACTOR: Split executor into parse/plan/run helpers for readability.
+- [x] `P2-S6-R-01` RED: Add MoonBit tests for topological execution order.
+  - Evidence: Added `graph executor schedules nodes topologically and processes stereo block` to `products/showcase/dsp-entry/lib_test.mbt`; confirmed RED failure via `npm run test:dsp:showcase` with missing `execute_graph_block` / `ExecEdge`.
+- [x] `P2-S6-R-02` RED: Add MoonBit tests for bypass pass-through behavior.
+  - Evidence: Added `graph executor bypass keeps pass-through behavior` to `products/showcase/dsp-entry/lib_test.mbt`; confirmed RED failure in the same run before implementation.
+- [x] `P2-S6-R-03` RED: Add MoonBit tests for invalid graph fallback behavior.
+  - Evidence: Added `graph executor falls back to dry path for invalid graph` to `products/showcase/dsp-entry/lib_test.mbt`; confirmed RED failure in the same run before implementation.
+- [x] `P2-S6-G-01` GREEN: Create `packages/dsp-core/src/engine/graph_executor.mbt`.
+  - Evidence: Added `packages/dsp-core/src/engine/graph_executor.mbt` and `packages/dsp-core/src/engine/moon.pkg.json`, implementing `ExecEdge` / `ExecResult` and `execute_graph_block`.
+- [x] `P2-S6-G-02` GREEN: Implement topological scheduling and stereo block execution.
+  - Evidence: `execute_graph_block` builds a DAG topological order and processes stereo blocks node-by-node; `npm run test:dsp:showcase` passes (7/7).
+- [x] `P2-S6-G-03` GREEN: Implement bypass and invalid-graph safety fallback.
+  - Evidence: Implemented bypass pass-through and cycle/invalid-edge dry-path fallback via `invalid_result`; corresponding tests pass.
+- [x] `P2-S6-F-01` REFACTOR: Split executor into parse/plan/run helpers for readability.
+  - Evidence: Split responsibilities into `validate_shapes` / `build_topological_order` / `copy_dry_path` / `invalid_result` for readability.
 
 Validation:
 - `npm run build:dsp`
@@ -233,6 +240,7 @@ Validation:
 
 ## Change Log
 
+- `2026-02-20`: Completed Story S6 (`P2-S6-R/G/F`), added MoonBit RED tests for topological order, bypass pass-through, and invalid-graph dry fallback; implemented shared `packages/dsp-core/src/engine/graph_executor.mbt` with topological scheduling/stereo block execution/fallback safety and updated `scripts/select-product.js` to copy full `packages/dsp-core/src` (including new subpackages) into `build/dsp-active`.
 - `2026-02-20`: Completed Story S5 (`P2-S5-R/G/F`), added inspector editing component tests and implemented selected-node metadata, schema-driven parameter controls, bypass toggle wiring, and connection summaries using shared node parameter schema utilities.
 - `2026-02-18`: Completed Story S4 (`P2-S4-R/G/F`), added showcase canvas interaction component tests and implemented reducer-driven `NodePalette`/`GraphCanvas`/`EdgeLayer` flows (add/connect/disconnect/select) with deterministic placement and extracted interaction hook/utilities.
 - `2026-02-18`: Completed Story S3 (`P2-S3-R/G/F`), added showcase graph reducer unit tests and implemented graph state model/reducer with node limit, I/O guard, connect/disconnect, param updates, bypass, and DAG cycle rejection.

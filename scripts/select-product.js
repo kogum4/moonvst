@@ -5,8 +5,6 @@ const VALID_PRODUCT = /^[a-z0-9][a-z0-9-]*$/;
 const REQUIRED_DSP_FILES = ['lib.mbt', 'params.mbt', 'lib_test.mbt'];
 const CORE_STATIC_FILES = [
   ['moon.mod.json'],
-  ['src', 'exports.mbt'],
-  ['src', 'moon.pkg.json'],
 ];
 
 function parseProductFromArgs(argv) {
@@ -69,7 +67,7 @@ function selectProduct(product) {
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
     fs.copyFileSync(sourcePath, targetPath);
   }
-  copyDirRecursive(path.join(dspCoreDir, 'src', 'utils'), path.join(dspActiveSrcDir, 'utils'));
+  copyDirRecursive(path.join(dspCoreDir, 'src'), dspActiveSrcDir);
 
   for (const fileName of REQUIRED_DSP_FILES) {
     const sourcePath = path.join(dspEntryDir, fileName);
