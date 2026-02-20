@@ -9,27 +9,23 @@ import '../../../../packages/ui-core/src/styles/showcaseFonts'
 import { useEffect, useMemo } from 'react'
 import { GraphCanvas } from './GraphCanvas'
 import { NodePalette } from './NodePalette'
-import { ParamRow } from './NodePrimitives'
 import { getNodeColor, getNodeLabel } from './graphUi'
 import { useGraphInteraction } from './useGraphInteraction'
+import type { GraphNode } from '../state/graphTypes'
+import {
+  formatNodeParamValue,
+  getNodeParamSpecs,
+  getNodeParamValue,
+  isEffectNodeKind,
+} from '../state/nodeParamSchema'
 import styles from './NodeEditorShell.module.css'
 
-type ParamItem = { label: string; valueText: string; value: number }
 const isEditableElement = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) {
     return false
   }
   return target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
 }
-
-const params: ParamItem[] = [
-  { label: 'Decay', valueText: '2.4 s', value: 56 },
-  { label: 'Damping', valueText: '0.70', value: 64 },
-  { label: 'Pre-Delay', valueText: '20 ms', value: 18 },
-  { label: 'Size', valueText: '0.85', value: 78 },
-  { label: 'Diffusion', valueText: '0.65', value: 59 },
-  { label: 'Mix', valueText: '30%', value: 28 },
-]
 
 function TopBar() {
   return (
@@ -55,14 +51,24 @@ function TopBar() {
 function InspectorPanel({
   incomingConnections,
   nodeColor,
+  onToggleBypass,
+  onUpdateParam,
   outgoingConnections,
+  selectedNode,
   selectedNodeLabel,
 }: {
   incomingConnections: Array<{ color: string; label: string }>
   nodeColor: string
+  onToggleBypass: (nodeId: string) => void
+  onUpdateParam: (nodeId: string, key: string, value: number) => void
   outgoingConnections: Array<{ color: string; label: string }>
+  selectedNode: GraphNode | null
   selectedNodeLabel: string
 }) {
+  const canEditParams = selectedNode ? isEffectNodeKind(selectedNode.kind) : false
+  const paramSpecs = selectedNode ? getNodeParamSpecs(selectedNode.kind) : []
+  const selectedNodePosition = selectedNode ? `${selectedNode.x}, ${selectedNode.y}` : '--'
+
   return (
     <aside aria-label="Properties Panel" className={styles.inspector} data-region-id="P0JNl">
       <div className={styles.propsHeader}><Settings2 size={14} />PROPERTIES</div>
@@ -79,10 +85,66 @@ function InspectorPanel({
         <div className={styles.monoSub}>Stereo effect | Showcase editor</div>
       </section>
       <section className={styles.propsSection}>
-        <div className={styles.sectionLabel}>PARAMETERS</div>
-        <div className={styles.paramsList}>
-          {params.map((row) => <ParamRow color={nodeColor} key={row.label} label={row.label} value={row.value} valueText={row.valueText} />)}
+        <div className={styles.sectionLabel}>METADATA</div>
+        <div className={styles.metaGrid}>
+          <span className={styles.metaLabel}>Node ID</span>
+          <span className={styles.metaValue} data-testid="inspector-meta-id">{selectedNode?.id ?? '--'}</span>
+          <span className={styles.metaLabel}>Type</span>
+          <span className={styles.metaValue} data-testid="inspector-meta-type">{selectedNodeLabel}</span>
+          <span className={styles.metaLabel}>Position</span>
+          <span className={styles.metaValue} data-testid="inspector-meta-position">{selectedNodePosition}</span>
         </div>
+      </section>
+      <section className={styles.propsSection}>
+        <div className={styles.sectionLabel}>STATE</div>
+        <div className={styles.toggleRow}>
+          <button
+            aria-label={`Bypass ${selectedNodeLabel}`}
+            aria-pressed={selectedNode?.bypass ? 'true' : 'false'}
+            className={styles.bypassButton}
+            disabled={!canEditParams || !selectedNode}
+            onClick={() => {
+              if (!selectedNode || !canEditParams) {
+                return
+              }
+              onToggleBypass(selectedNode.id)
+            }}
+            type="button"
+          >
+            Bypass
+          </button>
+          <span className={styles.metaValue}>{selectedNode?.bypass ? 'ON' : 'OFF'}</span>
+        </div>
+      </section>
+      <section className={styles.propsSection}>
+        <div className={styles.sectionLabel}>PARAMETERS</div>
+        {canEditParams && selectedNode ? (
+          <div className={styles.paramsList}>
+            {paramSpecs.map((spec) => {
+              const value = getNodeParamValue(selectedNode, spec.key) ?? spec.defaultValue
+              const valueText = formatNodeParamValue(selectedNode, spec.key)
+              return (
+                <label className={styles.paramControl} key={spec.key}>
+                  <div className={styles.paramControlHead}>
+                    <span>{spec.label}</span>
+                    <span data-param-color={nodeColor} style={{ color: nodeColor }}>{valueText}</span>
+                  </div>
+                  <input
+                    aria-label={spec.label}
+                    max={spec.max}
+                    min={spec.min}
+                    onChange={(event) => onUpdateParam(selectedNode.id, spec.key, Number(event.target.value))}
+                    step={spec.step ?? 1}
+                    type="range"
+                    value={value}
+                  />
+                </label>
+              )
+            })}
+          </div>
+        ) : (
+          <div className={styles.monoSub}>No editable parameters for current selection.</div>
+        )}
       </section>
       <section className={`${styles.propsSection} ${styles.connectionsSection}`}>
         <div className={styles.sectionLabel}>CONNECTIONS</div>
@@ -216,7 +278,10 @@ export function NodeEditorShell() {
         <InspectorPanel
           incomingConnections={incomingConnections}
           nodeColor={selectedNodeColor}
+          onToggleBypass={interaction.toggleNodeBypass}
+          onUpdateParam={interaction.updateNodeParam}
           outgoingConnections={outgoingConnections}
+          selectedNode={selectedNode}
           selectedNodeLabel={selectedNodeLabel}
         />
       </section>

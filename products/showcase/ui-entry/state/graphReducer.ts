@@ -7,6 +7,7 @@ import type {
   GraphState,
   NodeId,
 } from './graphTypes'
+import { getDefaultNodeParams } from './nodeParamSchema'
 
 const INPUT_NODE_ID = 'input'
 const OUTPUT_NODE_ID = 'output'
@@ -129,7 +130,7 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
         x: action.x,
         y: action.y,
         bypass: false,
-        params: {},
+        params: getDefaultNodeParams(action.kind),
       }
 
       return {

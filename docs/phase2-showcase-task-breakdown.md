@@ -13,10 +13,10 @@ Status legend:
 
 ## Progress Dashboard
 
-- Overall stories done: `4 / 10`
-- Overall tasks done: `28 / 38`
-- Current story: `S5`
-- Last updated: `2026-02-18`
+- Overall stories done: `5 / 10`
+- Overall tasks done: `35 / 38`
+- Current story: `S6`
+- Last updated: `2026-02-20`
 
 ## Update Rules
 
@@ -130,13 +130,20 @@ Validation:
 
 ## Story S5: Inspector Editing Flow
 
-- [ ] `P2-S5-R-01` RED: Add component test for selected node metadata rendering.
-- [ ] `P2-S5-R-02` RED: Add component test for parameter edit updating graph state.
-- [ ] `P2-S5-R-03` RED: Add component test for bypass toggle and connection summary.
-- [ ] `P2-S5-G-01` GREEN: Implement inspector metadata section.
-- [ ] `P2-S5-G-02` GREEN: Implement parameter controls and state wiring.
-- [ ] `P2-S5-G-03` GREEN: Implement bypass and connection summary sections.
-- [ ] `P2-S5-F-01` REFACTOR: Consolidate inspector field renderers and typing.
+- [x] `P2-S5-R-01` RED: Add component test for selected node metadata rendering.
+  - Evidence: `products/showcase/ui-entry/components/InspectorEditing.component.test.tsx` (`renders selected node metadata`) failed before implementation (`Unable to find an element with the text: METADATA`) via `npm run test:ui:component -- --runInBand ../../products/showcase/ui-entry/components/InspectorEditing.component.test.tsx`.
+- [x] `P2-S5-R-02` RED: Add component test for parameter edit updating graph state.
+  - Evidence: `products/showcase/ui-entry/components/InspectorEditing.component.test.tsx` (`updates parameter value in graph state via inspector control`) failed before implementation (`Unable to find an accessible element with the role "slider" and name "Mix"`).
+- [x] `P2-S5-R-03` RED: Add component test for bypass toggle and connection summary.
+  - Evidence: `products/showcase/ui-entry/components/InspectorEditing.component.test.tsx` (`toggles bypass and renders connection summary for selected node`) failed before implementation (`Unable to find an accessible element with the role "button" and name "Bypass Delay"`).
+- [x] `P2-S5-G-01` GREEN: Implement inspector metadata section.
+  - Evidence: `products/showcase/ui-entry/components/NodeEditorShell.tsx` adds METADATA section (`inspector-meta-id/type/position`) bound to selected graph node; RED metadata test now passes.
+- [x] `P2-S5-G-02` GREEN: Implement parameter controls and state wiring.
+  - Evidence: `products/showcase/ui-entry/state/nodeParamSchema.ts` + `graphReducer.ts` + `NodeEditorShell.tsx` + `useGraphInteraction.ts` wire range controls to `updateNodeParam`; parameter edits persist across selection changes in component tests.
+- [x] `P2-S5-G-03` GREEN: Implement bypass and connection summary sections.
+  - Evidence: Inspector bypass toggle dispatches `toggleNodeBypass`, `GraphCanvas` reflects `data-bypassed`, and selected-node IN/OUT summaries render from graph edges; S5 bypass/connection test passes.
+- [x] `P2-S5-F-01` REFACTOR: Consolidate inspector field renderers and typing.
+  - Evidence: Parameter schema/formatting/defaults centralized in `products/showcase/ui-entry/state/nodeParamSchema.ts` and reused by both `NodeEditorShell.tsx` and `GraphCanvas.tsx`.
 
 Validation:
 - `npm run test:ui:component`
@@ -226,6 +233,7 @@ Validation:
 
 ## Change Log
 
+- `2026-02-20`: Completed Story S5 (`P2-S5-R/G/F`), added inspector editing component tests and implemented selected-node metadata, schema-driven parameter controls, bypass toggle wiring, and connection summaries using shared node parameter schema utilities.
 - `2026-02-18`: Completed Story S4 (`P2-S4-R/G/F`), added showcase canvas interaction component tests and implemented reducer-driven `NodePalette`/`GraphCanvas`/`EdgeLayer` flows (add/connect/disconnect/select) with deterministic placement and extracted interaction hook/utilities.
 - `2026-02-18`: Completed Story S3 (`P2-S3-R/G/F`), added showcase graph reducer unit tests and implemented graph state model/reducer with node limit, I/O guard, connect/disconnect, param updates, bypass, and DAG cycle rejection.
 - `2026-02-18`: Completed Story S2 (`P2-S2-R/G/F`), added reusable node primitive tests/components and refactored `NodeEditorShell` to consume primitives.

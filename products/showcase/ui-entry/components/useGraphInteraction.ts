@@ -54,7 +54,7 @@ export function useGraphInteraction() {
     dispatch({ type: 'disconnect', fromNodeId, toNodeId })
   }
 
-  const selectNode = (nodeId: NodeId) => {
+  const selectNode = (nodeId: NodeId | null) => {
     dispatch({ type: 'selectNode', nodeId })
   }
 
@@ -73,6 +73,14 @@ export function useGraphInteraction() {
     }
   }
 
+  const updateNodeParam = (nodeId: NodeId, key: string, value: number) => {
+    dispatch({ type: 'updateNodeParam', nodeId, key, value })
+  }
+
+  const toggleNodeBypass = (nodeId: NodeId) => {
+    dispatch({ type: 'toggleNodeBypass', nodeId })
+  }
+
   return {
     addNode,
     addNodeAt,
@@ -80,6 +88,8 @@ export function useGraphInteraction() {
     disconnect,
     moveNode,
     removeNode,
+    toggleNodeBypass,
+    updateNodeParam,
     pendingFromNodeId,
     selectNode,
     startConnection,

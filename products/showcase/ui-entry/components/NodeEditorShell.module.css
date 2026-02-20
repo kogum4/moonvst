@@ -425,10 +425,74 @@
   letter-spacing: 1.5px;
 }
 
+.metaGrid {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 6px;
+}
+
+.metaLabel {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.8px;
+}
+
+.metaValue {
+  color: #E2E8F0;
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bypassButton {
+  border: 1px solid #0E7490;
+  border-radius: 4px;
+  background: #0E749022;
+  color: #67E8F9;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.bypassButton:disabled {
+  border-color: #334155;
+  background: #1E293B;
+  color: #64748B;
+  cursor: not-allowed;
+}
+
 .paramsList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+
+.paramControl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #CBD5E1;
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.paramControlHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.paramControl input[type="range"] {
+  margin: 0;
 }
 
 .connRow {

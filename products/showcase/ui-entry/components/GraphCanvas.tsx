@@ -6,6 +6,7 @@ import { EffectNode, IONode } from './NodePrimitives'
 import type { EffectKind } from './graphUi'
 import { getEffectVisual, getNodeLabel } from './graphUi'
 import type { GraphState, NodeId } from '../state/graphTypes'
+import { formatNodeParamValue, getNodeParamSpecs } from '../state/nodeParamSchema'
 import styles from './NodeEditorShell.module.css'
 
 const DRAG_EFFECT_KIND = 'application/x-moonvst-effect-kind'
@@ -382,6 +383,11 @@ export function GraphCanvas({
 
         const visual = getEffectVisual(node.kind)
         const Icon = visual.icon
+        const rows = getNodeParamSpecs(node.kind).map((spec) => ({
+          key: spec.key,
+          label: spec.label,
+          value: formatNodeParamValue(node, spec.key),
+        }))
         return (
           <div
             className={styles.canvasNode}
@@ -392,6 +398,7 @@ export function GraphCanvas({
             style={style}
           >
             <EffectNode
+              bypassed={node.bypass}
               color={visual.color}
               icon={<Icon size={12} />}
               inPortAriaLabel={`${nodeLabel} IN port`}
@@ -403,7 +410,7 @@ export function GraphCanvas({
               onOutPortClick={() => onStartConnection(node.id)}
               onOutPortPointerDown={(event) => handleOutPortPointerDown(node.id, event)}
               outPortAriaLabel={`${nodeLabel} OUT port`}
-              rows={visual.rows}
+              rows={rows}
               selected={isSelected}
             />
           </div>
