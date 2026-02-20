@@ -387,8 +387,15 @@
   gap: 6px;
 }
 
-.connectionsSection .sectionLabel {
-  margin-bottom: 4px;
+.connectionsHeaderWrap {
+  padding: 0 0 4px;
+}
+
+.nodeInfoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .nodeInfo {
@@ -415,6 +422,7 @@
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 9px;
+  font-weight: 500;
 }
 
 .sectionLabel {
@@ -425,63 +433,98 @@
   letter-spacing: 1.5px;
 }
 
-.metaGrid {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  column-gap: 8px;
-  row-gap: 6px;
+.metaSection {
+  gap: 6px;
+}
+
+.metaList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaRow {
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .metaLabel {
   color: var(--text-tertiary);
   font-family: var(--font-mono);
   font-size: 9px;
-  letter-spacing: 0.8px;
+  font-weight: 500;
 }
 
 .metaValue {
-  color: #E2E8F0;
-  font-family: var(--font-sans);
-  font-size: 11px;
-}
-
-.toggleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.bypassButton {
-  border: 1px solid #0E7490;
-  border-radius: 4px;
-  background: #0E749022;
-  color: #67E8F9;
+  color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 10px;
-  padding: 4px 10px;
-  cursor: pointer;
+  font-size: 9px;
+  font-weight: 600;
 }
 
-.bypassButton:disabled {
-  border-color: #334155;
-  background: #1E293B;
-  color: #64748B;
+.toggleTrack {
+  width: 32px;
+  height: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 0 2px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.toggleTrack[aria-pressed="true"] {
+  background:
+    linear-gradient(0deg, rgb(var(--node-color-rgb, 34 211 238) / 0.20), rgb(var(--node-color-rgb, 34 211 238) / 0.20)),
+    #0F172A;
+  border-color: rgb(var(--node-color-rgb, 34 211 238) / 0.55);
+  justify-content: flex-end;
+}
+
+.toggleTrack[aria-pressed="false"] {
+  background: var(--panel);
+  border-color: var(--border);
+  justify-content: flex-start;
+}
+
+.toggleTrack:disabled {
   cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.toggleKnob {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #64748B;
+}
+
+.toggleTrack[aria-pressed="false"] .toggleKnob {
+  background: #64748B;
+}
+
+.toggleTrack[aria-pressed="true"] .toggleKnob {
+  background: rgb(var(--node-color-rgb, 34 211 238) / 0.92);
+  box-shadow:
+    0 0 0 1px rgb(var(--node-color-rgb, 34 211 238) / 0.45),
+    0 0 6px rgb(var(--node-color-rgb, 34 211 238) / 0.25);
 }
 
 .paramsList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .paramControl {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  color: #CBD5E1;
-  font-family: var(--font-sans);
-  font-size: 11px;
+  gap: 4px;
 }
 
 .paramControlHead {
@@ -491,25 +534,76 @@
   gap: 8px;
 }
 
-.paramControl input[type="range"] {
+.paramLabel {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.paramValue {
+  color: var(--node-color, #38BDF8);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.paramSliderWrap {
+  position: relative;
+  height: 10px;
+}
+
+.paramSliderTrack {
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #1E293B;
+}
+
+.paramSliderFill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--node-color, #38BDF8);
+}
+
+.paramSliderThumb {
+  position: absolute;
+  top: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--node-color, #38BDF8);
+  box-shadow: 0 0 0 2px #0A0F1C;
+}
+
+.paramSliderInput {
+  position: absolute;
+  inset: 0;
   margin: 0;
+  opacity: 0;
+  width: 100%;
+  height: 10px;
+  cursor: pointer;
 }
 
 .connRow {
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  display: flex;
   align-items: center;
-  column-gap: 8px;
+  gap: 8px;
   min-height: 20px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 9px;
 }
 
 .connLabel {
   color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: 1px;
+  min-width: 22px;
 }
 
 .connValue {

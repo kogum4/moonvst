@@ -6,7 +6,7 @@ import {
   ZoomIn,
 } from '../../../../packages/ui-core/src/vendor/lucide'
 import '../../../../packages/ui-core/src/styles/showcaseFonts'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, type CSSProperties } from 'react'
 import { GraphCanvas } from './GraphCanvas'
 import { NodePalette } from './NodePalette'
 import { getNodeColor, getNodeLabel } from './graphUi'
@@ -25,6 +25,18 @@ const isEditableElement = (target: EventTarget | null) => {
     return false
   }
   return target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+}
+
+const hexToRgbChannels = (hex: string): string => {
+  const normalized = hex.replace('#', '')
+  const value = normalized.length === 3
+    ? normalized.split('').map((char) => `${char}${char}`).join('')
+    : normalized
+  const int = Number.parseInt(value, 16)
+  const r = (int >> 16) & 255
+  const g = (int >> 8) & 255
+  const b = int & 255
+  return `${r} ${g} ${b}`
 }
 
 function TopBar() {
@@ -68,41 +80,28 @@ function InspectorPanel({
   const canEditParams = selectedNode ? isEffectNodeKind(selectedNode.kind) : false
   const paramSpecs = selectedNode ? getNodeParamSpecs(selectedNode.kind) : []
   const selectedNodePosition = selectedNode ? `${selectedNode.x}, ${selectedNode.y}` : '--'
+  const nodeColorRgb = hexToRgbChannels(nodeColor)
 
   return (
     <aside aria-label="Properties Panel" className={styles.inspector} data-region-id="P0JNl">
       <div className={styles.propsHeader}><Settings2 size={14} />PROPERTIES</div>
       <section className={styles.propsSection}>
-        <div className={styles.nodeInfo}>
-          <span
-            className={styles.nodeDot}
-            data-node-color={nodeColor}
-            data-testid="inspector-node-dot"
-            style={{ backgroundColor: nodeColor }}
-          />
-          <span className={styles.nodeTitleText}>{selectedNodeLabel}</span>
-        </div>
-        <div className={styles.monoSub}>Stereo effect | Showcase editor</div>
-      </section>
-      <section className={styles.propsSection}>
-        <div className={styles.sectionLabel}>METADATA</div>
-        <div className={styles.metaGrid}>
-          <span className={styles.metaLabel}>Node ID</span>
-          <span className={styles.metaValue} data-testid="inspector-meta-id">{selectedNode?.id ?? '--'}</span>
-          <span className={styles.metaLabel}>Type</span>
-          <span className={styles.metaValue} data-testid="inspector-meta-type">{selectedNodeLabel}</span>
-          <span className={styles.metaLabel}>Position</span>
-          <span className={styles.metaValue} data-testid="inspector-meta-position">{selectedNodePosition}</span>
-        </div>
-      </section>
-      <section className={styles.propsSection}>
-        <div className={styles.sectionLabel}>STATE</div>
-        <div className={styles.toggleRow}>
+        <div className={styles.nodeInfoRow}>
+          <div className={styles.nodeInfo}>
+            <span
+              className={styles.nodeDot}
+              data-node-color={nodeColor}
+              data-testid="inspector-node-dot"
+              style={{ backgroundColor: nodeColor }}
+            />
+            <span className={styles.nodeTitleText}>{selectedNodeLabel}</span>
+          </div>
           <button
             aria-label={`Bypass ${selectedNodeLabel}`}
-            aria-pressed={selectedNode?.bypass ? 'true' : 'false'}
-            className={styles.bypassButton}
+            aria-pressed={selectedNode?.bypass ? 'false' : 'true'}
+            className={styles.toggleTrack}
             disabled={!canEditParams || !selectedNode}
+            style={{ '--node-color': nodeColor, '--node-color-rgb': nodeColorRgb } as CSSProperties}
             onClick={() => {
               if (!selectedNode || !canEditParams) {
                 return
@@ -111,10 +110,10 @@ function InspectorPanel({
             }}
             type="button"
           >
-            Bypass
+            <span className={styles.toggleKnob} />
           </button>
-          <span className={styles.metaValue}>{selectedNode?.bypass ? 'ON' : 'OFF'}</span>
         </div>
+        <div className={styles.monoSub}>Stereo effect | Showcase editor</div>
       </section>
       <section className={styles.propsSection}>
         <div className={styles.sectionLabel}>PARAMETERS</div>
@@ -123,21 +122,34 @@ function InspectorPanel({
             {paramSpecs.map((spec) => {
               const value = getNodeParamValue(selectedNode, spec.key) ?? spec.defaultValue
               const valueText = formatNodeParamValue(selectedNode, spec.key)
+              const ratio = (value - spec.min) / (spec.max - spec.min)
+              const percent = Math.max(0, Math.min(100, ratio * 100))
               return (
-                <label className={styles.paramControl} key={spec.key}>
+                <label
+                  className={styles.paramControl}
+                  key={spec.key}
+                  style={{ '--node-color': nodeColor, '--node-color-rgb': nodeColorRgb } as CSSProperties}
+                >
                   <div className={styles.paramControlHead}>
-                    <span>{spec.label}</span>
-                    <span data-param-color={nodeColor} style={{ color: nodeColor }}>{valueText}</span>
+                    <span className={styles.paramLabel}>{spec.label}</span>
+                    <span className={styles.paramValue}>{valueText}</span>
                   </div>
-                  <input
-                    aria-label={spec.label}
-                    max={spec.max}
-                    min={spec.min}
-                    onChange={(event) => onUpdateParam(selectedNode.id, spec.key, Number(event.target.value))}
-                    step={spec.step ?? 1}
-                    type="range"
-                    value={value}
-                  />
+                  <div className={styles.paramSliderWrap}>
+                    <div className={styles.paramSliderTrack}>
+                      <span className={styles.paramSliderFill} style={{ width: `${percent}%` }} />
+                      <span className={styles.paramSliderThumb} style={{ left: `calc(${percent}% - 5px)` }} />
+                    </div>
+                    <input
+                      aria-label={spec.label}
+                      className={styles.paramSliderInput}
+                      max={spec.max}
+                      min={spec.min}
+                      onChange={(event) => onUpdateParam(selectedNode.id, spec.key, Number(event.target.value))}
+                      step={spec.step ?? 1}
+                      type="range"
+                      value={value}
+                    />
+                  </div>
                 </label>
               )
             })}
@@ -147,7 +159,9 @@ function InspectorPanel({
         )}
       </section>
       <section className={`${styles.propsSection} ${styles.connectionsSection}`}>
-        <div className={styles.sectionLabel}>CONNECTIONS</div>
+        <div className={styles.connectionsHeaderWrap}>
+          <div className={styles.sectionLabel}>CONNECTIONS</div>
+        </div>
         <div className={styles.connRow}>
           <span className={styles.connLabel}>IN</span>
           <span className={styles.connValue} data-testid="connections-in-value">
@@ -173,6 +187,23 @@ function InspectorPanel({
                 ))
               : null}
           </span>
+        </div>
+      </section>
+      <section className={`${styles.propsSection} ${styles.metaSection}`}>
+        <div className={styles.sectionLabel}>META</div>
+        <div className={styles.metaList}>
+          <div className={styles.metaRow}>
+            <span className={styles.metaLabel}>ID</span>
+            <span className={styles.metaValue} data-testid="inspector-meta-id">{selectedNode?.id ?? '--'}</span>
+          </div>
+          <div className={styles.metaRow}>
+            <span className={styles.metaLabel}>Type</span>
+            <span className={styles.metaValue} data-testid="inspector-meta-type">{selectedNodeLabel}</span>
+          </div>
+          <div className={styles.metaRow}>
+            <span className={styles.metaLabel}>Pos</span>
+            <span className={styles.metaValue} data-testid="inspector-meta-position">{selectedNodePosition}</span>
+          </div>
         </div>
       </section>
     </aside>

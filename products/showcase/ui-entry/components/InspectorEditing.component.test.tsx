@@ -9,7 +9,8 @@ describe('inspector editing flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delay' }))
     fireEvent.click(screen.getByRole('group', { name: 'Effect Node Delay' }))
 
-    expect(screen.getByText('METADATA')).toBeInTheDocument()
+    expect(screen.getByText('META')).toBeInTheDocument()
+    expect(screen.queryByText('STATE')).not.toBeInTheDocument()
     expect(screen.getByTestId('inspector-meta-id')).toHaveTextContent('fx-1')
     expect(screen.getByTestId('inspector-meta-type')).toHaveTextContent('Delay')
     expect(screen.getByTestId('inspector-meta-position')).toHaveTextContent('220, 40')
@@ -50,8 +51,9 @@ describe('inspector editing flow', () => {
 
     expect(delayNode).toHaveAttribute('data-bypassed', 'false')
     const bypassToggle = screen.getByRole('button', { name: 'Bypass Delay' })
+    expect(bypassToggle).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(bypassToggle)
     expect(delayNode).toHaveAttribute('data-bypassed', 'true')
-    expect(bypassToggle).toHaveAttribute('aria-pressed', 'true')
+    expect(bypassToggle).toHaveAttribute('aria-pressed', 'false')
   })
 })
