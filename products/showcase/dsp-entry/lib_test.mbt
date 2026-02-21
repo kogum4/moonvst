@@ -23,3 +23,21 @@ test "reset clears internal state" {
 test "showcase exports six params" {
   assert_eq(get_param_count(), 6)
 }
+
+test "graph contract apply validates schema version and limits" {
+  let invalid_version = @src.apply_graph_contract(99, 2, 1)
+  assert_eq(invalid_version, @src.graph_contract_error_unsupported_version())
+  assert_eq(@src.get_last_graph_contract_error(), @src.graph_contract_error_unsupported_version())
+
+  let invalid_nodes = @src.apply_graph_contract(@src.graph_contract_schema_version(), 99, 1)
+  assert_eq(invalid_nodes, @src.graph_contract_error_node_limit())
+  assert_eq(@src.get_last_graph_contract_error(), @src.graph_contract_error_node_limit())
+}
+
+test "graph contract apply stores validated payload shape" {
+  let result = @src.apply_graph_contract(@src.graph_contract_schema_version(), 4, 3)
+  assert_eq(result, @src.graph_contract_error_none())
+  assert_eq(@src.get_last_graph_contract_error(), @src.graph_contract_error_none())
+  assert_eq(@src.get_last_graph_contract_node_count(), 4)
+  assert_eq(@src.get_last_graph_contract_edge_count(), 3)
+}

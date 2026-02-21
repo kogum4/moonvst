@@ -7,6 +7,7 @@ import {
 } from '../../../../packages/ui-core/src/vendor/lucide'
 import '../../../../packages/ui-core/src/styles/showcaseFonts'
 import { useEffect, useMemo, type CSSProperties } from 'react'
+import type { AudioRuntime } from '../../../../packages/ui-core/src/runtime/types'
 import { GraphCanvas } from './GraphCanvas'
 import { NodePalette } from './NodePalette'
 import { getNodeColor, getNodeLabel } from './graphUi'
@@ -18,6 +19,7 @@ import {
   getNodeParamValue,
   isEffectNodeKind,
 } from '../state/nodeParamSchema'
+import { createGraphRuntimeBridge, emitGraphPayloadToRuntime } from '../runtime/graphRuntimeBridge'
 import styles from './NodeEditorShell.module.css'
 
 const isEditableElement = (target: EventTarget | null) => {
@@ -223,9 +225,16 @@ function StatusBar({ connectionCount, lastError, nodeCount }: { connectionCount:
   )
 }
 
-export function NodeEditorShell() {
+export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | null }) {
   const interaction = useGraphInteraction()
   const { pendingFromNodeId, state } = interaction
+  const graphRuntimeBridge = useMemo(
+    () =>
+      createGraphRuntimeBridge((payload) => {
+        emitGraphPayloadToRuntime(runtime, payload)
+      }),
+    [runtime],
+  )
   const selectedNode = state.selectedNodeId
     ? state.nodes.find((node) => node.id === state.selectedNodeId) ?? null
     : null
@@ -271,6 +280,10 @@ export function NodeEditorShell() {
         label: getNodeLabel(node.kind),
       }))
   }, [selectedNode, state.edges, state.nodes])
+
+  useEffect(() => {
+    graphRuntimeBridge.sync(state)
+  }, [graphRuntimeBridge, state])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
