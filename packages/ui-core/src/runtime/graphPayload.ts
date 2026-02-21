@@ -216,11 +216,11 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
       return {
         effectType: effectTypeByKind.eq!,
         bypass: node.bypass,
-        p1: clamp(((node.params.high ?? 2.1) - (node.params.low ?? 1.8)) / 24, -1, 1),
-        p2: clamp(1 + (node.params.mid ?? -0.6) / 12, 0, 2),
-        p3: 0,
-        p4: 0,
-        p5: 0,
+        p1: clamp(node.params.low ?? 0, -18, 18),
+        p2: clamp(node.params.lowMid ?? 0, -18, 18),
+        p3: clamp(node.params.mid ?? 0, -18, 18),
+        p4: clamp(node.params.highMid ?? 0, -18, 18),
+        p5: clamp(node.params.high ?? 0, -18, 18),
       }
     case 'filter':
       {

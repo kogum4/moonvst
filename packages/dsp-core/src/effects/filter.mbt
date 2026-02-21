@@ -1,6 +1,48 @@
 let filter_sample_rate_hz : Float = 48000.0
 let filter_pi : Float = 3.141592653589793
 
+pub fn svf_default_sample_rate_hz() -> Float {
+  filter_sample_rate_hz
+}
+
+pub fn svf_compute_g_from_hz(freq_hz : Float, sample_rate_hz : Float) -> Float {
+  let sr = if sample_rate_hz <= 1000.0 { filter_sample_rate_hz } else { sample_rate_hz }
+  let hz = effect_clamp(freq_hz, 5.0, sr * 0.49)
+  @math.tanf(filter_pi * (hz / sr))
+}
+
+pub fn svf_compute_a(g : Float, k : Float) -> (Float, Float, Float) {
+  let a1 : Float = 1.0 / (1.0 + g * (g + k))
+  let a2 : Float = g * a1
+  let a3 : Float = g * a2
+  (a1, a2, a3)
+}
+
+pub fn svf_step(
+  input : Float,
+  ic1eq : Float,
+  ic2eq : Float,
+  a1 : Float,
+  a2 : Float,
+  a3 : Float,
+) -> (Float, Float, Float, Float) {
+  let v3 : Float = input - ic2eq
+  let v1 : Float = a1 * ic1eq + a2 * v3
+  let v2 : Float = ic2eq + a2 * ic1eq + a3 * v3
+  (v1, v2, 2.0 * v1 - ic1eq, 2.0 * v2 - ic2eq)
+}
+
+pub fn svf_mix_output(
+  input : Float,
+  v1 : Float,
+  v2 : Float,
+  m0 : Float,
+  m1 : Float,
+  m2 : Float,
+) -> Float {
+  m0 * input + m1 * v1 + m2 * v2
+}
+
 fn filter_mode_to_index(mode : Float) -> Int {
   let mode_clamped = effect_clamp(mode, 0.0, 5.0)
   let idx = mode_clamped.to_int()
@@ -28,15 +70,10 @@ fn svf_process_single_channel(
   mode_index : Int,
 ) -> (Float, Float, Float) {
   let cutoff_hz = filter_cutoff_to_hz(cutoff)
-  let fc : Float = effect_clamp(cutoff_hz / filter_sample_rate_hz, 0.0001, 0.49)
-  let g : Float = @math.tanf(filter_pi * fc)
+  let g : Float = svf_compute_g_from_hz(cutoff_hz, filter_sample_rate_hz)
   let k : Float = effect_clamp(resonance, 0.0, 1.0) * 2.0
-  let a1 : Float = 1.0 / (1.0 + g * (g + k))
-  let a2 : Float = g * a1
-  let a3 : Float = g * a2
-  let v3 : Float = input - ic2eq
-  let v1 : Float = a1 * ic1eq + a2 * v3
-  let v2 : Float = ic2eq + a2 * ic1eq + a3 * v3
+  let (a1, a2, a3) = svf_compute_a(g, k)
+  let (v1, v2, next_ic1, next_ic2) = svf_step(input, ic1eq, ic2eq, a1, a2, a3)
   let hp : Float = input - k * v1 - v2
   let lp : Float = v2
   let bp : Float = v1
@@ -58,7 +95,7 @@ fn svf_process_single_channel(
       allpass
     }
 
-  (output, 2.0 * v1 - ic1eq, 2.0 * v2 - ic2eq)
+  (output, next_ic1, next_ic2)
 }
 
 pub fn filter_process_sample(

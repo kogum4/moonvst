@@ -50,9 +50,11 @@ const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
     { key: 'mix', label: 'Dry/Wet', min: 0, max: 100, step: 1, defaultValue: 100, formatValue: formatPercent },
   ],
   eq: [
-    { key: 'low', label: 'Low', min: -12, max: 12, step: 0.1, defaultValue: 1.8, formatValue: formatDb },
-    { key: 'mid', label: 'Mid', min: -12, max: 12, step: 0.1, defaultValue: -0.6, formatValue: formatDb },
-    { key: 'high', label: 'High', min: -12, max: 12, step: 0.1, defaultValue: 2.1, formatValue: formatDb },
+    { key: 'low', label: 'Low', min: -18, max: 18, step: 0.1, defaultValue: 0, formatValue: formatDb },
+    { key: 'lowMid', label: 'Low-Mid', min: -18, max: 18, step: 0.1, defaultValue: 0, formatValue: formatDb },
+    { key: 'mid', label: 'Mid', min: -18, max: 18, step: 0.1, defaultValue: 0, formatValue: formatDb },
+    { key: 'highMid', label: 'High-Mid', min: -18, max: 18, step: 0.1, defaultValue: 0, formatValue: formatDb },
+    { key: 'high', label: 'High', min: -18, max: 18, step: 0.1, defaultValue: 0, formatValue: formatDb },
   ],
   filter: [
     { key: 'cutoff', label: 'Cutoff', min: 40, max: 20000, step: 10, defaultValue: 2500, formatValue: formatHz, scale: 'log' },

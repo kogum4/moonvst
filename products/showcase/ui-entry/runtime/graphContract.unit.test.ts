@@ -110,6 +110,31 @@ describe('showcase graph contract payload', () => {
     expect(filterNode?.p5).toBe(0)
   })
 
+  test('maps eq 5-band gains directly to runtime p1..p5', () => {
+    let state = createDefaultGraphState()
+    state = graphReducer(state, { type: 'addNode', kind: 'eq', x: 240, y: 180, id: 'fx-eq' })
+    state = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'input', toNodeId: 'fx-eq' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'fx-eq', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-eq', key: 'low', value: 4.5 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-eq', key: 'lowMid', value: -3.0 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-eq', key: 'mid', value: 2.0 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-eq', key: 'highMid', value: -1.5 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-eq', key: 'high', value: 6.0 })
+
+    const runtime = compileRuntimeGraphPayload(serializeGraphPayload(state))
+    const eqNode = runtime.nodes.find((node) => node.effectType === 5)
+    expect(eqNode).toEqual({
+      effectType: 5,
+      bypass: false,
+      p1: 4.5,
+      p2: -3.0,
+      p3: 2.0,
+      p4: -1.5,
+      p5: 6.0,
+    })
+  })
+
   test('keeps runtime graph shape when no input-output path exists', () => {
     const state = createDefaultGraphState()
     const disconnected = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })

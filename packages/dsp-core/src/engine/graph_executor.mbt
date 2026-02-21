@@ -104,6 +104,7 @@ pub fn reset_effect_states() -> Unit {
     persistent_filter_ic1_r[i] = 0.0
     persistent_filter_ic2_r[i] = 0.0
   }
+  @effects.reset_eq_state()
 }
 
 fn invalid_result(
@@ -230,7 +231,7 @@ fn execute_node_effect(
   } else if kind == effect_type_distortion() {
     @effects.distortion_process(node_index, node_in_l, node_in_r, node.p1, node.p2, node.p3, node.p4, node.p5)
   } else if kind == effect_type_eq() {
-    @effects.eq_process(node_in_l, node_in_r, node.p1, node.p2)
+    @effects.eq_process(node_index, node_in_l, node_in_r, node.p1, node.p2, node.p3, node.p4, node.p5)
   } else if kind == effect_type_filter() {
     let (out_l, out_r, next_ic1_l, next_ic2_l, next_ic1_r, next_ic2_r) =
       @effects.filter_process_sample(
