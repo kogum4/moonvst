@@ -224,6 +224,14 @@ const dbToLinear = (db: number): number => {
   return clamp(linear, 0, 1)
 }
 
+const CHORUS_SAMPLE_RATE = 48_000
+const CHORUS_MAX_RATE_HZ = (0.001 * CHORUS_SAMPLE_RATE) / (2 * Math.PI)
+
+const chorusRateHzToParam = (rateHz: number): number => {
+  const normalizedHz = clamp(rateHz / CHORUS_MAX_RATE_HZ, 0, 1)
+  return Math.pow(normalizedHz, 0.25)
+}
+
 const effectTypeByKind: Partial<Record<NodeKind, number>> = {
   chorus: 1,
   compressor: 2,
@@ -240,9 +248,9 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
       return {
         effectType: effectTypeByKind.chorus!,
         bypass: node.bypass,
-        p1: toUnit(node.params.depth ?? 60, 0, 100),
-        p2: toUnit(node.params.rate ?? 1.2, 0.1, 8),
-        p3: toUnit(node.params.mix ?? 40, 0, 100),
+        p1: toUnit(node.params.depth ?? 55, 0, 100),
+        p2: chorusRateHzToParam(node.params.rate ?? 1.2),
+        p3: toUnit(node.params.mix ?? 35, 0, 100),
         p4: 0,
       }
     case 'compressor':

@@ -65,6 +65,25 @@ describe('showcase graph contract payload', () => {
     expect(runtime.edges).toHaveLength(2)
   })
 
+  test('maps chorus rate in Hz to normalized engine parameter', () => {
+    let state = createDefaultGraphState()
+    state = graphReducer(state, { type: 'addNode', kind: 'chorus', x: 240, y: 180, id: 'fx-chorus' })
+    state = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'input', toNodeId: 'fx-chorus' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'fx-chorus', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-chorus', key: 'rate', value: 3.5 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-chorus', key: 'depth', value: 65 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-chorus', key: 'mix', value: 42 })
+
+    const runtime = compileRuntimeGraphPayload(serializeGraphPayload(state))
+    const chorusNode = runtime.nodes.find((node) => node.effectType === 1)
+    expect(chorusNode).toBeDefined()
+    expect(chorusNode?.p1).toBeCloseTo(0.65, 5)
+    expect(chorusNode?.p2).toBeGreaterThan(0)
+    expect(chorusNode?.p2).toBeLessThanOrEqual(1)
+    expect(chorusNode?.p3).toBeCloseTo(0.42, 5)
+  })
+
   test('keeps runtime graph shape when no input-output path exists', () => {
     const state = createDefaultGraphState()
     const disconnected = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })

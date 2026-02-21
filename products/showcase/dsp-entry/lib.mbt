@@ -295,6 +295,7 @@ pub fn reset_reverb_state() -> Unit {
 }
 
 pub fn product_reset() -> Unit {
+  @effects.reset_chorus_state()
   @effects.reset_reverb_state()
   reset_graph_contract_state()
 }

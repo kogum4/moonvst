@@ -17,14 +17,14 @@ const formatMs = (value: number) => `${Math.round(value)} ms`
 const formatDb = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)} dB`
 const formatRatio = (value: number) => `${value.toFixed(1)}:1`
 const formatUnitless = (value: number) => value.toFixed(2)
-const formatHz = (value: number) => `${Math.round(value)} Hz`
+const formatRateHz = (value: number) => `${value.toFixed(value < 1 ? 2 : 1)} Hz`
 const formatKHz = (value: number) => `${(value / 1000).toFixed(1)} kHz`
 
 const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
   chorus: [
-    { key: 'rate', label: 'Rate', min: 0.1, max: 8.0, step: 0.1, defaultValue: 1.2, formatValue: formatHz },
-    { key: 'depth', label: 'Depth', min: 0, max: 100, step: 1, defaultValue: 60, formatValue: formatPercent },
-    { key: 'mix', label: 'Mix', min: 0, max: 100, step: 1, defaultValue: 40, formatValue: formatPercent },
+    { key: 'rate', label: 'Rate', min: 0.05, max: 5.0, step: 0.01, defaultValue: 1.2, formatValue: formatRateHz },
+    { key: 'depth', label: 'Depth', min: 0, max: 100, step: 1, defaultValue: 55, formatValue: formatPercent },
+    { key: 'mix', label: 'Mix', min: 0, max: 100, step: 1, defaultValue: 35, formatValue: formatPercent },
   ],
   compressor: [
     { key: 'threshold', label: 'Threshold', min: -48, max: 0, step: 0.5, defaultValue: -18, formatValue: formatDb },
