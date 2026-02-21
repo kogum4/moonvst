@@ -69,6 +69,7 @@ bool parseRuntimeGraphConfigFromVar (const juce::var& value, PluginProcessor::Ru
         parsedNode.p2 = (float) (double) node->getProperty ("p2");
         parsedNode.p3 = (float) (double) node->getProperty ("p3");
         parsedNode.p4 = (float) (double) node->getProperty ("p4");
+        parsedNode.p5 = (float) (double) node->getProperty ("p5");
         out.nodes.push_back (parsedNode);
     }
 

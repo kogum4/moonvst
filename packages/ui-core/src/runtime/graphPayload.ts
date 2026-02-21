@@ -5,6 +5,7 @@ export interface RuntimeGraphNode {
   p2: number
   p3: number
   p4: number
+  p5: number
 }
 
 export interface RuntimeGraphEdge {
@@ -172,6 +173,7 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         p2: chorusRateHzToParam(node.params.rate ?? 1.2),
         p3: toUnit(node.params.mix ?? 35, 0, 100),
         p4: 0,
+        p5: 0,
       }
     case 'compressor':
       return {
@@ -181,6 +183,7 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         p2: clamp(node.params.ratio ?? 4, 1, 20),
         p3: 0,
         p4: 0,
+        p5: 0,
       }
     case 'delay':
       return {
@@ -190,15 +193,24 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         p2: toUnit(node.params.mix ?? 25, 0, 100),
         p3: 0,
         p4: 0,
+        p5: 0,
       }
     case 'distortion':
-      return {
-        effectType: effectTypeByKind.distortion!,
-        bypass: node.bypass,
-        p1: toUnit(node.params.drive ?? 42, 0, 100),
-        p2: toUnit(node.params.mix ?? 35, 0, 100),
-        p3: 0,
-        p4: 0,
+      {
+        const driveParam = node.params.drive ?? 60
+        const warmthParam = node.params.warmth ?? 50
+        const auraParam = node.params.aura ?? 50
+        const outputParam = node.params.output ?? 100
+        const mixParam = node.params.mix ?? 100
+        return {
+          effectType: effectTypeByKind.distortion!,
+          bypass: node.bypass,
+          p1: toUnit(driveParam, 0, 100),
+          p2: toUnit(warmthParam, 0, 100),
+          p3: toUnit(auraParam, 0, 100),
+          p4: toUnit(outputParam, 0, 100),
+          p5: toUnit(mixParam, 0, 100),
+        }
       }
     case 'eq':
       return {
@@ -208,6 +220,7 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         p2: clamp(1 + (node.params.mid ?? -0.6) / 12, 0, 2),
         p3: 0,
         p4: 0,
+        p5: 0,
       }
     case 'filter':
       return {
@@ -217,6 +230,7 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         p2: clamp(toUnit(node.params.resonance ?? 0.7, 0.1, 2) * 0.95, 0, 0.95),
         p3: 0,
         p4: 0,
+        p5: 0,
       }
     case 'reverb':
       return {
@@ -226,6 +240,7 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         p2: 0,
         p3: 0,
         p4: 0,
+        p5: 0,
       }
     case 'input':
     case 'output':
@@ -237,6 +252,7 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         p2: 0,
         p3: 0,
         p4: 0,
+        p5: 0,
       }
   }
 }

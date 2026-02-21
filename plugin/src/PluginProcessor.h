@@ -18,6 +18,7 @@ public:
         float p2 = 0.0f;
         float p3 = 0.0f;
         float p4 = 0.0f;
+        float p5 = 0.0f;
     };
 
     struct RuntimeGraphEdge

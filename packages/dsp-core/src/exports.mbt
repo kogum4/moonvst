@@ -105,8 +105,9 @@ pub fn runtime_graph_set_node(
   p2 : Float,
   p3 : Float,
   p4 : Float,
+  p5 : Float,
 ) -> Int {
-  set_runtime_node(index, effect_type, bypass, p1, p2, p3, p4)
+  set_runtime_node(index, effect_type, bypass, p1, p2, p3, p4, p5)
 }
 
 pub fn runtime_graph_set_edge(index : Int, from : Int, to : Int) -> Int {

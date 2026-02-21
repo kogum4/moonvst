@@ -65,9 +65,11 @@ const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
     icon: Zap,
     label: 'Distortion',
     rows: [
-      { key: 'drive', label: 'Drive', value: '42%' },
-      { key: 'tone', label: 'Tone', value: '58%' },
-      { key: 'mix', label: 'Mix', value: '35%' },
+      { key: 'drive', label: 'Drive', value: '60%' },
+      { key: 'warmth', label: 'Warmth', value: '50%' },
+      { key: 'aura', label: 'Aura', value: '50%' },
+      { key: 'output', label: 'Output', value: '100%' },
+      { key: 'mix', label: 'Dry/Wet', value: '100%' },
     ],
   },
   eq: {

@@ -136,6 +136,7 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
           Number(node.p2 ?? 0),
           Number(node.p3 ?? 0),
           Number(node.p4 ?? 0),
+          Number(node.p5 ?? 0),
         )
       }
       for (let i = 0; i < edges.length; i++) {
@@ -147,7 +148,7 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
         )
       }
     } else {
-      // Backward-compat fallback: select first effect node when runtime graph API is unavailable.
+      // Runtime graph API unavailable: select first effect node.
       let fallbackEffectType = 0
       for (let i = 0; i < nodes.length; i++) {
         const effectType = Number(nodes[i]?.effectType ?? 0)
@@ -246,3 +247,4 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor('moonvst-processor', MoonVSTProcessor)
+

@@ -102,9 +102,9 @@ test "graph executor falls back to dry path for invalid graph" {
 
 test "graph executor mixed effect chain dispatches through modules" {
   let nodes : Array[ExecNode] = [
-    make_exec_node(effect_type_gain(), false, 1.0, 0.0, 0.0, 0.0),
-    make_exec_node(effect_type_distortion(), false, 1.0, 1.0, 0.0, 0.0),
-    make_exec_node(effect_type_filter(), false, 0.25, 0.0, 0.0, 0.0),
+    make_exec_node(effect_type_gain(), false, 1.0, 0.0, 0.0, 0.0, 0.0),
+    make_exec_node(effect_type_distortion(), false, 1.0, 0.5, 0.5, 1.0, 1.0),
+    make_exec_node(effect_type_filter(), false, 0.25, 0.0, 0.0, 0.0, 0.0),
   ]
   let edges : Array[ExecEdge] = [
     make_exec_edge(0, 1),
@@ -128,8 +128,8 @@ test "graph executor mixed effect chain dispatches through modules" {
 
   assert_eq(result.valid, true)
   assert_eq(result.trace_len, 3)
-  assert_eq(output_l[0] < 0.6, true)
-  assert_eq(output_r[0] > -0.6, true)
+  assert_eq(approx_eq_engine(output_l[0], 1.0, 0.00001), false)
+  assert_eq(approx_eq_engine(output_r[0], -1.0, 0.00001), false)
   assert_eq(output_l[0] > 0.0, true)
   assert_eq(output_r[0] < 0.0, true)
 }
@@ -137,9 +137,9 @@ test "graph executor mixed effect chain dispatches through modules" {
 test "graph executor reverb path changes mono input when wet mix is enabled" {
   @effects.reset_reverb_state()
   let nodes : Array[ExecNode] = [
-    make_exec_node(effect_type_gain(), true, 1.0, 0.0, 0.0, 0.0),
-    make_exec_node(effect_type_reverb(), false, 1.0, 0.0, 0.0, 0.0),
-    make_exec_node(effect_type_gain(), true, 1.0, 0.0, 0.0, 0.0),
+    make_exec_node(effect_type_gain(), true, 1.0, 0.0, 0.0, 0.0, 0.0),
+    make_exec_node(effect_type_reverb(), false, 1.0, 0.0, 0.0, 0.0, 0.0),
+    make_exec_node(effect_type_gain(), true, 1.0, 0.0, 0.0, 0.0, 0.0),
   ]
   let edges : Array[ExecEdge] = [
     make_exec_edge(0, 1),

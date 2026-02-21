@@ -27,7 +27,7 @@ public:
     bool applyGraphContract (int schemaVersion, int nodeCount, int edgeCount);
     bool applyGraphRuntimeMode (int hasOutputPath, int effectType);
     bool clearRuntimeGraph();
-    bool setRuntimeNode (int index, int effectType, int bypass, float p1, float p2, float p3, float p4);
+    bool setRuntimeNode (int index, int effectType, int bypass, float p1, float p2, float p3, float p4, float p5);
     bool setRuntimeEdge (int index, int fromIndex, int toIndex);
 
 private:

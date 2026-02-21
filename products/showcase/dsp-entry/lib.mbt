@@ -21,6 +21,7 @@ let runtime_node_p1 : Array[Float] = [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.
 let runtime_node_p2 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let runtime_node_p3 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let runtime_node_p4 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_node_p5 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let runtime_edge_from : Array[Int] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 let runtime_edge_to : Array[Int] = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
@@ -45,6 +46,8 @@ fn reset_graph_contract_state() -> Unit {
   runtime_node_p3[1] = 0.0
   runtime_node_p4[0] = 0.0
   runtime_node_p4[1] = 0.0
+  runtime_node_p5[0] = 0.0
+  runtime_node_p5[1] = 0.0
   runtime_edge_from[0] = 0
   runtime_edge_to[0] = 1
 }
@@ -74,6 +77,7 @@ fn build_runtime_nodes() -> Array[@engine.ExecNode] {
         runtime_node_p2[i],
         runtime_node_p3[i],
         runtime_node_p4[i],
+        runtime_node_p5[i],
       ),
     )
   }
@@ -231,6 +235,7 @@ pub fn set_runtime_node(
   p2 : Float,
   p3 : Float,
   p4 : Float,
+  p5 : Float,
 ) -> Int {
   if index < 0 || index >= graph_contract_max_nodes {
     return graph_contract_err_node_limit
@@ -241,6 +246,7 @@ pub fn set_runtime_node(
   runtime_node_p2[index] = p2
   runtime_node_p3[index] = p3
   runtime_node_p4[index] = p4
+  runtime_node_p5[index] = p5
   if index + 1 > runtime_graph_node_count_box[0] {
     runtime_graph_node_count_box[0] = index + 1
   }
@@ -296,6 +302,7 @@ pub fn reset_reverb_state() -> Unit {
 
 pub fn product_reset() -> Unit {
   @effects.reset_chorus_state()
+  @effects.reset_distortion_state()
   @effects.reset_reverb_state()
   reset_graph_contract_state()
 }

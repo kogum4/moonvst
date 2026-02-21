@@ -37,9 +37,11 @@ const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
     { key: 'mix', label: 'Mix', min: 0, max: 100, step: 1, defaultValue: 25, formatValue: formatPercent },
   ],
   distortion: [
-    { key: 'drive', label: 'Drive', min: 0, max: 100, step: 1, defaultValue: 42, formatValue: formatPercent },
-    { key: 'tone', label: 'Tone', min: 0, max: 100, step: 1, defaultValue: 58, formatValue: formatPercent },
-    { key: 'mix', label: 'Mix', min: 0, max: 100, step: 1, defaultValue: 35, formatValue: formatPercent },
+    { key: 'drive', label: 'Drive', min: 0, max: 100, step: 1, defaultValue: 60, formatValue: formatPercent },
+    { key: 'warmth', label: 'Warmth', min: 0, max: 100, step: 1, defaultValue: 50, formatValue: formatPercent },
+    { key: 'aura', label: 'Aura', min: 0, max: 100, step: 1, defaultValue: 50, formatValue: formatPercent },
+    { key: 'output', label: 'Output', min: 0, max: 100, step: 1, defaultValue: 100, formatValue: formatPercent },
+    { key: 'mix', label: 'Dry/Wet', min: 0, max: 100, step: 1, defaultValue: 100, formatValue: formatPercent },
   ],
   eq: [
     { key: 'low', label: 'Low', min: -12, max: 12, step: 0.1, defaultValue: 1.8, formatValue: formatDb },

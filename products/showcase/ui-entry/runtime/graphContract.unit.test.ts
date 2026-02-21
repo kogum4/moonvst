@@ -47,6 +47,9 @@ describe('showcase graph contract payload', () => {
     state = graphReducer(state, { type: 'connect', fromNodeId: 'input', toNodeId: 'fx-dist' })
     state = graphReducer(state, { type: 'connect', fromNodeId: 'fx-dist', toNodeId: 'output' })
     state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-dist', key: 'drive', value: 100 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-dist', key: 'warmth', value: 50 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-dist', key: 'aura', value: 75 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-dist', key: 'output', value: 80 })
     state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-dist', key: 'mix', value: 50 })
     state = graphReducer(state, { type: 'toggleNodeBypass', nodeId: 'fx-dist' })
 
@@ -59,8 +62,9 @@ describe('showcase graph contract payload', () => {
       bypass: true,
       p1: 1,
       p2: 0.5,
-      p3: 0,
-      p4: 0,
+      p3: 0.75,
+      p4: 0.8,
+      p5: 0.5,
     })
     expect(runtime.edges).toHaveLength(2)
   })

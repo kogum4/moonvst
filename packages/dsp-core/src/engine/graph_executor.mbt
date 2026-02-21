@@ -16,6 +16,7 @@ pub struct ExecNode {
   p2 : Float
   p3 : Float
   p4 : Float
+  p5 : Float
 }
 
 pub fn make_exec_edge(from : Int, to : Int) -> ExecEdge {
@@ -29,8 +30,9 @@ pub fn make_exec_node(
   p2 : Float,
   p3 : Float,
   p4 : Float,
+  p5 : Float,
 ) -> ExecNode {
-  { effect_type, bypass, p1, p2, p3, p4 }
+  { effect_type, bypass, p1, p2, p3, p4, p5 }
 }
 
 pub fn effect_type_gain() -> Int { 0 }
@@ -205,7 +207,7 @@ fn execute_node_effect(
     effect_state_r[node_index] = next_r
     (out_l, out_r)
   } else if kind == effect_type_distortion() {
-    @effects.distortion_process(node_in_l, node_in_r, node.p1, node.p2)
+    @effects.distortion_process(node_index, node_in_l, node_in_r, node.p1, node.p2, node.p3, node.p4, node.p5)
   } else if kind == effect_type_eq() {
     @effects.eq_process(node_in_l, node_in_r, node.p1, node.p2)
   } else if kind == effect_type_filter() {

@@ -141,7 +141,7 @@ describe('createWebRuntime', () => {
         graphSchemaVersion: 1,
         nodes: [
           { id: 'input', kind: 'input', x: 0, y: 0, bypass: false, params: {} },
-          { id: 'fx', kind: 'distortion', x: 0, y: 0, bypass: false, params: { drive: 100, mix: 50 } },
+          { id: 'fx', kind: 'distortion', x: 0, y: 0, bypass: false, params: { drive: 100, warmth: 50, aura: 75, output: 80, mix: 50 } },
           { id: 'output', kind: 'output', x: 0, y: 0, bypass: false, params: {} },
         ],
         edges: [
@@ -162,13 +162,13 @@ describe('createWebRuntime', () => {
       }),
     )
     const runtimeGraphMessage = vi.mocked(latestWorkletNode!.port.postMessage).mock.calls[1]?.[0] as {
-      nodes: Array<{ effectType: number; bypass: number; p1: number; p2: number }>
+      nodes: Array<{ effectType: number; bypass: number; p1: number; p2: number; p3: number; p4: number; p5: number }>
       edges: Array<{ fromIndex: number; toIndex: number }>
     }
     expect(runtimeGraphMessage.nodes).toHaveLength(3)
     expect(runtimeGraphMessage.nodes).toEqual(
       expect.arrayContaining([
-        { effectType: 4, bypass: 0, p1: 1, p2: 0.5, p3: 0, p4: 0 },
+        { effectType: 4, bypass: 0, p1: 1, p2: 0.5, p3: 0.75, p4: 0.8, p5: 0.5 },
       ]),
     )
     expect(runtimeGraphMessage.edges).toHaveLength(2)
