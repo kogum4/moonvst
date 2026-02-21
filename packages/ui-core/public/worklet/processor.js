@@ -11,6 +11,8 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
     this.levelPeak = 0
     this.levelSampleCounter = 0
     this.levelEmitIntervalSamples = Math.max(1, Math.floor(sampleRate * 0.05))
+    this.pendingGraphContract = null
+    this.pendingGraphRuntime = null
 
     // Memory offsets (must match packages/dsp-core/src/utils/constants.mbt)
     this.INPUT_LEFT_OFFSET = 0x10000
@@ -29,6 +31,12 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
         this.wasmInstance = instance
         this.wasmMemory = instance.exports.memory
         instance.exports.dsp_init()
+        if (this.pendingGraphContract) {
+          this.applyGraphContract(this.pendingGraphContract)
+        }
+        if (this.pendingGraphRuntime) {
+          this.applyGraphRuntime(this.pendingGraphRuntime)
+        }
         this.ready = true
         this.port.postMessage({ type: 'ready' })
       } catch (err) {
@@ -36,7 +44,45 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
       }
     } else if (data.type === 'setParam' && this.wasmInstance) {
       this.wasmInstance.exports.set_param(data.index, data.value)
+    } else if (data.type === 'applyGraphContract') {
+      this.pendingGraphContract = {
+        schemaVersion: data.schemaVersion,
+        nodeCount: data.nodeCount,
+        edgeCount: data.edgeCount,
+      }
+      this.applyGraphContract(this.pendingGraphContract)
+    } else if (data.type === 'applyGraphRuntime') {
+      this.pendingGraphRuntime = {
+        hasOutputPath: data.hasOutputPath,
+        effectType: data.effectType,
+      }
+      this.applyGraphRuntime(this.pendingGraphRuntime)
     }
+  }
+
+  applyGraphContract(contract) {
+    if (!this.wasmInstance || typeof this.wasmInstance.exports.apply_graph_contract !== 'function') {
+      return
+    }
+    const schemaVersion = Number(contract?.schemaVersion ?? 0)
+    const nodeCount = Number(contract?.nodeCount ?? 0)
+    const edgeCount = Number(contract?.edgeCount ?? 0)
+    if (!Number.isInteger(schemaVersion) || !Number.isInteger(nodeCount) || !Number.isInteger(edgeCount)) {
+      return
+    }
+    this.wasmInstance.exports.apply_graph_contract(schemaVersion, nodeCount, edgeCount)
+  }
+
+  applyGraphRuntime(runtimeMode) {
+    if (!this.wasmInstance || typeof this.wasmInstance.exports.apply_graph_runtime_mode !== 'function') {
+      return
+    }
+    const hasOutputPath = Number(runtimeMode?.hasOutputPath ?? 0)
+    const effectType = Number(runtimeMode?.effectType ?? 0)
+    if (!Number.isInteger(hasOutputPath) || !Number.isInteger(effectType)) {
+      return
+    }
+    this.wasmInstance.exports.apply_graph_runtime_mode(hasOutputPath, effectType)
   }
 
   process(inputs, outputs) {

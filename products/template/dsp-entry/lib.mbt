@@ -12,3 +12,11 @@
 pub fn product_reset() -> Unit {
   ()
 }
+
+pub fn apply_graph_contract(_schema_version : Int, _node_count : Int, _edge_count : Int) -> Int {
+  0
+}
+
+pub fn apply_graph_runtime_mode(_has_output_path : Int, _effect_type : Int) -> Int {
+  0
+}

@@ -1,9 +1,15 @@
 #include "PluginEditor.h"
 #include "UIBinaryData.h"
 #include <cstring>
+#include <map>
+#include <queue>
+#include <set>
+#include <vector>
 
 namespace
 {
+constexpr const char* graphContractEventId = "moonvst:showcase:graph-payload";
+
 juce::String normaliseResourcePath (juce::String path)
 {
     path = path.replaceCharacter ('\\', '/').trim();
@@ -34,6 +40,114 @@ juce::String getMimeTypeForPath (const juce::String& path)
     if (ext == "woff2")                  return "font/woff2";
     if (ext == "txt")                    return "text/plain";
     return "application/octet-stream";
+}
+
+struct GraphContractSnapshot
+{
+    int schemaVersion = 0;
+    int nodeCount = 0;
+    int edgeCount = 0;
+    int hasOutputPath = 0;
+    int effectType = 0;
+};
+
+int effectTypeFromKind (const juce::String& kind)
+{
+    if (kind == "chorus") return 1;
+    if (kind == "compressor") return 2;
+    if (kind == "delay") return 3;
+    if (kind == "distortion") return 4;
+    if (kind == "eq") return 5;
+    if (kind == "filter") return 6;
+    if (kind == "reverb") return 7;
+    return 0;
+}
+
+bool parseGraphContractSnapshot (const juce::String& payload, GraphContractSnapshot& out)
+{
+    juce::var parsed;
+    const auto parseResult = juce::JSON::parse (payload, parsed);
+    if (parseResult.failed())
+        return false;
+
+    auto* root = parsed.getDynamicObject();
+    if (root == nullptr)
+        return false;
+
+    const auto schemaVar = root->getProperty ("graphSchemaVersion");
+    const auto nodesVar = root->getProperty ("nodes");
+    const auto edgesVar = root->getProperty ("edges");
+    auto* nodes = nodesVar.getArray();
+    auto* edges = edgesVar.getArray();
+    if (nodes == nullptr || edges == nullptr)
+        return false;
+
+    out.schemaVersion = (int) schemaVar;
+    out.nodeCount = (int) nodes->size();
+    out.edgeCount = (int) edges->size();
+    if (out.schemaVersion <= 0)
+        return false;
+
+    std::map<juce::String, juce::String> nodeKinds;
+    for (const auto& node : *nodes)
+    {
+        if (auto* nodeObject = node.getDynamicObject())
+        {
+            const auto id = nodeObject->getProperty ("id").toString();
+            const auto kind = nodeObject->getProperty ("kind").toString();
+            if (id.isNotEmpty())
+                nodeKinds[id] = kind;
+        }
+    }
+
+    std::map<juce::String, std::vector<juce::String>> adjacency;
+    for (const auto& edge : *edges)
+    {
+        if (auto* edgeObject = edge.getDynamicObject())
+        {
+            const auto fromId = edgeObject->getProperty ("fromNodeId").toString();
+            const auto toId = edgeObject->getProperty ("toNodeId").toString();
+            if (fromId.isNotEmpty() && toId.isNotEmpty())
+                adjacency[fromId].push_back (toId);
+        }
+    }
+
+    std::set<juce::String> visited;
+    std::queue<std::pair<juce::String, int>> bfs;
+    bfs.push ({ "input", 0 });
+    while (! bfs.empty())
+    {
+        const auto current = bfs.front();
+        bfs.pop();
+        const auto key = current.first + ":" + juce::String (current.second);
+        if (visited.count (key) > 0)
+            continue;
+        visited.insert (key);
+        if (current.first == "output")
+        {
+            out.hasOutputPath = 1;
+            out.effectType = current.second;
+            break;
+        }
+
+        const auto it = adjacency.find (current.first);
+        if (it == adjacency.end())
+            continue;
+
+        for (const auto& nextId : it->second)
+        {
+            int nextEffect = current.second;
+            if (nextEffect == 0)
+            {
+                const auto kindIt = nodeKinds.find (nextId);
+                if (kindIt != nodeKinds.end())
+                    nextEffect = effectTypeFromKind (kindIt->second);
+            }
+            bfs.push ({ nextId, nextEffect });
+        }
+    }
+
+    return true;
 }
 }
 
@@ -70,6 +184,23 @@ bool PluginEditor::setupWebView()
         .withBackend (juce::WebBrowserComponent::Options::Backend::webview2)
         .withWinWebView2Options (webView2Options)
         .withNativeIntegrationEnabled()
+        .withEventListener (graphContractEventId, [this] (juce::var event)
+        {
+            auto* eventObject = event.getDynamicObject();
+            if (eventObject == nullptr)
+                return;
+
+            const auto payloadVar = eventObject->getProperty ("payload");
+            if (! payloadVar.isString())
+                return;
+
+            GraphContractSnapshot snapshot;
+            if (! parseGraphContractSnapshot (payloadVar.toString(), snapshot))
+                return;
+
+            processorRef.queueGraphContractApply (snapshot.schemaVersion, snapshot.nodeCount, snapshot.edgeCount);
+            processorRef.queueGraphRuntimeModeApply (snapshot.hasOutputPath, snapshot.effectType);
+        })
         .withResourceProvider ([this] (const auto& url)
         {
             return getUIResource (url);

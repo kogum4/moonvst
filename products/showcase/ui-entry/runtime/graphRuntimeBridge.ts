@@ -20,6 +20,11 @@ const asJuceEventBridge = (candidate: unknown): JuceEventBridge | null => {
 }
 
 export function emitGraphPayloadToRuntime(runtime: AudioRuntime | null, payload: string): void {
+  if (runtime && typeof runtime.applyGraphPayload === 'function') {
+    runtime.applyGraphPayload(payload)
+    return
+  }
+
   if (runtime?.type !== 'juce') {
     return
   }

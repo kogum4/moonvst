@@ -8,8 +8,11 @@ class MockAudioWorkletNode {
 
   constructor() {
     this.port = { postMessage: vi.fn(), onmessage: null }
+    latestWorkletNode = this
   }
 }
+
+let latestWorkletNode: MockAudioWorkletNode | null = null
 
 describe('createWebRuntime', () => {
   const originalFetch = globalThis.fetch
@@ -21,6 +24,7 @@ describe('createWebRuntime', () => {
   let lastAudioContextOptions: AudioContextOptions | undefined
 
   beforeEach(() => {
+    latestWorkletNode = null
     const memory = new WebAssembly.Memory({ initial: 1 })
     const encoder = new TextEncoder()
     const nameBytes = encoder.encode('gain')
@@ -127,6 +131,29 @@ describe('createWebRuntime', () => {
     runtime.stopMic()
     expect(runtime.getInputMode()).toBe('none')
     expect(runtime.getMicState()).toBe('inactive')
+  })
+
+  test('applies graph payload by posting contract shape to worklet', async () => {
+    const runtime = await createWebRuntime()
+    runtime.applyGraphPayload?.(
+      JSON.stringify({
+        graphSchemaVersion: 1,
+        nodes: [{ id: 'input' }, { id: 'output' }],
+        edges: [{ fromNodeId: 'input', toNodeId: 'output' }],
+      }),
+    )
+
+    expect(latestWorkletNode?.port.postMessage).toHaveBeenCalledWith({
+      type: 'applyGraphContract',
+      schemaVersion: 1,
+      nodeCount: 2,
+      edgeCount: 1,
+    })
+    expect(latestWorkletNode?.port.postMessage).toHaveBeenCalledWith({
+      type: 'applyGraphRuntime',
+      hasOutputPath: 1,
+      effectType: 0,
+    })
   })
 })
 

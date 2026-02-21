@@ -212,6 +212,8 @@ bool WasmDSP::lookupFunctions()
     fn_get_param_max_      = wasm_runtime_lookup_function (moduleInst_, "get_param_max");
     fn_set_param_          = wasm_runtime_lookup_function (moduleInst_, "set_param");
     fn_get_param_          = wasm_runtime_lookup_function (moduleInst_, "get_param");
+    fn_apply_graph_contract_ = wasm_runtime_lookup_function (moduleInst_, "apply_graph_contract");
+    fn_apply_graph_runtime_mode_ = wasm_runtime_lookup_function (moduleInst_, "apply_graph_runtime_mode");
 
     // process_block and get_param_count are required at minimum
     return fn_process_block_ != nullptr && fn_get_param_count_ != nullptr;
@@ -397,6 +399,42 @@ float WasmDSP::getParam (int index)
     if (callF32 (execEnv_, fn_get_param_, args, 1, result))
         return result;
     return 0.0f;
+}
+
+bool WasmDSP::applyGraphContract (int schemaVersion, int nodeCount, int edgeCount)
+{
+    if (fn_apply_graph_contract_ == nullptr)
+        return false;
+    if (! ensureThreadEnv())
+        return false;
+
+    wasm_val_t args[3];
+    args[0].kind = WASM_I32;
+    args[0].of.i32 = schemaVersion;
+    args[1].kind = WASM_I32;
+    args[1].of.i32 = nodeCount;
+    args[2].kind = WASM_I32;
+    args[2].of.i32 = edgeCount;
+
+    int32_t applyError = 0;
+    return callI32 (execEnv_, fn_apply_graph_contract_, args, 3, applyError);
+}
+
+bool WasmDSP::applyGraphRuntimeMode (int hasOutputPath, int effectType)
+{
+    if (fn_apply_graph_runtime_mode_ == nullptr)
+        return false;
+    if (! ensureThreadEnv())
+        return false;
+
+    wasm_val_t args[2];
+    args[0].kind = WASM_I32;
+    args[0].of.i32 = hasOutputPath;
+    args[1].kind = WASM_I32;
+    args[1].of.i32 = effectType;
+
+    int32_t applyError = 0;
+    return callI32 (execEnv_, fn_apply_graph_runtime_mode_, args, 2, applyError);
 }
 
 #endif

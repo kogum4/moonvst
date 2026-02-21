@@ -193,6 +193,98 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
 
   // Parameter change listeners
   const listeners = new Map<number, Set<(v: number) => void>>()
+  const applyGraphPayload = (payload: string) => {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(payload) as unknown
+    } catch {
+      return
+    }
+
+    if (
+      typeof parsed !== 'object'
+      || parsed === null
+      || !('graphSchemaVersion' in parsed)
+      || !('nodes' in parsed)
+      || !('edges' in parsed)
+    ) {
+      return
+    }
+
+    const schemaVersion = Number((parsed as { graphSchemaVersion: unknown }).graphSchemaVersion)
+    const nodes = (parsed as { nodes: unknown }).nodes
+    const edges = (parsed as { edges: unknown }).edges
+    if (!Number.isInteger(schemaVersion) || !Array.isArray(nodes) || !Array.isArray(edges)) {
+      return
+    }
+
+    const nodeMap = new Map<string, string>()
+    for (const node of nodes) {
+      if (typeof node !== 'object' || node === null) continue
+      const id = (node as { id?: unknown }).id
+      const kind = (node as { kind?: unknown }).kind
+      if (typeof id === 'string' && typeof kind === 'string') {
+        nodeMap.set(id, kind)
+      }
+    }
+    const adjacency = new Map<string, string[]>()
+    for (const edge of edges) {
+      if (typeof edge !== 'object' || edge === null) continue
+      const fromNodeId = (edge as { fromNodeId?: unknown }).fromNodeId
+      const toNodeId = (edge as { toNodeId?: unknown }).toNodeId
+      if (typeof fromNodeId !== 'string' || typeof toNodeId !== 'string') continue
+      const next = adjacency.get(fromNodeId) ?? []
+      next.push(toNodeId)
+      adjacency.set(fromNodeId, next)
+    }
+
+    const effectTypeByKind: Record<string, number> = {
+      chorus: 1,
+      compressor: 2,
+      delay: 3,
+      distortion: 4,
+      eq: 5,
+      filter: 6,
+      reverb: 7,
+    }
+    let hasOutputPath = false
+    let effectType = 0
+    const visited = new Set<string>()
+    const queue: Array<{ nodeId: string; firstEffect: number }> = [{ nodeId: 'input', firstEffect: 0 }]
+
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current) break
+      const visitKey = `${current.nodeId}:${current.firstEffect}`
+      if (visited.has(visitKey)) continue
+      visited.add(visitKey)
+      if (current.nodeId === 'output') {
+        hasOutputPath = true
+        effectType = current.firstEffect
+        break
+      }
+      for (const nextNodeId of adjacency.get(current.nodeId) ?? []) {
+        let nextEffect = current.firstEffect
+        if (nextEffect === 0) {
+          const kind = nodeMap.get(nextNodeId) ?? ''
+          nextEffect = effectTypeByKind[kind] ?? 0
+        }
+        queue.push({ nodeId: nextNodeId, firstEffect: nextEffect })
+      }
+    }
+
+    workletNode.port.postMessage({
+      type: 'applyGraphContract',
+      schemaVersion,
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+    })
+    workletNode.port.postMessage({
+      type: 'applyGraphRuntime',
+      hasOutputPath: hasOutputPath ? 1 : 0,
+      effectType,
+    })
+  }
 
   return {
     type: 'web',
@@ -216,6 +308,10 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
 
     getLevel() {
       return currentLevel
+    },
+
+    applyGraphPayload(payload: string) {
+      applyGraphPayload(payload)
     },
 
     async loadAudioData(bytes: ArrayBuffer, mimeType?: string) {

@@ -39,6 +39,8 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const { return apvts; }
     float getOutputLevel() const { return outputLevel_.load(); }
+    void queueGraphContractApply (int schemaVersion, int nodeCount, int edgeCount);
+    void queueGraphRuntimeModeApply (int hasOutputPath, int effectType);
 
 private:
     WasmDSP wasmDSP_;
@@ -47,6 +49,12 @@ private:
     std::vector<std::string> paramNames_;
     juce::AudioProcessorValueTreeState apvts;
     std::atomic<float> outputLevel_ { 0.0f };
+    std::atomic<int> pendingGraphSchemaVersion_ { 1 };
+    std::atomic<int> pendingGraphNodeCount_ { 2 };
+    std::atomic<int> pendingGraphEdgeCount_ { 1 };
+    std::atomic<int> pendingGraphHasOutputPath_ { 1 };
+    std::atomic<int> pendingGraphEffectType_ { 0 };
+    std::atomic<bool> pendingGraphApply_ { false };
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
