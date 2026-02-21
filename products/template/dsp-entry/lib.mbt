@@ -20,3 +20,23 @@ pub fn apply_graph_contract(_schema_version : Int, _node_count : Int, _edge_coun
 pub fn apply_graph_runtime_mode(_has_output_path : Int, _effect_type : Int) -> Int {
   0
 }
+
+pub fn clear_runtime_graph() -> Unit {
+  ()
+}
+
+pub fn set_runtime_node(
+  _index : Int,
+  _effect_type : Int,
+  _bypass : Int,
+  _p1 : Float,
+  _p2 : Float,
+  _p3 : Float,
+  _p4 : Float,
+) -> Int {
+  0
+}
+
+pub fn set_runtime_edge(_index : Int, _from : Int, _to : Int) -> Int {
+  0
+}

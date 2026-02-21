@@ -1,4 +1,8 @@
 let graph_executor_max_nodes : Int = 16
+let reverb_default_predelay_ms : Float = 20.0
+let reverb_default_decay : Float = 0.78
+let reverb_default_damping : Float = 0.35
+let reverb_default_diffusion : Float = 0.70
 
 pub struct ExecEdge {
   from : Int
@@ -211,10 +215,15 @@ fn execute_node_effect(
     effect_state_r[node_index] = next_r
     (out_l, out_r)
   } else if kind == effect_type_reverb() {
-    let mono = (node_in_l + node_in_r) * 0.5
-    let wet_l = @effects.reverb_mix_dry_wet(node_in_l, mono, node.p1)
-    let wet_r = @effects.reverb_mix_dry_wet(node_in_r, mono, node.p1)
-    (wet_l, wet_r)
+    @effects.process_reverb_sample(
+      node_in_l,
+      node_in_r,
+      reverb_default_predelay_ms,
+      reverb_default_decay,
+      reverb_default_damping,
+      reverb_default_diffusion,
+      node.p1,
+    )
   } else {
     (node_in_l, node_in_r)
   }

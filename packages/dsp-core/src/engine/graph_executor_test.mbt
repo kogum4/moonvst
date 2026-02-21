@@ -133,3 +133,36 @@ test "graph executor mixed effect chain dispatches through modules" {
   assert_eq(output_l[0] > 0.0, true)
   assert_eq(output_r[0] < 0.0, true)
 }
+
+test "graph executor reverb path changes mono input when wet mix is enabled" {
+  @effects.reset_reverb_state()
+  let nodes : Array[ExecNode] = [
+    make_exec_node(effect_type_gain(), true, 1.0, 0.0, 0.0, 0.0),
+    make_exec_node(effect_type_reverb(), false, 1.0, 0.0, 0.0, 0.0),
+    make_exec_node(effect_type_gain(), true, 1.0, 0.0, 0.0, 0.0),
+  ]
+  let edges : Array[ExecEdge] = [
+    make_exec_edge(0, 1),
+    make_exec_edge(1, 2),
+  ]
+  let input_l : Array[Float] = [0.6, 0.6, 0.6, 0.6]
+  let input_r : Array[Float] = [0.6, 0.6, 0.6, 0.6]
+  let output_l : Array[Float] = [0.0, 0.0, 0.0, 0.0]
+  let output_r : Array[Float] = [0.0, 0.0, 0.0, 0.0]
+  let order : Array[Int] = [-1, -1, -1, -1]
+
+  let result = execute_graph_block_fx(
+    nodes,
+    edges,
+    input_l,
+    input_r,
+    output_l,
+    output_r,
+    order,
+  )
+
+  assert_eq(result.valid, true)
+  assert_eq(result.trace_len, 3)
+  assert_eq(approx_eq_engine(output_l[1], 0.6, 0.00001), false)
+  assert_eq(approx_eq_engine(output_r[1], 0.6, 0.00001), false)
+}

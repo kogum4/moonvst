@@ -14,6 +14,8 @@ let reverb_tank_r_ap2_len : Int = 2656
 let reverb_tank_r_d2_len : Int = 3163
 
 let reverb_mem_base_ptr : Int = 0x60000
+let reverb_fallback_state_l_box : Array[Float] = [0.0]
+let reverb_fallback_state_r_box : Array[Float] = [0.0]
 
 priv struct ReverbLayout {
   pre_delay_ptr : Int
@@ -240,6 +242,8 @@ fn has_reverb_memory() -> Bool {
 }
 
 pub fn reset_reverb_state() -> Unit {
+  reverb_fallback_state_l_box[0] = 0.0
+  reverb_fallback_state_r_box[0] = 0.0
   if !has_reverb_memory() {
     return
   }
@@ -275,31 +279,32 @@ pub fn reset_reverb_state() -> Unit {
   @utils.store_f32(layout.state_damping_state_r_ptr, 0.0)
 }
 
-pub fn process_reverb_block(
-  num_samples : Int,
-  gain : Float,
+pub fn process_reverb_sample(
+  dry_l : Float,
+  dry_r : Float,
   pre_delay_ms : Float,
   decay : Float,
   damping : Float,
   diffusion : Float,
   mix : Float,
-) -> Unit {
+) -> (Float, Float) {
+  let mix_amt = reverb_clamp(mix, 0.0, 1.0)
   if !has_reverb_memory() {
-    for i = 0; i < num_samples; i = i + 1 {
-      let offset = i * 4
-      let out_l = @utils.load_f32(@utils.input_left_offset + offset) * gain
-      let out_r = @utils.load_f32(@utils.input_right_offset + offset) * gain
-      @utils.store_f32(@utils.output_left_offset + offset, out_l)
-      @utils.store_f32(@utils.output_right_offset + offset, out_r)
-    }
-    return
+    let feedback : Float = 0.72
+    let wet_l = dry_l + reverb_fallback_state_l_box[0] * feedback
+    let wet_r = dry_r + reverb_fallback_state_r_box[0] * feedback
+    reverb_fallback_state_l_box[0] = wet_l
+    reverb_fallback_state_r_box[0] = wet_r
+    return (
+      reverb_mix_dry_wet(dry_l, wet_l, mix_amt),
+      reverb_mix_dry_wet(dry_r, wet_r, mix_amt),
+    )
   }
 
   let pre_delay_samples = reverb_predelay_ms_to_samples(pre_delay_ms)
   let decay_amt = reverb_clamp(decay, 0.0, 0.98)
   let damping_amt = reverb_clamp(damping, 0.0, 0.95)
   let diffusion_amt = reverb_clamp(diffusion, 0.0, 0.95)
-  let mix_amt = reverb_clamp(mix, 0.0, 1.0)
   let tank_ap_gain : Float = 0.2 + diffusion_amt * 0.6
   let tank_ap2_gain : Float = 0.1 + diffusion_amt * 0.5
   let damp_in : Float = 1.0 - damping_amt
@@ -322,60 +327,48 @@ pub fn process_reverb_block(
   let mut damping_state_l : Float = @utils.load_f32(layout.state_damping_state_l_ptr)
   let mut damping_state_r : Float = @utils.load_f32(layout.state_damping_state_r_ptr)
 
-  for i = 0; i < num_samples; i = i + 1 {
-    let offset = i * 4
-    let dry_l = @utils.load_f32(@utils.input_left_offset + offset) * gain
-    let dry_r = @utils.load_f32(@utils.input_right_offset + offset) * gain
-    let mono = (dry_l + dry_r) * 0.5
-
-    let mut pre_read_idx = pre_delay_idx - pre_delay_samples
-    if pre_read_idx < 0 {
-      pre_read_idx = pre_read_idx + reverb_pre_delay_len
-    }
-    let pre_delayed = reverb_read_line(layout.pre_delay_ptr, pre_read_idx)
-    reverb_write_line(layout.pre_delay_ptr, pre_delay_idx, mono)
-    pre_delay_idx = reverb_next_index(pre_delay_idx, reverb_pre_delay_len)
-
-    let diff1 = reverb_allpass_process(layout.in_ap1_ptr, in_ap1_idx, pre_delayed, diffusion_amt)
-    in_ap1_idx = reverb_next_index(in_ap1_idx, reverb_in_ap1_len)
-    let diff2 = reverb_allpass_process(layout.in_ap2_ptr, in_ap2_idx, diff1, diffusion_amt)
-    in_ap2_idx = reverb_next_index(in_ap2_idx, reverb_in_ap2_len)
-
-    let tank_in_l = diff2 + tank_feedback_r * decay_amt
-    let tank_in_r = diff2 + tank_feedback_l * decay_amt
-
-    let l_ap1_out = reverb_allpass_process(layout.tank_l_ap1_ptr, tank_l_ap1_idx, tank_in_l, tank_ap_gain)
-    tank_l_ap1_idx = reverb_next_index(tank_l_ap1_idx, reverb_tank_l_ap1_len)
-    let l_d1_out = reverb_delay_process(layout.tank_l_d1_ptr, tank_l_d1_idx, l_ap1_out)
-    tank_l_d1_idx = reverb_next_index(tank_l_d1_idx, reverb_tank_l_d1_len)
-    damping_state_l = damping_state_l * damping_amt + l_d1_out * damp_in
-    let l_ap2_out = reverb_allpass_process(layout.tank_l_ap2_ptr, tank_l_ap2_idx, damping_state_l, tank_ap2_gain)
-    tank_l_ap2_idx = reverb_next_index(tank_l_ap2_idx, reverb_tank_l_ap2_len)
-    let l_d2_out = reverb_delay_process(layout.tank_l_d2_ptr, tank_l_d2_idx, l_ap2_out)
-    tank_l_d2_idx = reverb_next_index(tank_l_d2_idx, reverb_tank_l_d2_len)
-
-    let r_ap1_out = reverb_allpass_process(layout.tank_r_ap1_ptr, tank_r_ap1_idx, tank_in_r, tank_ap_gain)
-    tank_r_ap1_idx = reverb_next_index(tank_r_ap1_idx, reverb_tank_r_ap1_len)
-    let r_d1_out = reverb_delay_process(layout.tank_r_d1_ptr, tank_r_d1_idx, r_ap1_out)
-    tank_r_d1_idx = reverb_next_index(tank_r_d1_idx, reverb_tank_r_d1_len)
-    damping_state_r = damping_state_r * damping_amt + r_d1_out * damp_in
-    let r_ap2_out = reverb_allpass_process(layout.tank_r_ap2_ptr, tank_r_ap2_idx, damping_state_r, tank_ap2_gain)
-    tank_r_ap2_idx = reverb_next_index(tank_r_ap2_idx, reverb_tank_r_ap2_len)
-    let r_d2_out = reverb_delay_process(layout.tank_r_d2_ptr, tank_r_d2_idx, r_ap2_out)
-    tank_r_d2_idx = reverb_next_index(tank_r_d2_idx, reverb_tank_r_d2_len)
-
-    tank_feedback_l = l_d2_out
-    tank_feedback_r = r_d2_out
-
-    let wet_l = l_d2_out * 0.6 + r_ap2_out * 0.4
-    let wet_r = r_d2_out * 0.6 + l_ap2_out * 0.4
-
-    let out_l = reverb_mix_dry_wet(dry_l, wet_l, mix_amt)
-    let out_r = reverb_mix_dry_wet(dry_r, wet_r, mix_amt)
-
-    @utils.store_f32(@utils.output_left_offset + offset, out_l)
-    @utils.store_f32(@utils.output_right_offset + offset, out_r)
+  let mono = (dry_l + dry_r) * 0.5
+  let mut pre_read_idx = pre_delay_idx - pre_delay_samples
+  if pre_read_idx < 0 {
+    pre_read_idx = pre_read_idx + reverb_pre_delay_len
   }
+  let pre_delayed = reverb_read_line(layout.pre_delay_ptr, pre_read_idx)
+  reverb_write_line(layout.pre_delay_ptr, pre_delay_idx, mono)
+  pre_delay_idx = reverb_next_index(pre_delay_idx, reverb_pre_delay_len)
+
+  let diff1 = reverb_allpass_process(layout.in_ap1_ptr, in_ap1_idx, pre_delayed, diffusion_amt)
+  in_ap1_idx = reverb_next_index(in_ap1_idx, reverb_in_ap1_len)
+  let diff2 = reverb_allpass_process(layout.in_ap2_ptr, in_ap2_idx, diff1, diffusion_amt)
+  in_ap2_idx = reverb_next_index(in_ap2_idx, reverb_in_ap2_len)
+
+  let tank_in_l = diff2 + tank_feedback_r * decay_amt
+  let tank_in_r = diff2 + tank_feedback_l * decay_amt
+
+  let l_ap1_out = reverb_allpass_process(layout.tank_l_ap1_ptr, tank_l_ap1_idx, tank_in_l, tank_ap_gain)
+  tank_l_ap1_idx = reverb_next_index(tank_l_ap1_idx, reverb_tank_l_ap1_len)
+  let l_d1_out = reverb_delay_process(layout.tank_l_d1_ptr, tank_l_d1_idx, l_ap1_out)
+  tank_l_d1_idx = reverb_next_index(tank_l_d1_idx, reverb_tank_l_d1_len)
+  damping_state_l = damping_state_l * damping_amt + l_d1_out * damp_in
+  let l_ap2_out = reverb_allpass_process(layout.tank_l_ap2_ptr, tank_l_ap2_idx, damping_state_l, tank_ap2_gain)
+  tank_l_ap2_idx = reverb_next_index(tank_l_ap2_idx, reverb_tank_l_ap2_len)
+  let l_d2_out = reverb_delay_process(layout.tank_l_d2_ptr, tank_l_d2_idx, l_ap2_out)
+  tank_l_d2_idx = reverb_next_index(tank_l_d2_idx, reverb_tank_l_d2_len)
+
+  let r_ap1_out = reverb_allpass_process(layout.tank_r_ap1_ptr, tank_r_ap1_idx, tank_in_r, tank_ap_gain)
+  tank_r_ap1_idx = reverb_next_index(tank_r_ap1_idx, reverb_tank_r_ap1_len)
+  let r_d1_out = reverb_delay_process(layout.tank_r_d1_ptr, tank_r_d1_idx, r_ap1_out)
+  tank_r_d1_idx = reverb_next_index(tank_r_d1_idx, reverb_tank_r_d1_len)
+  damping_state_r = damping_state_r * damping_amt + r_d1_out * damp_in
+  let r_ap2_out = reverb_allpass_process(layout.tank_r_ap2_ptr, tank_r_ap2_idx, damping_state_r, tank_ap2_gain)
+  tank_r_ap2_idx = reverb_next_index(tank_r_ap2_idx, reverb_tank_r_ap2_len)
+  let r_d2_out = reverb_delay_process(layout.tank_r_d2_ptr, tank_r_d2_idx, r_ap2_out)
+  tank_r_d2_idx = reverb_next_index(tank_r_d2_idx, reverb_tank_r_d2_len)
+
+  tank_feedback_l = l_d2_out
+  tank_feedback_r = r_d2_out
+
+  let wet_l = l_d2_out * 0.6 + r_ap2_out * 0.4
+  let wet_r = r_d2_out * 0.6 + l_ap2_out * 0.4
 
   @utils.store_i32(layout.state_pre_delay_idx_ptr, pre_delay_idx)
   @utils.store_i32(layout.state_in_ap1_idx_ptr, in_ap1_idx)
@@ -388,9 +381,51 @@ pub fn process_reverb_block(
   @utils.store_i32(layout.state_tank_r_d1_idx_ptr, tank_r_d1_idx)
   @utils.store_i32(layout.state_tank_r_ap2_idx_ptr, tank_r_ap2_idx)
   @utils.store_i32(layout.state_tank_r_d2_idx_ptr, tank_r_d2_idx)
-
   @utils.store_f32(layout.state_tank_feedback_l_ptr, tank_feedback_l)
   @utils.store_f32(layout.state_tank_feedback_r_ptr, tank_feedback_r)
   @utils.store_f32(layout.state_damping_state_l_ptr, damping_state_l)
   @utils.store_f32(layout.state_damping_state_r_ptr, damping_state_r)
+
+  (
+    reverb_mix_dry_wet(dry_l, wet_l, mix_amt),
+    reverb_mix_dry_wet(dry_r, wet_r, mix_amt),
+  )
+}
+
+pub fn process_reverb_block(
+  num_samples : Int,
+  gain : Float,
+  pre_delay_ms : Float,
+  decay : Float,
+  damping : Float,
+  diffusion : Float,
+  mix : Float,
+) -> Unit {
+  if !has_reverb_memory() {
+    for i = 0; i < num_samples; i = i + 1 {
+      let offset = i * 4
+      let out_l = @utils.load_f32(@utils.input_left_offset + offset) * gain
+      let out_r = @utils.load_f32(@utils.input_right_offset + offset) * gain
+      @utils.store_f32(@utils.output_left_offset + offset, out_l)
+      @utils.store_f32(@utils.output_right_offset + offset, out_r)
+    }
+    return
+  }
+
+  for i = 0; i < num_samples; i = i + 1 {
+    let offset = i * 4
+    let dry_l = @utils.load_f32(@utils.input_left_offset + offset) * gain
+    let dry_r = @utils.load_f32(@utils.input_right_offset + offset) * gain
+    let (out_l, out_r) = process_reverb_sample(
+      dry_l,
+      dry_r,
+      pre_delay_ms,
+      decay,
+      damping,
+      diffusion,
+      mix,
+    )
+    @utils.store_f32(@utils.output_left_offset + offset, out_l)
+    @utils.store_f32(@utils.output_right_offset + offset, out_r)
+  }
 }
