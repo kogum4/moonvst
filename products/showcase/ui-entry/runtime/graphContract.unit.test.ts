@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { createDefaultGraphState, graphReducer } from '../state/graphReducer'
 import {
+  compileRuntimeGraphPayload,
   GRAPH_CONTRACT_SCHEMA_VERSION,
   deserializeGraphPayload,
   serializeGraphPayload,
@@ -37,5 +38,40 @@ describe('showcase graph contract payload', () => {
       edges: [],
     })
     expect(() => deserializeGraphPayload(unsupported)).toThrow('ERR_UNSUPPORTED_SCHEMA_VERSION')
+  })
+
+  test('compiles runtime payload with effect params and bypass', () => {
+    let state = createDefaultGraphState()
+    state = graphReducer(state, { type: 'addNode', kind: 'distortion', x: 240, y: 180, id: 'fx-dist' })
+    state = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'input', toNodeId: 'fx-dist' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'fx-dist', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-dist', key: 'drive', value: 100 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-dist', key: 'mix', value: 50 })
+    state = graphReducer(state, { type: 'toggleNodeBypass', nodeId: 'fx-dist' })
+
+    const runtime = compileRuntimeGraphPayload(serializeGraphPayload(state))
+    expect(runtime.hasOutputPath).toBe(true)
+    expect(runtime.nodes).toHaveLength(3)
+    const distortionNode = runtime.nodes.find((node) => node.effectType === 4)
+    expect(distortionNode).toEqual({
+      effectType: 4,
+      bypass: true,
+      p1: 1,
+      p2: 0.5,
+      p3: 0,
+      p4: 0,
+    })
+    expect(runtime.edges).toHaveLength(2)
+  })
+
+  test('keeps runtime graph shape when no input-output path exists', () => {
+    const state = createDefaultGraphState()
+    const disconnected = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })
+    const runtime = compileRuntimeGraphPayload(serializeGraphPayload(disconnected))
+
+    expect(runtime.hasOutputPath).toBe(false)
+    expect(runtime.nodes).toHaveLength(2)
+    expect(runtime.edges).toHaveLength(0)
   })
 })

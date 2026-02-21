@@ -5,10 +5,35 @@
 #include <vector>
 #include <string>
 #include <atomic>
+#include <mutex>
 
 class PluginProcessor : public juce::AudioProcessor
 {
 public:
+    struct RuntimeGraphNode
+    {
+        int effectType = 0;
+        int bypass = 0;
+        float p1 = 0.0f;
+        float p2 = 0.0f;
+        float p3 = 0.0f;
+        float p4 = 0.0f;
+    };
+
+    struct RuntimeGraphEdge
+    {
+        int fromIndex = 0;
+        int toIndex = 0;
+    };
+
+    struct RuntimeGraphConfig
+    {
+        int schemaVersion = 1;
+        int hasOutputPath = 0;
+        std::vector<RuntimeGraphNode> nodes;
+        std::vector<RuntimeGraphEdge> edges;
+    };
+
     PluginProcessor();
     ~PluginProcessor() override;
 
@@ -41,6 +66,7 @@ public:
     float getOutputLevel() const { return outputLevel_.load(); }
     void queueGraphContractApply (int schemaVersion, int nodeCount, int edgeCount);
     void queueGraphRuntimeModeApply (int hasOutputPath, int effectType);
+    void queueRuntimeGraphApply (RuntimeGraphConfig config);
 
 private:
     WasmDSP wasmDSP_;
@@ -55,6 +81,9 @@ private:
     std::atomic<int> pendingGraphHasOutputPath_ { 1 };
     std::atomic<int> pendingGraphEffectType_ { 0 };
     std::atomic<bool> pendingGraphApply_ { false };
+    std::mutex pendingRuntimeGraphMutex_;
+    RuntimeGraphConfig pendingRuntimeGraph_;
+    std::atomic<bool> pendingRuntimeGraphApply_ { false };
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

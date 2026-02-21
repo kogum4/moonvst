@@ -1,4 +1,5 @@
 import type { ParamInfo, WebAudioRuntime } from './types'
+import { compileRuntimeGraphPayload } from '../../../../products/showcase/ui-entry/runtime/graphContract'
 
 interface WasmExports {
   memory: WebAssembly.Memory
@@ -19,10 +20,18 @@ export function resolveRuntimeAssetPath(assetPath: string, baseUrl = import.meta
   return `${normalizedBase}${assetPath.replace(/^\//, '')}`
 }
 
+function withDevCacheBust(url: string): string {
+  if (!import.meta.env.DEV) {
+    return url
+  }
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}t=${Date.now()}`
+}
+
 export async function createWebRuntime(): Promise<WebAudioRuntime> {
   const ctx = new AudioContext({ latencyHint: 'interactive' })
-  const wasmPath = resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm')
-  const workletPath = resolveRuntimeAssetPath('worklet/processor.js')
+  const wasmPath = withDevCacheBust(resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm'))
+  const workletPath = withDevCacheBust(resolveRuntimeAssetPath('worklet/processor.js'))
 
   // Load WASM binary
   const wasmResponse = await fetch(wasmPath)
@@ -194,95 +203,25 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
   // Parameter change listeners
   const listeners = new Map<number, Set<(v: number) => void>>()
   const applyGraphPayload = (payload: string) => {
-    let parsed: unknown
+    let runtimeGraph: ReturnType<typeof compileRuntimeGraphPayload>
     try {
-      parsed = JSON.parse(payload) as unknown
+      runtimeGraph = compileRuntimeGraphPayload(payload)
     } catch {
       return
     }
-
-    if (
-      typeof parsed !== 'object'
-      || parsed === null
-      || !('graphSchemaVersion' in parsed)
-      || !('nodes' in parsed)
-      || !('edges' in parsed)
-    ) {
-      return
-    }
-
-    const schemaVersion = Number((parsed as { graphSchemaVersion: unknown }).graphSchemaVersion)
-    const nodes = (parsed as { nodes: unknown }).nodes
-    const edges = (parsed as { edges: unknown }).edges
-    if (!Number.isInteger(schemaVersion) || !Array.isArray(nodes) || !Array.isArray(edges)) {
-      return
-    }
-
-    const nodeMap = new Map<string, string>()
-    for (const node of nodes) {
-      if (typeof node !== 'object' || node === null) continue
-      const id = (node as { id?: unknown }).id
-      const kind = (node as { kind?: unknown }).kind
-      if (typeof id === 'string' && typeof kind === 'string') {
-        nodeMap.set(id, kind)
-      }
-    }
-    const adjacency = new Map<string, string[]>()
-    for (const edge of edges) {
-      if (typeof edge !== 'object' || edge === null) continue
-      const fromNodeId = (edge as { fromNodeId?: unknown }).fromNodeId
-      const toNodeId = (edge as { toNodeId?: unknown }).toNodeId
-      if (typeof fromNodeId !== 'string' || typeof toNodeId !== 'string') continue
-      const next = adjacency.get(fromNodeId) ?? []
-      next.push(toNodeId)
-      adjacency.set(fromNodeId, next)
-    }
-
-    const effectTypeByKind: Record<string, number> = {
-      chorus: 1,
-      compressor: 2,
-      delay: 3,
-      distortion: 4,
-      eq: 5,
-      filter: 6,
-      reverb: 7,
-    }
-    let hasOutputPath = false
-    let effectType = 0
-    const visited = new Set<string>()
-    const queue: Array<{ nodeId: string; firstEffect: number }> = [{ nodeId: 'input', firstEffect: 0 }]
-
-    while (queue.length > 0) {
-      const current = queue.shift()
-      if (!current) break
-      const visitKey = `${current.nodeId}:${current.firstEffect}`
-      if (visited.has(visitKey)) continue
-      visited.add(visitKey)
-      if (current.nodeId === 'output') {
-        hasOutputPath = true
-        effectType = current.firstEffect
-        break
-      }
-      for (const nextNodeId of adjacency.get(current.nodeId) ?? []) {
-        let nextEffect = current.firstEffect
-        if (nextEffect === 0) {
-          const kind = nodeMap.get(nextNodeId) ?? ''
-          nextEffect = effectTypeByKind[kind] ?? 0
-        }
-        queue.push({ nodeId: nextNodeId, firstEffect: nextEffect })
-      }
-    }
-
     workletNode.port.postMessage({
-      type: 'applyGraphContract',
-      schemaVersion,
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-    })
-    workletNode.port.postMessage({
-      type: 'applyGraphRuntime',
-      hasOutputPath: hasOutputPath ? 1 : 0,
-      effectType,
+      type: 'applyRuntimeGraph',
+      schemaVersion: runtimeGraph.schemaVersion,
+      hasOutputPath: runtimeGraph.hasOutputPath ? 1 : 0,
+      nodes: runtimeGraph.nodes.map((node) => ({
+        effectType: node.effectType,
+        bypass: node.bypass ? 1 : 0,
+        p1: node.p1,
+        p2: node.p2,
+        p3: node.p3,
+        p4: node.p4,
+      })),
+      edges: runtimeGraph.edges,
     })
   }
 

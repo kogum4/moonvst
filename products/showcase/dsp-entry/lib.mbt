@@ -13,6 +13,16 @@ let last_graph_contract_edge_count_box : Array[Int] = [1]
 let graph_runtime_supported_box : Array[Bool] = [true]
 let graph_runtime_has_output_path_box : Array[Bool] = [true]
 let graph_runtime_effect_type_box : Array[Int] = [0]
+let runtime_graph_node_count_box : Array[Int] = [2]
+let runtime_graph_edge_count_box : Array[Int] = [1]
+let runtime_node_effect_types : Array[Int] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+let runtime_node_bypasses : Array[Bool] = [true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+let runtime_node_p1 : Array[Float] = [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_node_p2 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_node_p3 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_node_p4 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_edge_from : Array[Int] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+let runtime_edge_to : Array[Int] = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 fn reset_graph_contract_state() -> Unit {
   last_graph_contract_error_box[0] = graph_contract_err_none
@@ -21,6 +31,22 @@ fn reset_graph_contract_state() -> Unit {
   graph_runtime_supported_box[0] = true
   graph_runtime_has_output_path_box[0] = true
   graph_runtime_effect_type_box[0] = @engine.effect_type_gain()
+  runtime_graph_node_count_box[0] = 2
+  runtime_graph_edge_count_box[0] = 1
+  runtime_node_effect_types[0] = @engine.effect_type_gain()
+  runtime_node_effect_types[1] = @engine.effect_type_gain()
+  runtime_node_bypasses[0] = true
+  runtime_node_bypasses[1] = true
+  runtime_node_p1[0] = 1.0
+  runtime_node_p1[1] = 1.0
+  runtime_node_p2[0] = 0.0
+  runtime_node_p2[1] = 0.0
+  runtime_node_p3[0] = 0.0
+  runtime_node_p3[1] = 0.0
+  runtime_node_p4[0] = 0.0
+  runtime_node_p4[1] = 0.0
+  runtime_edge_from[0] = 0
+  runtime_edge_to[0] = 1
 }
 
 fn validate_graph_contract_payload(schema_version : Int, node_count : Int, edge_count : Int) -> Int {
@@ -36,35 +62,31 @@ fn validate_graph_contract_payload(schema_version : Int, node_count : Int, edge_
   graph_contract_err_none
 }
 
-fn runtime_node_params(node_count : Int, effect_type : Int) -> (Float, Float, Float, Float) {
-  if effect_type == @engine.effect_type_chorus() {
-    (0.8, 0.6, 0.7, 0.0)
-  } else if effect_type == @engine.effect_type_compressor() {
-    (0.35, 4.0, 0.0, 0.0)
-  } else if effect_type == @engine.effect_type_delay() {
-    (0.6, 0.45, 0.0, 0.0)
-  } else if effect_type == @engine.effect_type_distortion() {
-    (0.75, 0.9, 0.0, 0.0)
-  } else if effect_type == @engine.effect_type_eq() {
-    (0.5, 1.4, 0.0, 0.0)
-  } else if effect_type == @engine.effect_type_filter() {
-    (0.25, 0.35, 0.0, 0.0)
-  } else if effect_type == @engine.effect_type_reverb() {
-    (param_values[5], 0.0, 0.0, 0.0)
-  } else {
-    let gain : Float = if node_count <= 2 { 1.0 } else { 0.8 }
-    (gain, 0.0, 0.0, 0.0)
+fn build_runtime_nodes() -> Array[@engine.ExecNode] {
+  let nodes : Array[@engine.ExecNode] = []
+  let count = runtime_graph_node_count_box[0]
+  for i = 0; i < count; i = i + 1 {
+    nodes.push(
+      @engine.make_exec_node(
+        runtime_node_effect_types[i],
+        runtime_node_bypasses[i],
+        runtime_node_p1[i],
+        runtime_node_p2[i],
+        runtime_node_p3[i],
+        runtime_node_p4[i],
+      ),
+    )
   }
+  nodes
 }
 
-fn build_runtime_nodes(node_count : Int) -> Array[@engine.ExecNode] {
-  let effect_type = graph_runtime_effect_type_box[0]
-  let (p1, p2, p3, p4) = runtime_node_params(node_count, effect_type)
-  [@engine.make_exec_node(effect_type, false, p1, p2, p3, p4)]
-}
-
-fn build_runtime_edges(_node_count : Int) -> Array[@engine.ExecEdge] {
-  []
+fn build_runtime_edges() -> Array[@engine.ExecEdge] {
+  let edges : Array[@engine.ExecEdge] = []
+  let count = runtime_graph_edge_count_box[0]
+  for i = 0; i < count; i = i + 1 {
+    edges.push(@engine.make_exec_edge(runtime_edge_from[i], runtime_edge_to[i]))
+  }
+  edges
 }
 
 fn make_order_buffer() -> Array[Int] {
@@ -114,9 +136,13 @@ fn run_applied_graph(
     return
   }
 
-  let node_count = last_graph_contract_node_count_box[0]
-  let nodes = build_runtime_nodes(node_count)
-  let edges = build_runtime_edges(node_count)
+  if runtime_graph_node_count_box[0] <= 0 {
+    copy_dry_to_output(input_l, input_r, output_l, output_r)
+    return
+  }
+
+  let nodes = build_runtime_nodes()
+  let edges = build_runtime_edges()
   let order = make_order_buffer()
   let result = @engine.execute_graph_block_fx(
     nodes,
@@ -179,7 +205,7 @@ pub fn apply_graph_contract(schema_version : Int, node_count : Int, edge_count :
   if error == graph_contract_err_none {
     last_graph_contract_node_count_box[0] = node_count
     last_graph_contract_edge_count_box[0] = edge_count
-    graph_runtime_supported_box[0] = edge_count == node_count - 1
+    graph_runtime_supported_box[0] = true
   } else {
     graph_runtime_supported_box[0] = false
   }
@@ -190,6 +216,47 @@ pub fn apply_graph_runtime_mode(has_output_path : Int, effect_type : Int) -> Int
   graph_runtime_has_output_path_box[0] = has_output_path != 0
   graph_runtime_effect_type_box[0] = if effect_type < 0 { @engine.effect_type_gain() } else { effect_type }
   0
+}
+
+pub fn clear_runtime_graph() -> Unit {
+  runtime_graph_node_count_box[0] = 0
+  runtime_graph_edge_count_box[0] = 0
+}
+
+pub fn set_runtime_node(
+  index : Int,
+  effect_type : Int,
+  bypass : Int,
+  p1 : Float,
+  p2 : Float,
+  p3 : Float,
+  p4 : Float,
+) -> Int {
+  if index < 0 || index >= graph_contract_max_nodes {
+    return graph_contract_err_node_limit
+  }
+  runtime_node_effect_types[index] = effect_type
+  runtime_node_bypasses[index] = bypass != 0
+  runtime_node_p1[index] = p1
+  runtime_node_p2[index] = p2
+  runtime_node_p3[index] = p3
+  runtime_node_p4[index] = p4
+  if index + 1 > runtime_graph_node_count_box[0] {
+    runtime_graph_node_count_box[0] = index + 1
+  }
+  graph_contract_err_none
+}
+
+pub fn set_runtime_edge(index : Int, from : Int, to : Int) -> Int {
+  if index < 0 || index >= graph_contract_max_edges {
+    return graph_contract_err_edge_limit
+  }
+  runtime_edge_from[index] = from
+  runtime_edge_to[index] = to
+  if index + 1 > runtime_graph_edge_count_box[0] {
+    runtime_graph_edge_count_box[0] = index + 1
+  }
+  graph_contract_err_none
 }
 
 fn process_audio(num_samples : Int) -> Unit {

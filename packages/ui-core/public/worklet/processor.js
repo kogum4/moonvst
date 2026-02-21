@@ -13,6 +13,7 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
     this.levelEmitIntervalSamples = Math.max(1, Math.floor(sampleRate * 0.05))
     this.pendingGraphContract = null
     this.pendingGraphRuntime = null
+    this.pendingRuntimeGraph = null
 
     // Memory offsets (must match packages/dsp-core/src/utils/constants.mbt)
     this.INPUT_LEFT_OFFSET = 0x10000
@@ -37,6 +38,9 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
         if (this.pendingGraphRuntime) {
           this.applyGraphRuntime(this.pendingGraphRuntime)
         }
+        if (this.pendingRuntimeGraph) {
+          this.applyRuntimeGraph(this.pendingRuntimeGraph)
+        }
         this.ready = true
         this.port.postMessage({ type: 'ready' })
       } catch (err) {
@@ -57,6 +61,14 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
         effectType: data.effectType,
       }
       this.applyGraphRuntime(this.pendingGraphRuntime)
+    } else if (data.type === 'applyRuntimeGraph') {
+      this.pendingRuntimeGraph = {
+        schemaVersion: data.schemaVersion,
+        hasOutputPath: data.hasOutputPath,
+        nodes: Array.isArray(data.nodes) ? data.nodes : [],
+        edges: Array.isArray(data.edges) ? data.edges : [],
+      }
+      this.applyRuntimeGraph(this.pendingRuntimeGraph)
     }
   }
 
@@ -83,6 +95,84 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
       return
     }
     this.wasmInstance.exports.apply_graph_runtime_mode(hasOutputPath, effectType)
+  }
+
+  applyRuntimeGraph(runtimeGraph) {
+    if (!this.wasmInstance) {
+      return
+    }
+
+    const schemaVersion = Number(runtimeGraph?.schemaVersion ?? 0)
+    const hasOutputPath = Number(runtimeGraph?.hasOutputPath ?? 0)
+    const nodes = Array.isArray(runtimeGraph?.nodes) ? runtimeGraph.nodes : []
+    const edges = Array.isArray(runtimeGraph?.edges) ? runtimeGraph.edges : []
+    if (!Number.isInteger(schemaVersion) || !Number.isInteger(hasOutputPath)) {
+      return
+    }
+
+    const clearFn =
+      this.wasmInstance.exports.runtime_graph_clear
+      ?? this.wasmInstance.exports.clear_runtime_graph
+    const setNodeFn =
+      this.wasmInstance.exports.runtime_graph_set_node
+      ?? this.wasmInstance.exports.set_runtime_node
+    const setEdgeFn =
+      this.wasmInstance.exports.runtime_graph_set_edge
+      ?? this.wasmInstance.exports.set_runtime_edge
+    const hasRuntimeGraphApi =
+      typeof clearFn === 'function'
+      && typeof setNodeFn === 'function'
+      && typeof setEdgeFn === 'function'
+
+    if (hasRuntimeGraphApi) {
+      clearFn()
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i] ?? {}
+        setNodeFn(
+          i,
+          Number(node.effectType ?? 0),
+          Number(node.bypass ?? 0),
+          Number(node.p1 ?? 0),
+          Number(node.p2 ?? 0),
+          Number(node.p3 ?? 0),
+          Number(node.p4 ?? 0),
+        )
+      }
+      for (let i = 0; i < edges.length; i++) {
+        const edge = edges[i] ?? {}
+        setEdgeFn(
+          i,
+          Number(edge.fromIndex ?? -1),
+          Number(edge.toIndex ?? -1),
+        )
+      }
+    } else {
+      // Backward-compat fallback: select first effect node when runtime graph API is unavailable.
+      let fallbackEffectType = 0
+      for (let i = 0; i < nodes.length; i++) {
+        const effectType = Number(nodes[i]?.effectType ?? 0)
+        if (Number.isInteger(effectType) && effectType > 0) {
+          fallbackEffectType = effectType
+          break
+        }
+      }
+      this.applyGraphRuntime({
+        hasOutputPath,
+        effectType: fallbackEffectType,
+      })
+    }
+
+    this.applyGraphContract({
+      schemaVersion,
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+    })
+    if (hasRuntimeGraphApi) {
+      this.applyGraphRuntime({
+        hasOutputPath,
+        effectType: 0,
+      })
+    }
   }
 
   process(inputs, outputs) {

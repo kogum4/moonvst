@@ -42,32 +42,43 @@ test "graph contract apply stores validated payload shape" {
   assert_eq(@src.get_last_graph_contract_edge_count(), 3)
 }
 
-test "process audio output reflects applied graph contract shape" {
+test "process audio output reflects runtime graph state changes" {
   product_reset()
-  let err_a = @src.apply_graph_contract(@src.graph_contract_schema_version(), 2, 1)
+  @src.clear_runtime_graph()
+  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_gain(), 0, 0.8, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_edge(0, 0, 1), 0)
+  assert_eq(@src.set_runtime_edge(1, 1, 2), 0)
+  let err_a = @src.apply_graph_contract(@src.graph_contract_schema_version(), 3, 2)
   assert_eq(err_a, @src.graph_contract_error_none())
+  assert_eq(@src.apply_graph_runtime_mode(1, 0), 0)
   let (out_a_l, out_a_r) = @src.process_audio_frame_for_test(0.5, -0.25)
 
-  product_reset()
-  let err_b = @src.apply_graph_contract(@src.graph_contract_schema_version(), 4, 3)
-  assert_eq(err_b, @src.graph_contract_error_none())
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_gain(), 0, 0.5, 0.0, 0.0, 0.0), 0)
   let (out_b_l, out_b_r) = @src.process_audio_frame_for_test(0.5, -0.25)
 
   assert_eq(approx_eq(out_a_l, out_b_l, 0.00001), false)
   assert_eq(approx_eq(out_a_r, out_b_r, 0.00001), false)
 }
 
-test "process audio falls back to dry-safe path for unsupported applied graph" {
+test "process audio falls back to dry-safe path for invalid graph contract" {
   product_reset()
-  let valid_err = @src.apply_graph_contract(@src.graph_contract_schema_version(), 4, 3)
+  @src.clear_runtime_graph()
+  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 0, 1.0, 1.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_edge(0, 0, 1), 0)
+  assert_eq(@src.set_runtime_edge(1, 1, 2), 0)
+  let valid_err = @src.apply_graph_contract(@src.graph_contract_schema_version(), 3, 2)
   assert_eq(valid_err, @src.graph_contract_error_none())
+  assert_eq(@src.apply_graph_runtime_mode(1, 0), 0)
   let (valid_out_l, valid_out_r) = @src.process_audio_frame_for_test(0.4, -0.2)
   assert_eq(approx_eq(valid_out_l, 0.4, 0.00001), false)
   assert_eq(approx_eq(valid_out_r, -0.2, 0.00001), false)
 
-  product_reset()
-  let unsupported_err = @src.apply_graph_contract(@src.graph_contract_schema_version(), 4, 1)
-  assert_eq(unsupported_err, @src.graph_contract_error_none())
+  let unsupported_err = @src.apply_graph_contract(99, 3, 2)
+  assert_eq(unsupported_err, @src.graph_contract_error_unsupported_version())
   let (fallback_out_l, fallback_out_r) = @src.process_audio_frame_for_test(0.4, -0.2)
   assert_eq(approx_eq(fallback_out_l, 0.4, 0.00001), true)
   assert_eq(approx_eq(fallback_out_r, -0.2, 0.00001), true)
@@ -92,12 +103,23 @@ test "process audio mutes when no input-to-output path is reported" {
   assert_eq(approx_eq(out_r, 0.0, 0.00001), true)
 }
 
-test "non-reverb runtime effect type changes output when path exists" {
+test "runtime graph node params and bypass affect output" {
   product_reset()
-  let err = @src.apply_graph_contract(@src.graph_contract_schema_version(), 3, 2)
-  assert_eq(err, @src.graph_contract_error_none())
-  assert_eq(@src.apply_graph_runtime_mode(1, 4), 0)
-  let (out_l, out_r) = @src.process_audio_frame_for_test(0.8, -0.8)
-  assert_eq(approx_eq(out_l, 0.8, 0.00001), false)
-  assert_eq(approx_eq(out_r, -0.8, 0.00001), false)
+  @src.clear_runtime_graph()
+  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 0, 1.0, 1.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_edge(0, 0, 1), 0)
+  assert_eq(@src.set_runtime_edge(1, 1, 2), 0)
+  assert_eq(@src.apply_graph_contract(@src.graph_contract_schema_version(), 3, 2), @src.graph_contract_error_none())
+  assert_eq(@src.apply_graph_runtime_mode(1, 0), 0)
+
+  let (wet_l, wet_r) = @src.process_audio_frame_for_test(0.8, -0.8)
+  assert_eq(approx_eq(wet_l, 0.8, 0.00001), false)
+  assert_eq(approx_eq(wet_r, -0.8, 0.00001), false)
+
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 1, 1.0, 1.0, 0.0, 0.0), 0)
+  let (dry_l, dry_r) = @src.process_audio_frame_for_test(0.8, -0.8)
+  assert_eq(approx_eq(dry_l, 0.8, 0.00001), true)
+  assert_eq(approx_eq(dry_r, -0.8, 0.00001), true)
 }

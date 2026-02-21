@@ -91,3 +91,24 @@ pub fn get_param(index : Int) -> Float {
     0.0
   }
 }
+
+/// Runtime graph bridge API (explicit wrapper exports for host compatibility).
+pub fn runtime_graph_clear() -> Unit {
+  clear_runtime_graph()
+}
+
+pub fn runtime_graph_set_node(
+  index : Int,
+  effect_type : Int,
+  bypass : Int,
+  p1 : Float,
+  p2 : Float,
+  p3 : Float,
+  p4 : Float,
+) -> Int {
+  set_runtime_node(index, effect_type, bypass, p1, p2, p3, p4)
+}
+
+pub fn runtime_graph_set_edge(index : Int, from : Int, to : Int) -> Int {
+  set_runtime_edge(index, from, to)
+}

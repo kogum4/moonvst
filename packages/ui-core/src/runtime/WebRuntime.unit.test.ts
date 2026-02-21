@@ -133,26 +133,48 @@ describe('createWebRuntime', () => {
     expect(runtime.getMicState()).toBe('inactive')
   })
 
-  test('applies graph payload by posting contract shape to worklet', async () => {
+
+  test('applies graph payload by posting compiled runtime graph to worklet', async () => {
     const runtime = await createWebRuntime()
     runtime.applyGraphPayload?.(
       JSON.stringify({
         graphSchemaVersion: 1,
-        nodes: [{ id: 'input' }, { id: 'output' }],
-        edges: [{ fromNodeId: 'input', toNodeId: 'output' }],
+        nodes: [
+          { id: 'input', kind: 'input', x: 0, y: 0, bypass: false, params: {} },
+          { id: 'fx', kind: 'distortion', x: 0, y: 0, bypass: false, params: { drive: 100, mix: 50 } },
+          { id: 'output', kind: 'output', x: 0, y: 0, bypass: false, params: {} },
+        ],
+        edges: [
+          { fromNodeId: 'input', toNodeId: 'fx' },
+          { fromNodeId: 'fx', toNodeId: 'output' },
+        ],
       }),
     )
 
-    expect(latestWorkletNode?.port.postMessage).toHaveBeenCalledWith({
-      type: 'applyGraphContract',
-      schemaVersion: 1,
-      nodeCount: 2,
-      edgeCount: 1,
-    })
-    expect(latestWorkletNode?.port.postMessage).toHaveBeenCalledWith({
-      type: 'applyGraphRuntime',
-      hasOutputPath: 1,
-      effectType: 0,
+    expect(latestWorkletNode?.port.postMessage).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        type: 'applyRuntimeGraph',
+        schemaVersion: 1,
+        hasOutputPath: 1,
+        nodes: expect.any(Array),
+        edges: expect.any(Array),
+      }),
+    )
+    const runtimeGraphMessage = vi.mocked(latestWorkletNode!.port.postMessage).mock.calls[1]?.[0] as {
+      nodes: Array<{ effectType: number; bypass: number; p1: number; p2: number }>
+      edges: Array<{ fromIndex: number; toIndex: number }>
+    }
+    expect(runtimeGraphMessage.nodes).toHaveLength(3)
+    expect(runtimeGraphMessage.nodes).toEqual(
+      expect.arrayContaining([
+        { effectType: 4, bypass: 0, p1: 1, p2: 0.5, p3: 0, p4: 0 },
+      ]),
+    )
+    expect(runtimeGraphMessage.edges).toHaveLength(2)
+    expect(latestWorkletNode?.port.postMessage).toHaveBeenNthCalledWith(1, {
+      type: 'loadWasm',
+      wasmBytes: expect.any(ArrayBuffer),
     })
   })
 })
