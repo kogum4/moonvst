@@ -19,6 +19,11 @@ const formatRatio = (value: number) => `${value.toFixed(1)}:1`
 const formatUnitless = (value: number) => value.toFixed(2)
 const formatRateHz = (value: number) => `${value.toFixed(value < 1 ? 2 : 1)} Hz`
 const formatKHz = (value: number) => `${(value / 1000).toFixed(1)} kHz`
+const FILTER_MODE_LABELS = ['LP', 'HP', 'BP', 'Notch', 'Peak', 'All-pass'] as const
+const formatFilterMode = (value: number) => {
+  const idx = Math.max(0, Math.min(FILTER_MODE_LABELS.length - 1, Math.round(value)))
+  return FILTER_MODE_LABELS[idx]
+}
 
 const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
   chorus: [
@@ -51,6 +56,7 @@ const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
   filter: [
     { key: 'cutoff', label: 'Cutoff', min: 40, max: 12000, step: 10, defaultValue: 2500, formatValue: formatKHz },
     { key: 'resonance', label: 'Resonance', min: 0.1, max: 2.0, step: 0.01, defaultValue: 0.7, formatValue: formatUnitless },
+    { key: 'mode', label: 'Mode', min: 0, max: 5, step: 1, defaultValue: 0, formatValue: formatFilterMode },
     { key: 'mix', label: 'Mix', min: 0, max: 100, step: 1, defaultValue: 100, formatValue: formatPercent },
   ],
   reverb: [

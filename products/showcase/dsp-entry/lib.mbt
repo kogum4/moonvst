@@ -26,6 +26,7 @@ let runtime_edge_from : Array[Int] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 let runtime_edge_to : Array[Int] = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 fn reset_graph_contract_state() -> Unit {
+  @engine.reset_effect_states()
   last_graph_contract_error_box[0] = graph_contract_err_none
   last_graph_contract_node_count_box[0] = 2
   last_graph_contract_edge_count_box[0] = 1
@@ -301,6 +302,7 @@ pub fn reset_reverb_state() -> Unit {
 }
 
 pub fn product_reset() -> Unit {
+  @engine.reset_effect_states()
   @effects.reset_chorus_state()
   @effects.reset_distortion_state()
   @effects.reset_reverb_state()

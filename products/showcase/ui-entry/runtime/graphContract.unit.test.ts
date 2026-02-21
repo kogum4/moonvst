@@ -88,6 +88,29 @@ describe('showcase graph contract payload', () => {
     expect(chorusNode?.p3).toBeCloseTo(0.42, 5)
   })
 
+  test('maps filter mode and mix to runtime p3/p4', () => {
+    let state = createDefaultGraphState()
+    state = graphReducer(state, { type: 'addNode', kind: 'filter', x: 240, y: 180, id: 'fx-filter' })
+    state = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'input', toNodeId: 'fx-filter' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'fx-filter', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'cutoff', value: 6400 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'resonance', value: 1.4 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'mode', value: 3 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'mix', value: 65 })
+
+    const runtime = compileRuntimeGraphPayload(serializeGraphPayload(state))
+    const filterNode = runtime.nodes.find((node) => node.effectType === 6)
+    expect(filterNode).toBeDefined()
+    expect(filterNode?.p1).toBeGreaterThan(0.01)
+    expect(filterNode?.p1).toBeLessThanOrEqual(1)
+    expect(filterNode?.p2).toBeGreaterThanOrEqual(0)
+    expect(filterNode?.p2).toBeLessThanOrEqual(1)
+    expect(filterNode?.p3).toBeCloseTo(3 / 5, 5)
+    expect(filterNode?.p4).toBeCloseTo(0.65, 5)
+    expect(filterNode?.p5).toBe(0)
+  })
+
   test('keeps runtime graph shape when no input-output path exists', () => {
     const state = createDefaultGraphState()
     const disconnected = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })

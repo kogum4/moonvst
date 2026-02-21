@@ -227,9 +227,9 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         effectType: effectTypeByKind.filter!,
         bypass: node.bypass,
         p1: clamp(0.01 + toUnit(node.params.cutoff ?? 2500, 40, 12000) * 0.99, 0.01, 1),
-        p2: clamp(toUnit(node.params.resonance ?? 0.7, 0.1, 2) * 0.95, 0, 0.95),
-        p3: 0,
-        p4: 0,
+        p2: toUnit(node.params.resonance ?? 0.7, 0.1, 2.0),
+        p3: toUnit(node.params.mode ?? 0, 0, 5),
+        p4: toUnit(node.params.mix ?? 100, 0, 100),
         p5: 0,
       }
     case 'reverb':
