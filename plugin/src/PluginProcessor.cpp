@@ -108,15 +108,6 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
             wasmDSP_.applyGraphRuntimeMode (graphConfig.hasOutputPath, 0);
         }
 
-        if (pendingGraphApply_.exchange (false))
-        {
-            wasmDSP_.applyGraphContract (pendingGraphSchemaVersion_.load(),
-                                         pendingGraphNodeCount_.load(),
-                                         pendingGraphEdgeCount_.load());
-            wasmDSP_.applyGraphRuntimeMode (pendingGraphHasOutputPath_.load(),
-                                            pendingGraphEffectType_.load());
-        }
-
         for (int i = 0; i < paramCount_; ++i)
         {
             if (const auto* raw = apvts.getRawParameterValue (paramNames_[(size_t) i]))
@@ -156,21 +147,6 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new PluginProcessor();
-}
-
-void PluginProcessor::queueGraphContractApply (int schemaVersion, int nodeCount, int edgeCount)
-{
-    pendingGraphSchemaVersion_.store (schemaVersion);
-    pendingGraphNodeCount_.store (nodeCount);
-    pendingGraphEdgeCount_.store (edgeCount);
-    pendingGraphApply_.store (true);
-}
-
-void PluginProcessor::queueGraphRuntimeModeApply (int hasOutputPath, int effectType)
-{
-    pendingGraphHasOutputPath_.store (hasOutputPath);
-    pendingGraphEffectType_.store (effectType);
-    pendingGraphApply_.store (true);
 }
 
 void PluginProcessor::queueRuntimeGraphApply (RuntimeGraphConfig config)

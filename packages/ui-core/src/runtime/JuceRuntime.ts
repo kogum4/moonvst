@@ -1,5 +1,5 @@
 import type { AudioRuntime, ParamInfo } from './types'
-import { compileRuntimeGraphPayload } from '../../../../products/showcase/ui-entry/runtime/graphContract'
+import { compileRuntimeGraphPayload } from './graphPayload'
 
 declare global {
   interface Window {

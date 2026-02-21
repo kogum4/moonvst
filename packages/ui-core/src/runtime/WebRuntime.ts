@@ -1,5 +1,5 @@
 import type { ParamInfo, WebAudioRuntime } from './types'
-import { compileRuntimeGraphPayload } from '../../../../products/showcase/ui-entry/runtime/graphContract'
+import { compileRuntimeGraphPayload } from './graphPayload'
 
 interface WasmExports {
   memory: WebAssembly.Memory
