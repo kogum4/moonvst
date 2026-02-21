@@ -13,9 +13,9 @@ Status legend:
 
 ## Progress Dashboard
 
-- Overall stories done: `6 / 10`
-- Overall tasks done: `42 / 45`
-- Current story: `S7`
+- Overall stories done: `7 / 10`
+- Overall tasks done: `50 / 53`
+- Current story: `S8`
 - Last updated: `2026-02-20`
 
 ## Update Rules
@@ -175,14 +175,22 @@ Validation:
 
 ## Story S7: Effect Modules Expansion
 
-- [ ] `P2-S7-R-01` RED: Add per-effect tests for chorus/compressor/delay/distortion/eq/filter minimum behavior.
-- [ ] `P2-S7-R-02` RED: Add regression tests for extracted Dattorro reverb module.
-- [ ] `P2-S7-R-03` RED: Add integration test for mixed effect chains through executor.
-- [ ] `P2-S7-G-01` GREEN: Extract reverb to `packages/dsp-core/src/effects/reverb_dattorro.mbt`.
-- [ ] `P2-S7-G-02` GREEN: Implement `chorus.mbt`, `compressor.mbt`, `delay.mbt`.
-- [ ] `P2-S7-G-03` GREEN: Implement `distortion.mbt`, `eq.mbt`, `filter.mbt`.
-- [ ] `P2-S7-G-04` GREEN: Wire effects into graph executor dispatch.
-- [ ] `P2-S7-F-01` REFACTOR: Standardize effect interfaces and shared DSP helpers.
+- [x] `P2-S7-R-01` RED: Add per-effect tests for chorus/compressor/delay/distortion/eq/filter minimum behavior.
+  - Evidence: Added per-effect tests in `packages/dsp-core/src/effects/{chorus,compressor,delay,distortion,eq,filter}_test.mbt`; confirmed RED failure via `npm run test:dsp:showcase` (`Package "effects" not found in the loaded packages`).
+- [x] `P2-S7-R-02` RED: Add regression tests for extracted Dattorro reverb module.
+  - Evidence: Added helper regression tests in `packages/dsp-core/src/effects/reverb_dattorro_test.mbt`; same RED run failed before extraction (`Value reverb_predelay_ms_to_samples not found` path via missing `effects` package).
+- [x] `P2-S7-R-03` RED: Add integration test for mixed effect chains through executor.
+  - Evidence: Added executor integration coverage in `packages/dsp-core/src/engine/graph_executor_test.mbt` (`graph executor mixed effect chain dispatches through modules`); same RED run failed pre-implementation (`ExecNode` / `execute_graph_block_fx` undefined in `@engine`).
+- [x] `P2-S7-G-01` GREEN: Extract reverb to `packages/dsp-core/src/effects/reverb_dattorro.mbt`.
+  - Evidence: Moved Dattorro reverb processing into `packages/dsp-core/src/effects/reverb_dattorro.mbt` and reduced `products/showcase/dsp-entry/lib.mbt` to thin wrapper calls; `npm run test:dsp:showcase` passes.
+- [x] `P2-S7-G-02` GREEN: Implement `chorus.mbt`, `compressor.mbt`, `delay.mbt`.
+  - Evidence: Added `packages/dsp-core/src/effects/chorus.mbt`, `packages/dsp-core/src/effects/compressor.mbt`, and `packages/dsp-core/src/effects/delay.mbt`; per-effect RED test now passes.
+- [x] `P2-S7-G-03` GREEN: Implement `distortion.mbt`, `eq.mbt`, `filter.mbt`.
+  - Evidence: Added `packages/dsp-core/src/effects/distortion.mbt`, `packages/dsp-core/src/effects/eq.mbt`, and `packages/dsp-core/src/effects/filter.mbt`; per-effect RED test now passes.
+- [x] `P2-S7-G-04` GREEN: Wire effects into graph executor dispatch.
+  - Evidence: Added `ExecNode` and `execute_graph_block_fx` to `packages/dsp-core/src/engine/graph_executor.mbt` with effect-type dispatch; mixed-chain integration test passes.
+- [x] `P2-S7-F-01` REFACTOR: Standardize effect interfaces and shared DSP helpers.
+  - Evidence: Standardized effect function signatures and shared math/mix helpers in `packages/dsp-core/src/effects/common.mbt`; executor now routes through a centralized `execute_node_effect` helper.
 
 Validation:
 - `npm run build:dsp`
@@ -241,6 +249,7 @@ Validation:
 ## Change Log
 
 - `2026-02-20`: Completed Story S6 (`P2-S6-R/G/F`), added MoonBit RED tests for topological order, bypass pass-through, and invalid-graph dry fallback; implemented shared `packages/dsp-core/src/engine/graph_executor.mbt` with topological scheduling/stereo block execution/fallback safety and updated `scripts/select-product.js` to copy full `packages/dsp-core/src` (including new subpackages) into `build/dsp-active`.
+- `2026-02-20`: Completed Story S7 (`P2-S7-R/G/F`), added showcase RED tests for per-effect minimum behavior, extracted Dattorro reverb, and mixed-chain executor integration; implemented shared effect modules under `packages/dsp-core/src/effects/*`, added effect-node dispatch API (`ExecNode` / `execute_graph_block_fx`) in `graph_executor`, and kept showcase `lib.mbt` as thin reverb wiring.
 - `2026-02-20`: Completed Story S5 (`P2-S5-R/G/F`), added inspector editing component tests and implemented selected-node metadata, schema-driven parameter controls, bypass toggle wiring, and connection summaries using shared node parameter schema utilities.
 - `2026-02-18`: Completed Story S4 (`P2-S4-R/G/F`), added showcase canvas interaction component tests and implemented reducer-driven `NodePalette`/`GraphCanvas`/`EdgeLayer` flows (add/connect/disconnect/select) with deterministic placement and extracted interaction hook/utilities.
 - `2026-02-18`: Completed Story S3 (`P2-S3-R/G/F`), added showcase graph reducer unit tests and implemented graph state model/reducer with node limit, I/O guard, connect/disconnect, param updates, bypass, and DAG cycle rejection.

@@ -1,6 +1,7 @@
 {
   "import": [
     "moonvst/dsp/src/engine",
+    "moonvst/dsp/src/effects",
     "moonvst/dsp/src/utils"
   ],
   "link": {
