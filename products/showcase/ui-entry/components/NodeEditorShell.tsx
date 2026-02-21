@@ -41,6 +41,25 @@ const hexToRgbChannels = (hex: string): string => {
   return `${r} ${g} ${b}`
 }
 
+const toLogUnit = (value: number, min: number, max: number) => {
+  const safeMin = Math.max(min, 1.0e-6)
+  const safeValue = Math.max(value, safeMin)
+  const logMin = Math.log(safeMin)
+  const logMax = Math.log(max)
+  if (logMax <= logMin) {
+    return 0
+  }
+  return Math.max(0, Math.min(1, (Math.log(safeValue) - logMin) / (logMax - logMin)))
+}
+
+const fromLogUnit = (unit: number, min: number, max: number) => {
+  const safeMin = Math.max(min, 1.0e-6)
+  const t = Math.max(0, Math.min(1, unit))
+  const logMin = Math.log(safeMin)
+  const logMax = Math.log(max)
+  return Math.exp(logMin + t * (logMax - logMin))
+}
+
 function TopBar() {
   return (
     <header aria-label="Top Bar" className={styles.topBar} data-region-id="FMWVd">
@@ -124,8 +143,14 @@ function InspectorPanel({
             {paramSpecs.map((spec) => {
               const value = getNodeParamValue(selectedNode, spec.key) ?? spec.defaultValue
               const valueText = formatNodeParamValue(selectedNode, spec.key)
-              const ratio = (value - spec.min) / (spec.max - spec.min)
+              const ratio = spec.scale === 'log'
+                ? toLogUnit(value, spec.min, spec.max)
+                : (value - spec.min) / (spec.max - spec.min)
               const percent = Math.max(0, Math.min(100, ratio * 100))
+              const sliderMin = spec.scale === 'log' ? 0 : spec.min
+              const sliderMax = spec.scale === 'log' ? 1 : spec.max
+              const sliderStep = spec.scale === 'log' ? 0.001 : (spec.step ?? 1)
+              const sliderValue = spec.scale === 'log' ? ratio : value
               return (
                 <label
                   className={styles.paramControl}
@@ -144,12 +169,18 @@ function InspectorPanel({
                     <input
                       aria-label={spec.label}
                       className={styles.paramSliderInput}
-                      max={spec.max}
-                      min={spec.min}
-                      onChange={(event) => onUpdateParam(selectedNode.id, spec.key, Number(event.target.value))}
-                      step={spec.step ?? 1}
+                      max={sliderMax}
+                      min={sliderMin}
+                      onChange={(event) => {
+                        const rawValue = Number(event.target.value)
+                        const nextValue = spec.scale === 'log'
+                          ? fromLogUnit(rawValue, spec.min, spec.max)
+                          : rawValue
+                        onUpdateParam(selectedNode.id, spec.key, nextValue)
+                      }}
+                      step={sliderStep}
                       type="range"
-                      value={value}
+                      value={sliderValue}
                     />
                   </div>
                 </label>

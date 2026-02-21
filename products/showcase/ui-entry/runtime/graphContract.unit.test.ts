@@ -95,7 +95,7 @@ describe('showcase graph contract payload', () => {
     state = graphReducer(state, { type: 'connect', fromNodeId: 'input', toNodeId: 'fx-filter' })
     state = graphReducer(state, { type: 'connect', fromNodeId: 'fx-filter', toNodeId: 'output' })
     state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'cutoff', value: 6400 })
-    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'resonance', value: 1.4 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'q', value: 4.0 })
     state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'mode', value: 3 })
     state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-filter', key: 'mix', value: 65 })
 
@@ -104,8 +104,7 @@ describe('showcase graph contract payload', () => {
     expect(filterNode).toBeDefined()
     expect(filterNode?.p1).toBeGreaterThan(0.01)
     expect(filterNode?.p1).toBeLessThanOrEqual(1)
-    expect(filterNode?.p2).toBeGreaterThanOrEqual(0)
-    expect(filterNode?.p2).toBeLessThanOrEqual(1)
+    expect(filterNode?.p2).toBeCloseTo(0.125, 5)
     expect(filterNode?.p3).toBeCloseTo(3 / 5, 5)
     expect(filterNode?.p4).toBeCloseTo(0.65, 5)
     expect(filterNode?.p5).toBe(0)

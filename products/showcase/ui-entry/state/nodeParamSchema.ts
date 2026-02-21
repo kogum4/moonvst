@@ -10,6 +10,7 @@ export type NodeParamSpec = {
   step?: number
   defaultValue: number
   formatValue: (value: number) => string
+  scale?: 'linear' | 'log'
 }
 
 const formatPercent = (value: number) => `${Math.round(value)}%`
@@ -18,7 +19,7 @@ const formatDb = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}
 const formatRatio = (value: number) => `${value.toFixed(1)}:1`
 const formatUnitless = (value: number) => value.toFixed(2)
 const formatRateHz = (value: number) => `${value.toFixed(value < 1 ? 2 : 1)} Hz`
-const formatKHz = (value: number) => `${(value / 1000).toFixed(1)} kHz`
+const formatHz = (value: number) => `${Math.round(value)} Hz`
 const FILTER_MODE_LABELS = ['LP', 'HP', 'BP', 'Notch', 'Peak', 'All-pass'] as const
 const formatFilterMode = (value: number) => {
   const idx = Math.max(0, Math.min(FILTER_MODE_LABELS.length - 1, Math.round(value)))
@@ -54,8 +55,8 @@ const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
     { key: 'high', label: 'High', min: -12, max: 12, step: 0.1, defaultValue: 2.1, formatValue: formatDb },
   ],
   filter: [
-    { key: 'cutoff', label: 'Cutoff', min: 40, max: 12000, step: 10, defaultValue: 2500, formatValue: formatKHz },
-    { key: 'resonance', label: 'Resonance', min: 0.1, max: 2.0, step: 0.01, defaultValue: 0.7, formatValue: formatUnitless },
+    { key: 'cutoff', label: 'Cutoff', min: 40, max: 20000, step: 10, defaultValue: 2500, formatValue: formatHz, scale: 'log' },
+    { key: 'q', label: 'Q', min: 0.2, max: 20.0, step: 0.01, defaultValue: 0.707, formatValue: formatUnitless },
     { key: 'mode', label: 'Mode', min: 0, max: 5, step: 1, defaultValue: 0, formatValue: formatFilterMode },
     { key: 'mix', label: 'Mix', min: 0, max: 100, step: 1, defaultValue: 100, formatValue: formatPercent },
   ],

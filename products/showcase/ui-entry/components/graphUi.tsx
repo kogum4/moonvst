@@ -87,8 +87,8 @@ const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
     icon: Filter,
     label: 'Filter',
     rows: [
-      { key: 'cutoff', label: 'Cutoff', value: '2.5 kHz' },
-      { key: 'resonance', label: 'Resonance', value: '0.7' },
+      { key: 'cutoff', label: 'Cutoff', value: '2500 Hz' },
+      { key: 'q', label: 'Q', value: '0.71' },
       { key: 'mix', label: 'Mix', value: '100%' },
     ],
   },

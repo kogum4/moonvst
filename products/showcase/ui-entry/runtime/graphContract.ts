@@ -303,14 +303,19 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
         p5: 0,
       }
     case 'filter':
-      return {
-        effectType: effectTypeByKind.filter!,
-        bypass: node.bypass,
-        p1: clamp(0.01 + toUnit(node.params.cutoff ?? 2500, 40, 12000) * 0.99, 0.01, 1),
-        p2: toUnit(node.params.resonance ?? 0.7, 0.1, 2.0),
-        p3: toUnit(node.params.mode ?? 0, 0, 5),
-        p4: toUnit(node.params.mix ?? 100, 0, 100),
-        p5: 0,
+      {
+        const q = clamp(node.params.q ?? node.params.resonance ?? 0.707, 0.2, 20.0)
+        const k = clamp(1 / q, 0, 2)
+        const resonance = clamp(k * 0.5, 0, 1)
+        return {
+          effectType: effectTypeByKind.filter!,
+          bypass: node.bypass,
+          p1: clamp(0.01 + toUnit(node.params.cutoff ?? 2500, 40, 20000) * 0.99, 0.01, 1),
+          p2: resonance,
+          p3: toUnit(node.params.mode ?? 0, 0, 5),
+          p4: toUnit(node.params.mix ?? 100, 0, 100),
+          p5: 0,
+        }
       }
     case 'reverb':
       return {
