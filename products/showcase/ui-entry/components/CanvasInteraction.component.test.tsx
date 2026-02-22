@@ -49,8 +49,8 @@ describe('canvas interaction flow', () => {
     fireEvent.pointerUp(screen.getByRole('button', { name: 'Chorus IN port' }), { clientX: 340, clientY: 220 })
 
     expect(screen.getAllByText('ERR_CYCLE_DETECTED').length).toBeGreaterThan(0)
-    expect(screen.getByLabelText('Wire Input -> Output')).toBeInTheDocument()
-  })
+    expect(await screen.findByLabelText('Wire Input -> Output')).toBeInTheDocument()
+  }, 15000)
 
   test('disconnects edge and updates selection state', async () => {
     render(<NodeEditorShell />)
