@@ -275,7 +275,7 @@ int WasmDSP::getParamCount()
 
     int32_t count = 0;
     if (callI32 (execEnv_, fn_get_param_count_, nullptr, 0, count))
-        return juce::jlimit (0, 128, (int) count);
+        return juce::jmax (0, (int) count);
     return 0;
 }
 

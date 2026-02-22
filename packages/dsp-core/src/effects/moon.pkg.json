@@ -1,0 +1,6 @@
+{
+  "import": [
+    "moonvst/dsp/src/utils",
+    "moonbitlang/core/math"
+  ]
+}

@@ -16,6 +16,9 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "lucide-react": "^0.574.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

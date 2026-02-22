@@ -1,41 +1,19 @@
-﻿import { useRuntime } from '../../../packages/ui-core/src/runtime/useRuntime'
-import { GainSlider } from '../../../packages/ui-core/src/components/GainSlider'
-import { LevelMeter } from '../../../packages/ui-core/src/components/LevelMeter'
+import { NodeEditorShell } from './components/NodeEditorShell'
+import { useRuntime } from '../../../packages/ui-core/src/runtime/useRuntime'
 import { WebAudioMenu } from '../../../packages/ui-core/src/components/WebAudioMenu'
 import type { WebAudioRuntime } from '../../../packages/ui-core/src/runtime/types'
-import styles from '../../../packages/ui-core/src/App.module.css'
 
-function isWebAudioRuntime(runtime: { type: 'juce' | 'web' }): runtime is WebAudioRuntime {
-  return runtime.type === 'web'
+function isWebAudioRuntime(runtime: { type: 'juce' | 'web' } | null): runtime is WebAudioRuntime {
+  return runtime?.type === 'web'
 }
 
 export default function App() {
-  const { runtime, error } = useRuntime()
-
-  if (error) {
-    return <div className={styles.error}>Audio runtime init failed: {error}</div>
-  }
-
-  if (!runtime) {
-    return <div className={styles.loading}>Loading audio runtime...</div>
-  }
+  const { runtime } = useRuntime()
 
   return (
-    <div className={styles.container}>
+    <>
       {isWebAudioRuntime(runtime) ? <WebAudioMenu runtime={runtime} /> : null}
-      <h1 className={styles.title}>MoonVST</h1>
-      <div className={styles.controls}>
-        <GainSlider runtime={runtime} paramName="gain" />
-        <GainSlider runtime={runtime} paramName="pre_delay_ms" />
-        <GainSlider runtime={runtime} paramName="decay" />
-        <GainSlider runtime={runtime} paramName="damping" />
-        <GainSlider runtime={runtime} paramName="diffusion" />
-        <GainSlider runtime={runtime} paramName="mix" />
-        <LevelMeter runtime={runtime} />
-      </div>
-      <div className={styles.info}>
-        Runtime: {runtime.type}
-      </div>
-    </div>
+      <NodeEditorShell runtime={runtime} />
+    </>
   )
 }

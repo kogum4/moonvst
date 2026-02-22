@@ -4,6 +4,24 @@
 
 namespace
 {
+#ifndef MOONVST_PRODUCT_NAME
+#define MOONVST_PRODUCT_NAME "template"
+#endif
+
+struct DefaultEditorSize
+{
+    int width;
+    int height;
+};
+
+DefaultEditorSize getDefaultEditorSize()
+{
+    if (std::strcmp (MOONVST_PRODUCT_NAME, "showcase") == 0)
+        return { 1280, 820 };
+
+    return { 600, 400 };
+}
+
 juce::String normaliseResourcePath (juce::String path)
 {
     path = path.replaceCharacter ('\\', '/').trim();
@@ -40,7 +58,8 @@ juce::String getMimeTypeForPath (const juce::String& path)
 PluginEditor::PluginEditor (PluginProcessor& p)
     : AudioProcessorEditor (p), processorRef (p)
 {
-    setSize (600, 400);
+    const auto size = getDefaultEditorSize();
+    setSize (size.width, size.height);
     fallbackLabel.setText ("Loading UI...", juce::dontSendNotification);
     fallbackLabel.setJustificationType (juce::Justification::centred);
     addAndMakeVisible (fallbackLabel);

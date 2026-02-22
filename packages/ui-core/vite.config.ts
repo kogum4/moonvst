@@ -52,4 +52,10 @@ export default defineConfig({
     'import.meta.env.VITE_RUNTIME': JSON.stringify(isJuceBuild ? 'juce' : 'web'),
     'import.meta.env.VITE_PRODUCT': JSON.stringify(product),
   },
+  resolve: {
+    alias: {
+      'lucide-react': path.resolve(__dirname, 'node_modules', 'lucide-react'),
+      '@fontsource': path.resolve(__dirname, 'node_modules', '@fontsource'),
+    },
+  },
 })
