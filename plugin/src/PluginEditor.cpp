@@ -5,6 +5,20 @@
 
 namespace
 {
+struct DefaultEditorSize
+{
+    int width;
+    int height;
+};
+
+DefaultEditorSize getDefaultEditorSizeForProduct (const juce::String& productName)
+{
+    if (productName.equalsIgnoreCase ("showcase"))
+        return { 1280, 820 };
+
+    return { 600, 400 };
+}
+
 juce::String normaliseResourcePath (juce::String path)
 {
     path = path.replaceCharacter ('\\', '/').trim();
@@ -95,7 +109,8 @@ bool parseRuntimeGraphConfigFromVar (const juce::var& value, PluginProcessor::Ru
 PluginEditor::PluginEditor (PluginProcessor& p)
     : AudioProcessorEditor (p), processorRef (p)
 {
-    setSize (600, 400);
+    const auto defaultSize = getDefaultEditorSizeForProduct (processorRef.getName());
+    setSize (defaultSize.width, defaultSize.height);
     fallbackLabel.setText ("Loading UI...", juce::dontSendNotification);
     fallbackLabel.setJustificationType (juce::Justification::centred);
     addAndMakeVisible (fallbackLabel);

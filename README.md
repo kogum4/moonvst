@@ -113,6 +113,27 @@ COMPANY_NAME "MoonVST"                # your vendor name
 PLUGIN_MANUFACTURER_CODE Wvst         # 4-char unique ID
 ```
 
+**5. Adjust plugin editor size** (`plugin/src/PluginEditor.cpp`)
+
+Plugin window size is set in the `PluginEditor` constructor and can be switched per product:
+
+```cpp
+DefaultEditorSize getDefaultEditorSizeForProduct (const juce::String& productName)
+{
+    if (productName.equalsIgnoreCase ("showcase"))
+        return { 1280, 820 };
+
+    return { 600, 400 };
+}
+```
+
+After changing size values:
+
+```bash
+npm run configure:plugin:showcase
+npm run build:plugin
+```
+
 ## Testing
 
 ```bash
