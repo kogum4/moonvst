@@ -24,23 +24,6 @@ public:
     float getParamMax (int index);
     void setParam (int index, float value);
     float getParam (int index);
-    bool applyGraphContract (int schemaVersion, int nodeCount, int edgeCount);
-    bool applyGraphRuntimeMode (int hasOutputPath, int effectType);
-    bool clearRuntimeGraph();
-    bool setRuntimeNode (
-        int index,
-        int effectType,
-        int bypass,
-        float p1,
-        float p2,
-        float p3,
-        float p4,
-        float p5,
-        float p6,
-        float p7,
-        float p8,
-        float p9);
-    bool setRuntimeEdge (int index, int fromIndex, int toIndex);
 
 private:
     // WAMR runtime handles
@@ -59,11 +42,6 @@ private:
     wasm_function_inst_t fn_get_param_max_ = nullptr;
     wasm_function_inst_t fn_set_param_ = nullptr;
     wasm_function_inst_t fn_get_param_ = nullptr;
-    wasm_function_inst_t fn_apply_graph_contract_ = nullptr;
-    wasm_function_inst_t fn_apply_graph_runtime_mode_ = nullptr;
-    wasm_function_inst_t fn_runtime_graph_clear_ = nullptr;
-    wasm_function_inst_t fn_runtime_graph_set_node_ = nullptr;
-    wasm_function_inst_t fn_runtime_graph_set_edge_ = nullptr;
 
     // Memory layout offsets (must match packages/dsp-core/src/utils/constants.mbt)
     static constexpr int INPUT_LEFT_OFFSET  = 0x10000;

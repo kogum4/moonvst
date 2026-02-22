@@ -115,12 +115,13 @@ PLUGIN_MANUFACTURER_CODE Wvst         # 4-char unique ID
 
 **5. Adjust plugin editor size** (`plugin/src/PluginEditor.cpp`)
 
-Plugin window size is set in the `PluginEditor` constructor and can be switched per product:
+Plugin window size is set in `plugin/src/PluginEditor.cpp`.
+Size selection is compile-time per product via `MOONVST_PRODUCT_NAME` (from CMake), for example:
 
 ```cpp
-DefaultEditorSize getDefaultEditorSizeForProduct (const juce::String& productName)
+DefaultEditorSize getDefaultEditorSize()
 {
-    if (productName.equalsIgnoreCase ("showcase"))
+    if (std::strcmp (MOONVST_PRODUCT_NAME, "showcase") == 0)
         return { 1280, 820 };
 
     return { 600, 400 };
@@ -133,6 +134,9 @@ After changing size values:
 npm run configure:plugin:showcase
 npm run build:plugin
 ```
+
+Note: For showcase, graph data is sent through a fixed parameter bank (generated in `products/showcase/dsp-entry/params.mbt`).
+If you only want to build your own effect/product, start from `template` and keep a small `param_defs` surface.
 
 ## Testing
 
@@ -180,7 +184,7 @@ Windows is fully verified. macOS builds but has not been extensively tested in D
 ## Additional Targets
 
 ```bash
-npm run release:vst:showcase  # Showcase product (Dattorro reverb demo)
+npm run release:vst:showcase  # Showcase product (node-graph multi-effect demo)
 npm run release:unity         # Unity Native Audio Plugin (template product)
 ```
 

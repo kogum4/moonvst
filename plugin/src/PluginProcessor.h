@@ -5,40 +5,10 @@
 #include <vector>
 #include <string>
 #include <atomic>
-#include <mutex>
 
 class PluginProcessor : public juce::AudioProcessor
 {
 public:
-    struct RuntimeGraphNode
-    {
-        int effectType = 0;
-        int bypass = 0;
-        float p1 = 0.0f;
-        float p2 = 0.0f;
-        float p3 = 0.0f;
-        float p4 = 0.0f;
-        float p5 = 0.0f;
-        float p6 = 0.0f;
-        float p7 = 0.0f;
-        float p8 = 0.0f;
-        float p9 = 0.0f;
-    };
-
-    struct RuntimeGraphEdge
-    {
-        int fromIndex = 0;
-        int toIndex = 0;
-    };
-
-    struct RuntimeGraphConfig
-    {
-        int schemaVersion = 1;
-        int hasOutputPath = 0;
-        std::vector<RuntimeGraphNode> nodes;
-        std::vector<RuntimeGraphEdge> edges;
-    };
-
     PluginProcessor();
     ~PluginProcessor() override;
 
@@ -69,7 +39,6 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const { return apvts; }
     float getOutputLevel() const { return outputLevel_.load(); }
-    void queueRuntimeGraphApply (RuntimeGraphConfig config);
 
 private:
     WasmDSP wasmDSP_;
@@ -78,9 +47,6 @@ private:
     std::vector<std::string> paramNames_;
     juce::AudioProcessorValueTreeState apvts;
     std::atomic<float> outputLevel_ { 0.0f };
-    std::mutex pendingRuntimeGraphMutex_;
-    RuntimeGraphConfig pendingRuntimeGraph_;
-    std::atomic<bool> pendingRuntimeGraphApply_ { false };
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

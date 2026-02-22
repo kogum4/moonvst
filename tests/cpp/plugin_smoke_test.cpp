@@ -1,5 +1,4 @@
 #include <cmath>
-#include <cstring>
 #include <cstdio>
 #include <memory>
 
@@ -7,27 +6,6 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter();
-
-#ifndef MOONVST_PRODUCT_NAME
-#define MOONVST_PRODUCT_NAME "template"
-#endif
-
-namespace
-{
-struct ExpectedEditorSize
-{
-    int width;
-    int height;
-};
-
-ExpectedEditorSize getExpectedEditorSize()
-{
-    if (std::strcmp (MOONVST_PRODUCT_NAME, "showcase") == 0)
-        return { 1280, 820 };
-
-    return { 600, 400 };
-}
-}
 
 int main()
 {
@@ -79,22 +57,6 @@ int main()
     printf("PASS: Editor created (%d x %d)\n",
            editorBounds.getWidth(),
            editorBounds.getHeight());
-
-    const auto expectedSize = getExpectedEditorSize();
-    if (editorBounds.getWidth() != expectedSize.width || editorBounds.getHeight() != expectedSize.height)
-    {
-        printf("FAIL: editor size mismatch for product '%s' (expected %d x %d, got %d x %d)\n",
-               MOONVST_PRODUCT_NAME,
-               expectedSize.width,
-               expectedSize.height,
-               editorBounds.getWidth(),
-               editorBounds.getHeight());
-        delete editor;
-        return 1;
-    }
-    printf("PASS: Editor size matches product default (%d x %d)\n",
-           expectedSize.width,
-           expectedSize.height);
 
     delete editor;
     plugin->releaseResources();

@@ -261,8 +261,8 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const { pendingFromNodeId, state } = interaction
   const graphRuntimeBridge = useMemo(
     () =>
-      createGraphRuntimeBridge((payload) => {
-        emitGraphPayloadToRuntime(runtime, payload)
+      createGraphRuntimeBridge((payload, revision) => {
+        emitGraphPayloadToRuntime(runtime, payload, revision)
       }),
     [runtime],
   )

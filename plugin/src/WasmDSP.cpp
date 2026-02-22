@@ -19,21 +19,6 @@ float WasmDSP::getParamMax (int) { return 1.0f; }
 void WasmDSP::setParam (int, float) {}
 float WasmDSP::getParam (int) { return 0.0f; }
 bool WasmDSP::lookupFunctions() { return false; }
-bool WasmDSP::clearRuntimeGraph() { return false; }
-bool WasmDSP::setRuntimeNode (
-    int,
-    int,
-    int,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float,
-    float) { return false; }
-bool WasmDSP::setRuntimeEdge (int, int, int) { return false; }
 
 #else
 
@@ -227,17 +212,6 @@ bool WasmDSP::lookupFunctions()
     fn_get_param_max_      = wasm_runtime_lookup_function (moduleInst_, "get_param_max");
     fn_set_param_          = wasm_runtime_lookup_function (moduleInst_, "set_param");
     fn_get_param_          = wasm_runtime_lookup_function (moduleInst_, "get_param");
-    fn_apply_graph_contract_ = wasm_runtime_lookup_function (moduleInst_, "apply_graph_contract");
-    fn_apply_graph_runtime_mode_ = wasm_runtime_lookup_function (moduleInst_, "apply_graph_runtime_mode");
-    fn_runtime_graph_clear_ = wasm_runtime_lookup_function (moduleInst_, "runtime_graph_clear");
-    if (fn_runtime_graph_clear_ == nullptr)
-        fn_runtime_graph_clear_ = wasm_runtime_lookup_function (moduleInst_, "clear_runtime_graph");
-    fn_runtime_graph_set_node_ = wasm_runtime_lookup_function (moduleInst_, "runtime_graph_set_node");
-    if (fn_runtime_graph_set_node_ == nullptr)
-        fn_runtime_graph_set_node_ = wasm_runtime_lookup_function (moduleInst_, "set_runtime_node");
-    fn_runtime_graph_set_edge_ = wasm_runtime_lookup_function (moduleInst_, "runtime_graph_set_edge");
-    if (fn_runtime_graph_set_edge_ == nullptr)
-        fn_runtime_graph_set_edge_ = wasm_runtime_lookup_function (moduleInst_, "set_runtime_edge");
 
     // process_block and get_param_count are required at minimum
     return fn_process_block_ != nullptr && fn_get_param_count_ != nullptr;
@@ -301,7 +275,7 @@ int WasmDSP::getParamCount()
 
     int32_t count = 0;
     if (callI32 (execEnv_, fn_get_param_count_, nullptr, 0, count))
-        return juce::jlimit (0, 128, (int) count);
+        return juce::jmax (0, (int) count);
     return 0;
 }
 
@@ -423,120 +397,6 @@ float WasmDSP::getParam (int index)
     if (callF32 (execEnv_, fn_get_param_, args, 1, result))
         return result;
     return 0.0f;
-}
-
-bool WasmDSP::applyGraphContract (int schemaVersion, int nodeCount, int edgeCount)
-{
-    if (fn_apply_graph_contract_ == nullptr)
-        return false;
-    if (! ensureThreadEnv())
-        return false;
-
-    wasm_val_t args[3];
-    args[0].kind = WASM_I32;
-    args[0].of.i32 = schemaVersion;
-    args[1].kind = WASM_I32;
-    args[1].of.i32 = nodeCount;
-    args[2].kind = WASM_I32;
-    args[2].of.i32 = edgeCount;
-
-    int32_t applyError = 0;
-    return callI32 (execEnv_, fn_apply_graph_contract_, args, 3, applyError);
-}
-
-bool WasmDSP::applyGraphRuntimeMode (int hasOutputPath, int effectType)
-{
-    if (fn_apply_graph_runtime_mode_ == nullptr)
-        return false;
-    if (! ensureThreadEnv())
-        return false;
-
-    wasm_val_t args[2];
-    args[0].kind = WASM_I32;
-    args[0].of.i32 = hasOutputPath;
-    args[1].kind = WASM_I32;
-    args[1].of.i32 = effectType;
-
-    int32_t applyError = 0;
-    return callI32 (execEnv_, fn_apply_graph_runtime_mode_, args, 2, applyError);
-}
-
-bool WasmDSP::clearRuntimeGraph()
-{
-    if (fn_runtime_graph_clear_ == nullptr)
-        return false;
-    if (! ensureThreadEnv())
-        return false;
-
-    return callVoid (execEnv_, fn_runtime_graph_clear_, nullptr, 0);
-}
-
-bool WasmDSP::setRuntimeNode (
-    int index,
-    int effectType,
-    int bypass,
-    float p1,
-    float p2,
-    float p3,
-    float p4,
-    float p5,
-    float p6,
-    float p7,
-    float p8,
-    float p9)
-{
-    if (fn_runtime_graph_set_node_ == nullptr)
-        return false;
-    if (! ensureThreadEnv())
-        return false;
-
-    wasm_val_t args[12];
-    args[0].kind = WASM_I32;
-    args[0].of.i32 = index;
-    args[1].kind = WASM_I32;
-    args[1].of.i32 = effectType;
-    args[2].kind = WASM_I32;
-    args[2].of.i32 = bypass;
-    args[3].kind = WASM_F32;
-    args[3].of.f32 = p1;
-    args[4].kind = WASM_F32;
-    args[4].of.f32 = p2;
-    args[5].kind = WASM_F32;
-    args[5].of.f32 = p3;
-    args[6].kind = WASM_F32;
-    args[6].of.f32 = p4;
-    args[7].kind = WASM_F32;
-    args[7].of.f32 = p5;
-    args[8].kind = WASM_F32;
-    args[8].of.f32 = p6;
-    args[9].kind = WASM_F32;
-    args[9].of.f32 = p7;
-    args[10].kind = WASM_F32;
-    args[10].of.f32 = p8;
-    args[11].kind = WASM_F32;
-    args[11].of.f32 = p9;
-
-    int32_t applyError = 0;
-    return callI32 (execEnv_, fn_runtime_graph_set_node_, args, 12, applyError);
-}
-
-bool WasmDSP::setRuntimeEdge (int index, int fromIndex, int toIndex)
-{
-    if (fn_runtime_graph_set_edge_ == nullptr)
-        return false;
-    if (! ensureThreadEnv())
-        return false;
-
-    wasm_val_t args[3];
-    args[0].kind = WASM_I32;
-    args[0].of.i32 = index;
-    args[1].kind = WASM_I32;
-    args[1].of.i32 = fromIndex;
-    args[2].kind = WASM_I32;
-    args[2].of.i32 = toIndex;
-
-    int32_t applyError = 0;
-    return callI32 (execEnv_, fn_runtime_graph_set_edge_, args, 3, applyError);
 }
 
 #endif

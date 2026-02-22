@@ -16,12 +16,7 @@
         "get_param_min",
         "get_param_max",
         "set_param",
-        "get_param",
-        "apply_graph_contract",
-        "apply_graph_runtime_mode",
-        "runtime_graph_clear",
-        "runtime_graph_set_node",
-        "runtime_graph_set_edge"
+        "get_param"
       ],
       "export-memory-name": "memory",
       "heap-start-address": 655360

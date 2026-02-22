@@ -1,6 +1,13 @@
 let graph_contract_schema : Int = 1
 let graph_contract_max_nodes : Int = 16
 let graph_contract_max_edges : Int = 64
+let graph_node_stride : Int = 11
+let graph_edge_stride : Int = 2
+let graph_header_offset : Int = 6
+let graph_header_size : Int = 4
+let graph_node_bank_offset : Int = graph_header_offset + graph_header_size
+let graph_edge_bank_offset : Int = graph_node_bank_offset + graph_contract_max_nodes * graph_node_stride
+let graph_revision_param_index : Int = graph_edge_bank_offset + graph_contract_max_edges * graph_edge_stride
 
 let graph_contract_err_none : Int = 0
 let graph_contract_err_unsupported_version : Int = 1
@@ -28,6 +35,7 @@ let runtime_node_p8 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.
 let runtime_node_p9 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let runtime_edge_from : Array[Int] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 let runtime_edge_to : Array[Int] = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+let last_applied_revision_box : Array[Int] = [-1]
 
 fn reset_graph_contract_state() -> Unit {
   @engine.reset_effect_states()
@@ -63,6 +71,7 @@ fn reset_graph_contract_state() -> Unit {
   runtime_node_p9[1] = 0.0
   runtime_edge_from[0] = 0
   runtime_edge_to[0] = 1
+  last_applied_revision_box[0] = -1
 }
 
 fn validate_graph_contract_payload(schema_version : Int, node_count : Int, edge_count : Int) -> Int {
@@ -76,6 +85,63 @@ fn validate_graph_contract_payload(schema_version : Int, node_count : Int, edge_
     return graph_contract_err_edge_limit
   }
   graph_contract_err_none
+}
+
+fn get_param_value(index : Int, fallback : Float) -> Float {
+  if index < 0 || index >= param_values.length() {
+    fallback
+  } else {
+    param_values[index]
+  }
+}
+
+fn read_graph_revision_from_params() -> Int {
+  get_param_value(graph_revision_param_index, 0.0).to_int()
+}
+
+fn sync_runtime_graph_from_param_bank() -> Unit {
+  let revision = read_graph_revision_from_params()
+  if revision == last_applied_revision_box[0] {
+    return
+  }
+
+  let schema_version = get_param_value(graph_header_offset + 0, graph_contract_schema.to_float()).to_int()
+  let node_count = get_param_value(graph_header_offset + 1, 2.0).to_int()
+  let edge_count = get_param_value(graph_header_offset + 2, 1.0).to_int()
+  let has_output_path = get_param_value(graph_header_offset + 3, 1.0).to_int()
+
+  clear_runtime_graph()
+
+  for i = 0; i < node_count; i = i + 1 {
+    let base = graph_node_bank_offset + i * graph_node_stride
+    ignore(set_runtime_node(
+      i,
+      get_param_value(base + 0, 0.0).to_int(),
+      get_param_value(base + 1, 1.0).to_int(),
+      get_param_value(base + 2, if i < 2 { 1.0 } else { 0.0 }),
+      get_param_value(base + 3, 0.0),
+      get_param_value(base + 4, 0.0),
+      get_param_value(base + 5, 0.0),
+      get_param_value(base + 6, 0.0),
+      get_param_value(base + 7, 0.0),
+      get_param_value(base + 8, 0.0),
+      get_param_value(base + 9, 0.0),
+      get_param_value(base + 10, 0.0),
+    ))
+  }
+
+  for i = 0; i < edge_count; i = i + 1 {
+    let base = graph_edge_bank_offset + i * graph_edge_stride
+    ignore(set_runtime_edge(
+      i,
+      get_param_value(base + 0, -1.0).to_int(),
+      get_param_value(base + 1, -1.0).to_int(),
+    ))
+  }
+
+  ignore(apply_graph_contract(schema_version, node_count, edge_count))
+  ignore(apply_graph_runtime_mode(has_output_path, 0))
+  last_applied_revision_box[0] = revision
 }
 
 fn build_runtime_nodes() -> Array[@engine.ExecNode] {
@@ -180,6 +246,7 @@ fn run_applied_graph(
 }
 
 pub fn process_audio_frame_for_test(left : Float, right : Float) -> (Float, Float) {
+  sync_runtime_graph_from_param_bank()
   let input_l : Array[Float] = [left]
   let input_r : Array[Float] = [right]
   let output_l : Array[Float] = [0.0]
@@ -230,18 +297,21 @@ pub fn apply_graph_contract(schema_version : Int, node_count : Int, edge_count :
   } else {
     graph_runtime_supported_box[0] = false
   }
+  last_applied_revision_box[0] = read_graph_revision_from_params()
   error
 }
 
 pub fn apply_graph_runtime_mode(has_output_path : Int, effect_type : Int) -> Int {
   graph_runtime_has_output_path_box[0] = has_output_path != 0
   graph_runtime_effect_type_box[0] = if effect_type < 0 { @engine.effect_type_gain() } else { effect_type }
+  last_applied_revision_box[0] = read_graph_revision_from_params()
   0
 }
 
 pub fn clear_runtime_graph() -> Unit {
   runtime_graph_node_count_box[0] = 0
   runtime_graph_edge_count_box[0] = 0
+  last_applied_revision_box[0] = read_graph_revision_from_params()
 }
 
 pub fn set_runtime_node(
@@ -275,6 +345,7 @@ pub fn set_runtime_node(
   if index + 1 > runtime_graph_node_count_box[0] {
     runtime_graph_node_count_box[0] = index + 1
   }
+  last_applied_revision_box[0] = read_graph_revision_from_params()
   graph_contract_err_none
 }
 
@@ -287,10 +358,12 @@ pub fn set_runtime_edge(index : Int, from : Int, to : Int) -> Int {
   if index + 1 > runtime_graph_edge_count_box[0] {
     runtime_graph_edge_count_box[0] = index + 1
   }
+  last_applied_revision_box[0] = read_graph_revision_from_params()
   graph_contract_err_none
 }
 
 fn process_audio(num_samples : Int) -> Unit {
+  sync_runtime_graph_from_param_bank()
   let input_l : Array[Float] = []
   let input_r : Array[Float] = []
   let output_l : Array[Float] = []

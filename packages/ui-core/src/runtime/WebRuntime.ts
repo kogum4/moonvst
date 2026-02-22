@@ -1,5 +1,4 @@
 import type { ParamInfo, WebAudioRuntime } from './types'
-import { compileRuntimeGraphPayload } from './graphPayload'
 
 interface WasmExports {
   memory: WebAssembly.Memory
@@ -20,18 +19,10 @@ export function resolveRuntimeAssetPath(assetPath: string, baseUrl = import.meta
   return `${normalizedBase}${assetPath.replace(/^\//, '')}`
 }
 
-function withDevCacheBust(url: string): string {
-  if (!import.meta.env.DEV) {
-    return url
-  }
-  const separator = url.includes('?') ? '&' : '?'
-  return `${url}${separator}t=${Date.now()}`
-}
-
 export async function createWebRuntime(): Promise<WebAudioRuntime> {
   const ctx = new AudioContext({ latencyHint: 'interactive' })
-  const wasmPath = withDevCacheBust(resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm'))
-  const workletPath = withDevCacheBust(resolveRuntimeAssetPath('worklet/processor.js'))
+  const wasmPath = resolveRuntimeAssetPath('wasm/moonvst_dsp.wasm')
+  const workletPath = resolveRuntimeAssetPath('worklet/processor.js')
 
   // Load WASM binary
   const wasmResponse = await fetch(wasmPath)
@@ -202,33 +193,6 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
 
   // Parameter change listeners
   const listeners = new Map<number, Set<(v: number) => void>>()
-  const applyGraphPayload = (payload: string) => {
-    let runtimeGraph: ReturnType<typeof compileRuntimeGraphPayload>
-    try {
-      runtimeGraph = compileRuntimeGraphPayload(payload)
-    } catch {
-      return
-    }
-    workletNode.port.postMessage({
-      type: 'applyRuntimeGraph',
-      schemaVersion: runtimeGraph.schemaVersion,
-      hasOutputPath: runtimeGraph.hasOutputPath ? 1 : 0,
-      nodes: runtimeGraph.nodes.map((node) => ({
-        effectType: node.effectType,
-        bypass: node.bypass ? 1 : 0,
-        p1: node.p1,
-        p2: node.p2,
-        p3: node.p3,
-        p4: node.p4,
-        p5: node.p5,
-        p6: node.p6,
-        p7: node.p7,
-        p8: node.p8,
-        p9: node.p9,
-      })),
-      edges: runtimeGraph.edges,
-    })
-  }
 
   return {
     type: 'web',
@@ -252,10 +216,6 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
 
     getLevel() {
       return currentLevel
-    },
-
-    applyGraphPayload(payload: string) {
-      applyGraphPayload(payload)
     },
 
     async loadAudioData(bytes: ArrayBuffer, mimeType?: string) {
@@ -372,4 +332,3 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
     },
   }
 }
-

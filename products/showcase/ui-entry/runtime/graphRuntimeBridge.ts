@@ -1,46 +1,36 @@
 import type { AudioRuntime } from '../../../../packages/ui-core/src/runtime/types'
 import type { GraphState } from '../state/graphTypes'
-import { serializeGraphPayload } from './graphContract'
-import { GRAPH_CONTRACT_EVENT_ID } from './graphContractConstants'
+import { compileRuntimeGraphPayload, serializeGraphPayload } from './graphContract'
+import { toParamBankWrites, validateRuntimeGraphSchema } from './graphParamBank'
 
-type JuceEventBridge = {
-  emitEvent(eventId: string, payload: unknown): void
-}
-
-const asJuceEventBridge = (candidate: unknown): JuceEventBridge | null => {
-  if (
-    candidate
-    && typeof candidate === 'object'
-    && 'emitEvent' in candidate
-    && typeof (candidate as JuceEventBridge).emitEvent === 'function'
-  ) {
-    return candidate as JuceEventBridge
+export function emitGraphPayloadToRuntime(runtime: AudioRuntime | null, payload: string, revision: number): void {
+  if (!runtime) {
+    return
   }
-  return null
-}
-
-export function emitGraphPayloadToRuntime(runtime: AudioRuntime | null, payload: string): void {
-  if (runtime && typeof runtime.applyGraphPayload === 'function') {
-    runtime.applyGraphPayload(payload)
+  let graph
+  try {
+    graph = compileRuntimeGraphPayload(payload)
+    validateRuntimeGraphSchema(graph.schemaVersion)
+  } catch {
     return
   }
 
-  if (runtime?.type !== 'juce') {
-    return
+  const writes = toParamBankWrites(graph, revision)
+  for (const write of writes) {
+    runtime.setParam(write.index, write.value)
   }
-  const bridge = window.__JUCE__
-  const eventBridge = asJuceEventBridge(bridge?.backend) ?? asJuceEventBridge(bridge)
-  eventBridge?.emitEvent(GRAPH_CONTRACT_EVENT_ID, { payload })
 }
 
-export function createGraphRuntimeBridge(emit: (payload: string) => void) {
+export function createGraphRuntimeBridge(emit: (payload: string, revision: number) => void) {
   let lastPayload: string | null = null
+  let revision = 0
 
   return {
     sync(state: GraphState): string {
       const nextPayload = serializeGraphPayload(state)
       if (nextPayload !== lastPayload) {
-        emit(nextPayload)
+        revision += 1
+        emit(nextPayload, revision)
         lastPayload = nextPayload
       }
       return nextPayload

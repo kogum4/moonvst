@@ -20,8 +20,8 @@ test "reset clears internal state" {
   assert_eq(approx_eq(@src.mix_dry_wet(0.1, 0.8, 0.5), 0.45, 0.00001), true)
 }
 
-test "showcase exports six params" {
-  assert_eq(get_param_count(), 6)
+test "showcase exports parameter bank surface" {
+  assert_eq(get_param_count(), 315)
 }
 
 test "graph contract apply validates schema version and limits" {
@@ -122,4 +122,53 @@ test "runtime graph node params and bypass affect output" {
   let (dry_l, dry_r) = @src.process_audio_frame_for_test(0.8, -0.8)
   assert_eq(approx_eq(dry_l, 0.8, 0.00001), true)
   assert_eq(approx_eq(dry_r, -0.8, 0.00001), true)
+}
+
+test "param bank revision applies graph updates to audio path" {
+  product_reset()
+  let graph_header_offset : Int = 6
+  let graph_node_bank_offset : Int = 10
+  let graph_edge_bank_offset : Int = 186
+  let graph_revision_param_index : Int = 314
+  let node_stride : Int = 11
+  let edge_stride : Int = 2
+
+  // Header: schema=1, nodes=3, edges=2, has_output_path=1
+  set_param(graph_header_offset + 0, 1.0)
+  set_param(graph_header_offset + 1, 3.0)
+  set_param(graph_header_offset + 2, 2.0)
+  set_param(graph_header_offset + 3, 1.0)
+
+  // Node0: input (gain, bypass on)
+  let n0 = graph_node_bank_offset + 0 * node_stride
+  set_param(n0 + 0, 0.0)
+  set_param(n0 + 1, 1.0)
+  set_param(n0 + 2, 1.0)
+
+  // Node1: active gain 0.5
+  let n1 = graph_node_bank_offset + 1 * node_stride
+  set_param(n1 + 0, 0.0)
+  set_param(n1 + 1, 0.0)
+  set_param(n1 + 2, 0.5)
+
+  // Node2: output (gain, bypass on)
+  let n2 = graph_node_bank_offset + 2 * node_stride
+  set_param(n2 + 0, 0.0)
+  set_param(n2 + 1, 1.0)
+  set_param(n2 + 2, 1.0)
+
+  // Edges: 0->1, 1->2
+  let e0 = graph_edge_bank_offset + 0 * edge_stride
+  set_param(e0 + 0, 0.0)
+  set_param(e0 + 1, 1.0)
+  let e1 = graph_edge_bank_offset + 1 * edge_stride
+  set_param(e1 + 0, 1.0)
+  set_param(e1 + 1, 2.0)
+
+  // Bump revision to trigger sync.
+  set_param(graph_revision_param_index, 1.0)
+
+  let (out_l, out_r) = @src.process_audio_frame_for_test(0.8, -0.4)
+  assert_eq(approx_eq(out_l, 0.4, 0.00001), true)
+  assert_eq(approx_eq(out_r, -0.2, 0.00001), true)
 }

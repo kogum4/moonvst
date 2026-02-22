@@ -66,7 +66,6 @@ target_link_libraries(plugin_smoke_test PRIVATE
 
 target_compile_definitions(plugin_smoke_test PRIVATE
     JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1
-    MOONVST_PRODUCT_NAME="${MOONVST_PRODUCT_SAFE}"
 )
 
 add_test(NAME PluginSmokeTest COMMAND plugin_smoke_test)

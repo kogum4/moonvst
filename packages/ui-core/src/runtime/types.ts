@@ -12,7 +12,6 @@ export interface AudioRuntime {
   setParam(index: number, value: number): void
   getParam(index: number): number
   getLevel(): number
-  applyGraphPayload?(payload: string): void
   onParamChange(index: number, cb: (v: number) => void): () => void
   dispose(): void
 }

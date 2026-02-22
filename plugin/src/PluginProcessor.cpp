@@ -85,41 +85,6 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
 
     if (wasmReady_)
     {
-        if (pendingRuntimeGraphApply_.exchange (false))
-        {
-            RuntimeGraphConfig graphConfig;
-            {
-                const std::lock_guard<std::mutex> lock (pendingRuntimeGraphMutex_);
-                graphConfig = pendingRuntimeGraph_;
-            }
-
-            wasmDSP_.clearRuntimeGraph();
-            for (size_t i = 0; i < graphConfig.nodes.size(); ++i)
-            {
-                const auto& node = graphConfig.nodes[i];
-                wasmDSP_.setRuntimeNode (
-                    (int) i,
-                    node.effectType,
-                    node.bypass,
-                    node.p1,
-                    node.p2,
-                    node.p3,
-                    node.p4,
-                    node.p5,
-                    node.p6,
-                    node.p7,
-                    node.p8,
-                    node.p9);
-            }
-            for (size_t i = 0; i < graphConfig.edges.size(); ++i)
-            {
-                const auto& edge = graphConfig.edges[i];
-                wasmDSP_.setRuntimeEdge ((int) i, edge.fromIndex, edge.toIndex);
-            }
-            wasmDSP_.applyGraphContract (graphConfig.schemaVersion, (int) graphConfig.nodes.size(), (int) graphConfig.edges.size());
-            wasmDSP_.applyGraphRuntimeMode (graphConfig.hasOutputPath, 0);
-        }
-
         for (int i = 0; i < paramCount_; ++i)
         {
             if (const auto* raw = apvts.getRawParameterValue (paramNames_[(size_t) i]))
@@ -159,13 +124,4 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new PluginProcessor();
-}
-
-void PluginProcessor::queueRuntimeGraphApply (RuntimeGraphConfig config)
-{
-    {
-        const std::lock_guard<std::mutex> lock (pendingRuntimeGraphMutex_);
-        pendingRuntimeGraph_ = std::move (config);
-    }
-    pendingRuntimeGraphApply_.store (true);
 }
