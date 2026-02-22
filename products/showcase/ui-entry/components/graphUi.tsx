@@ -45,9 +45,9 @@ const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
     icon: Gauge,
     label: 'Compressor',
     rows: [
-      { key: 'threshold', label: 'Threshold', value: '-18 dB' },
-      { key: 'ratio', label: 'Ratio', value: '4:1' },
-      { key: 'attack', label: 'Attack', value: '10 ms' },
+      { key: 'threshold', label: 'Threshold', value: '-24 dB' },
+      { key: 'ratio', label: 'Ratio', value: '12:1' },
+      { key: 'wet', label: 'Wet', value: '100%' },
     ],
   },
   delay: {
@@ -55,9 +55,10 @@ const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
     icon: Timer,
     label: 'Delay',
     rows: [
-      { key: 'time', label: 'Time', value: '375 ms' },
-      { key: 'feedback', label: 'Feedback', value: '35%' },
-      { key: 'mix', label: 'Mix', value: '25%' },
+      { key: 'timeMs', label: 'Time', value: '375 ms' },
+      { key: 'feedback', label: 'Feedback', value: '0%' },
+      { key: 'filterHz', label: 'Filter', value: '2400 Hz' },
+      { key: 'wetDry', label: 'Wet/Dry', value: '100%' },
     ],
   },
   distortion: {
@@ -65,9 +66,11 @@ const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
     icon: Zap,
     label: 'Distortion',
     rows: [
-      { key: 'drive', label: 'Drive', value: '42%' },
-      { key: 'tone', label: 'Tone', value: '58%' },
-      { key: 'mix', label: 'Mix', value: '35%' },
+      { key: 'drive', label: 'Drive', value: '60%' },
+      { key: 'warmth', label: 'Warmth', value: '50%' },
+      { key: 'aura', label: 'Aura', value: '50%' },
+      { key: 'output', label: 'Output', value: '100%' },
+      { key: 'mix', label: 'Dry/Wet', value: '100%' },
     ],
   },
   eq: {
@@ -85,8 +88,8 @@ const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
     icon: Filter,
     label: 'Filter',
     rows: [
-      { key: 'cutoff', label: 'Cutoff', value: '2.5 kHz' },
-      { key: 'resonance', label: 'Resonance', value: '0.7' },
+      { key: 'cutoff', label: 'Cutoff', value: '2500 Hz' },
+      { key: 'q', label: 'Q', value: '0.71' },
       { key: 'mix', label: 'Mix', value: '100%' },
     ],
   },

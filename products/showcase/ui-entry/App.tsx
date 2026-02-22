@@ -13,7 +13,7 @@ export default function App() {
   return (
     <>
       {isWebAudioRuntime(runtime) ? <WebAudioMenu runtime={runtime} /> : null}
-      <NodeEditorShell />
+      <NodeEditorShell runtime={runtime} />
     </>
   )
 }

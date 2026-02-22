@@ -1,4 +1,12 @@
 let graph_executor_max_nodes : Int = 16
+let reverb_default_predelay_ms : Float = 20.0
+let reverb_default_decay : Float = 0.78
+let reverb_default_damping : Float = 0.35
+let reverb_default_diffusion : Float = 0.70
+let persistent_filter_ic1_l : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let persistent_filter_ic2_l : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let persistent_filter_ic1_r : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let persistent_filter_ic2_r : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 pub struct ExecEdge {
   from : Int
@@ -12,6 +20,11 @@ pub struct ExecNode {
   p2 : Float
   p3 : Float
   p4 : Float
+  p5 : Float
+  p6 : Float
+  p7 : Float
+  p8 : Float
+  p9 : Float
 }
 
 pub fn make_exec_edge(from : Int, to : Int) -> ExecEdge {
@@ -25,8 +38,13 @@ pub fn make_exec_node(
   p2 : Float,
   p3 : Float,
   p4 : Float,
+  p5 : Float,
+  p6 : Float,
+  p7 : Float,
+  p8 : Float,
+  p9 : Float,
 ) -> ExecNode {
-  { effect_type, bypass, p1, p2, p3, p4 }
+  { effect_type, bypass, p1, p2, p3, p4, p5, p6, p7, p8, p9 }
 }
 
 pub fn effect_type_gain() -> Int { 0 }
@@ -81,6 +99,18 @@ fn empty_bool_buffer() -> Array[Bool] {
 
 fn empty_f32_buffer() -> Array[Float] {
   [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+}
+
+pub fn reset_effect_states() -> Unit {
+  for i = 0; i < graph_executor_max_nodes; i = i + 1 {
+    persistent_filter_ic1_l[i] = 0.0
+    persistent_filter_ic2_l[i] = 0.0
+    persistent_filter_ic1_r[i] = 0.0
+    persistent_filter_ic2_r[i] = 0.0
+  }
+  @effects.reset_compressor_state()
+  @effects.reset_delay_state()
+  @effects.reset_eq_state()
 }
 
 fn invalid_result(
@@ -180,8 +210,10 @@ fn execute_node_effect(
   node_index : Int,
   node_in_l : Float,
   node_in_r : Float,
-  effect_state_l : Array[Float],
-  effect_state_r : Array[Float],
+  filter_state_ic1_l : Array[Float],
+  filter_state_ic2_l : Array[Float],
+  filter_state_ic1_r : Array[Float],
+  filter_state_ic2_r : Array[Float],
 ) -> (Float, Float) {
   if node.bypass {
     return (node_in_l, node_in_r)
@@ -193,28 +225,65 @@ fn execute_node_effect(
   } else if kind == effect_type_chorus() {
     @effects.chorus_process(node_in_l, node_in_r, node.p1, node.p2, node.p3)
   } else if kind == effect_type_compressor() {
-    @effects.compressor_process(node_in_l, node_in_r, node.p1, node.p2)
+    @effects.compressor_process(
+      node_index,
+      node_in_l,
+      node_in_r,
+      node.p1,
+      node.p2,
+      node.p3,
+      node.p4,
+      node.p5,
+      node.p6,
+      node.p7,
+      node.p8,
+      node.p9,
+    )
   } else if kind == effect_type_delay() {
-    let (out_l, out_r, next_l, next_r) =
-      @effects.delay_process_sample(node_in_l, node_in_r, effect_state_l[node_index], effect_state_r[node_index], node.p1, node.p2)
-    effect_state_l[node_index] = next_l
-    effect_state_r[node_index] = next_r
-    (out_l, out_r)
+    @effects.delay_process_sample(
+      node_index,
+      node_in_l,
+      node_in_r,
+      node.p1,
+      node.p2,
+      node.p3,
+      node.p4,
+      node.p5,
+      node.p6,
+    )
   } else if kind == effect_type_distortion() {
-    @effects.distortion_process(node_in_l, node_in_r, node.p1, node.p2)
+    @effects.distortion_process(node_index, node_in_l, node_in_r, node.p1, node.p2, node.p3, node.p4, node.p5)
   } else if kind == effect_type_eq() {
-    @effects.eq_process(node_in_l, node_in_r, node.p1, node.p2)
+    @effects.eq_process(node_index, node_in_l, node_in_r, node.p1, node.p2, node.p3, node.p4, node.p5)
   } else if kind == effect_type_filter() {
-    let (out_l, out_r, next_l, next_r) =
-      @effects.filter_process_sample(node_in_l, node_in_r, effect_state_l[node_index], effect_state_r[node_index], node.p1, node.p2)
-    effect_state_l[node_index] = next_l
-    effect_state_r[node_index] = next_r
+    let (out_l, out_r, next_ic1_l, next_ic2_l, next_ic1_r, next_ic2_r) =
+      @effects.filter_process_sample(
+        node_in_l,
+        node_in_r,
+        filter_state_ic1_l[node_index],
+        filter_state_ic2_l[node_index],
+        filter_state_ic1_r[node_index],
+        filter_state_ic2_r[node_index],
+        node.p1,
+        node.p2,
+        node.p3 * 5.0,
+        node.p4,
+      )
+    filter_state_ic1_l[node_index] = next_ic1_l
+    filter_state_ic2_l[node_index] = next_ic2_l
+    filter_state_ic1_r[node_index] = next_ic1_r
+    filter_state_ic2_r[node_index] = next_ic2_r
     (out_l, out_r)
   } else if kind == effect_type_reverb() {
-    let mono = (node_in_l + node_in_r) * 0.5
-    let wet_l = @effects.reverb_mix_dry_wet(node_in_l, mono, node.p1)
-    let wet_r = @effects.reverb_mix_dry_wet(node_in_r, mono, node.p1)
-    (wet_l, wet_r)
+    @effects.process_reverb_sample(
+      node_in_l,
+      node_in_r,
+      reverb_default_predelay_ms,
+      reverb_default_decay,
+      reverb_default_damping,
+      reverb_default_diffusion,
+      node.p1,
+    )
   } else {
     (node_in_l, node_in_r)
   }
@@ -241,9 +310,6 @@ pub fn execute_graph_block_fx(
 
   let node_out_l = empty_f32_buffer()
   let node_out_r = empty_f32_buffer()
-  let effect_state_l = empty_f32_buffer()
-  let effect_state_r = empty_f32_buffer()
-
   for sample = 0; sample < input_l.length(); sample = sample + 1 {
     for step = 0; step < trace_len; step = step + 1 {
       let node_index = order[step]
@@ -268,8 +334,10 @@ pub fn execute_graph_block_fx(
         node_index,
         node_in_l,
         node_in_r,
-        effect_state_l,
-        effect_state_r,
+        persistent_filter_ic1_l,
+        persistent_filter_ic2_l,
+        persistent_filter_ic1_r,
+        persistent_filter_ic2_r,
       )
       node_out_l[node_index] = out_l
       node_out_r[node_index] = out_r

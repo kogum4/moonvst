@@ -8,8 +8,11 @@ class MockAudioWorkletNode {
 
   constructor() {
     this.port = { postMessage: vi.fn(), onmessage: null }
+    latestWorkletNode = this
   }
 }
+
+let latestWorkletNode: MockAudioWorkletNode | null = null
 
 describe('createWebRuntime', () => {
   const originalFetch = globalThis.fetch
@@ -21,6 +24,7 @@ describe('createWebRuntime', () => {
   let lastAudioContextOptions: AudioContextOptions | undefined
 
   beforeEach(() => {
+    latestWorkletNode = null
     const memory = new WebAssembly.Memory({ initial: 1 })
     const encoder = new TextEncoder()
     const nameBytes = encoder.encode('gain')
@@ -127,6 +131,51 @@ describe('createWebRuntime', () => {
     runtime.stopMic()
     expect(runtime.getInputMode()).toBe('none')
     expect(runtime.getMicState()).toBe('inactive')
+  })
+
+
+  test('applies graph payload by posting compiled runtime graph to worklet', async () => {
+    const runtime = await createWebRuntime()
+    runtime.applyGraphPayload?.(
+      JSON.stringify({
+        graphSchemaVersion: 1,
+        nodes: [
+          { id: 'input', kind: 'input', x: 0, y: 0, bypass: false, params: {} },
+          { id: 'fx', kind: 'distortion', x: 0, y: 0, bypass: false, params: { drive: 100, warmth: 50, aura: 75, output: 80, mix: 50 } },
+          { id: 'output', kind: 'output', x: 0, y: 0, bypass: false, params: {} },
+        ],
+        edges: [
+          { fromNodeId: 'input', toNodeId: 'fx' },
+          { fromNodeId: 'fx', toNodeId: 'output' },
+        ],
+      }),
+    )
+
+    expect(latestWorkletNode?.port.postMessage).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        type: 'applyRuntimeGraph',
+        schemaVersion: 1,
+        hasOutputPath: 1,
+        nodes: expect.any(Array),
+        edges: expect.any(Array),
+      }),
+    )
+    const runtimeGraphMessage = vi.mocked(latestWorkletNode!.port.postMessage).mock.calls[1]?.[0] as {
+      nodes: Array<{ effectType: number; bypass: number; p1: number; p2: number; p3: number; p4: number; p5: number; p6: number; p7: number; p8: number; p9: number }>
+      edges: Array<{ fromIndex: number; toIndex: number }>
+    }
+    expect(runtimeGraphMessage.nodes).toHaveLength(3)
+    expect(runtimeGraphMessage.nodes).toEqual(
+      expect.arrayContaining([
+        { effectType: 4, bypass: 0, p1: 1, p2: 0.5, p3: 0.75, p4: 0.8, p5: 0.5, p6: 0, p7: 0, p8: 0, p9: 0 },
+      ]),
+    )
+    expect(runtimeGraphMessage.edges).toHaveLength(2)
+    expect(latestWorkletNode?.port.postMessage).toHaveBeenNthCalledWith(1, {
+      type: 'loadWasm',
+      wasmBytes: expect.any(ArrayBuffer),
+    })
   })
 })
 

@@ -1,6 +1,7 @@
 #include "PluginEditor.h"
 #include "UIBinaryData.h"
 #include <cstring>
+#include <vector>
 
 namespace
 {
@@ -34,6 +35,60 @@ juce::String getMimeTypeForPath (const juce::String& path)
     if (ext == "woff2")                  return "font/woff2";
     if (ext == "txt")                    return "text/plain";
     return "application/octet-stream";
+}
+
+bool parseRuntimeGraphConfigFromVar (const juce::var& value, PluginProcessor::RuntimeGraphConfig& out)
+{
+    auto* root = value.getDynamicObject();
+    if (root == nullptr)
+        return false;
+
+    const auto nodesVar = root->getProperty ("nodes");
+    const auto edgesVar = root->getProperty ("edges");
+    auto* nodes = nodesVar.getArray();
+    auto* edges = edgesVar.getArray();
+    if (nodes == nullptr || edges == nullptr)
+        return false;
+
+    out.schemaVersion = (int) root->getProperty ("schemaVersion");
+    out.hasOutputPath = (int) root->getProperty ("hasOutputPath");
+    out.nodes.clear();
+    out.edges.clear();
+    out.nodes.reserve ((size_t) nodes->size());
+    out.edges.reserve ((size_t) edges->size());
+
+    for (const auto& nodeVar : *nodes)
+    {
+        auto* node = nodeVar.getDynamicObject();
+        if (node == nullptr)
+            continue;
+        PluginProcessor::RuntimeGraphNode parsedNode;
+        parsedNode.effectType = (int) node->getProperty ("effectType");
+        parsedNode.bypass = (int) node->getProperty ("bypass");
+        parsedNode.p1 = (float) (double) node->getProperty ("p1");
+        parsedNode.p2 = (float) (double) node->getProperty ("p2");
+        parsedNode.p3 = (float) (double) node->getProperty ("p3");
+        parsedNode.p4 = (float) (double) node->getProperty ("p4");
+        parsedNode.p5 = (float) (double) node->getProperty ("p5");
+        parsedNode.p6 = (float) (double) node->getProperty ("p6");
+        parsedNode.p7 = (float) (double) node->getProperty ("p7");
+        parsedNode.p8 = (float) (double) node->getProperty ("p8");
+        parsedNode.p9 = (float) (double) node->getProperty ("p9");
+        out.nodes.push_back (parsedNode);
+    }
+
+    for (const auto& edgeVar : *edges)
+    {
+        auto* edge = edgeVar.getDynamicObject();
+        if (edge == nullptr)
+            continue;
+        PluginProcessor::RuntimeGraphEdge parsedEdge;
+        parsedEdge.fromIndex = (int) edge->getProperty ("fromIndex");
+        parsedEdge.toIndex = (int) edge->getProperty ("toIndex");
+        out.edges.push_back (parsedEdge);
+    }
+
+    return true;
 }
 }
 
@@ -154,6 +209,16 @@ bool PluginEditor::setupWebView()
         .withNativeFunction ("getLevel", [this] (auto& /*args*/, auto complete)
         {
             complete (juce::var ((double) processorRef.getOutputLevel()));
+        })
+        .withNativeFunction ("applyRuntimeGraph", [this] (auto& args, auto complete)
+        {
+            if (args.size() >= 1)
+            {
+                PluginProcessor::RuntimeGraphConfig config;
+                if (parseRuntimeGraphConfigFromVar (args[0], config))
+                    processorRef.queueRuntimeGraphApply (std::move (config));
+            }
+            complete (juce::var());
         });
 
     // Create WebSliderRelay and bind each relay to the corresponding parameter.

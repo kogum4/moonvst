@@ -13,10 +13,10 @@ Status legend:
 
 ## Progress Dashboard
 
-- Overall stories done: `7 / 10`
-- Overall tasks done: `50 / 53`
-- Current story: `S8`
-- Last updated: `2026-02-20`
+- Overall stories done: `9 / 10`
+- Overall tasks done: `62 / 63`
+- Current story: `S9`
+- Last updated: `2026-02-21`
 
 ## Update Rules
 
@@ -200,16 +200,42 @@ Validation:
 
 ## Story S8: UI-DSP Graph Contract and Runtime Bridge
 
-- [ ] `P2-S8-R-01` RED: Add UI unit test for graph payload serialization format/version.
-- [ ] `P2-S8-R-02` RED: Add UI/runtime test for emitting payload on graph edit.
-- [ ] `P2-S8-R-03` RED: Add DSP-side test for payload validation and apply behavior.
-- [ ] `P2-S8-G-01` GREEN: Implement versioned graph payload schema and validators.
-- [ ] `P2-S8-G-02` GREEN: Implement runtime transport in `products/showcase/ui-entry/runtime/*`.
-- [ ] `P2-S8-G-03` GREEN: Refactor `products/showcase/dsp-entry/lib.mbt` to wiring-only contract apply path.
-- [ ] `P2-S8-F-01` REFACTOR: Consolidate contract constants and error mapping.
+- [x] `P2-S8-R-01` RED: Add UI unit test for graph payload serialization format/version.
+  - Evidence: Added `products/showcase/ui-entry/runtime/graphContract.unit.test.ts` and confirmed RED failure via `npm run test:ui:unit -- ../../products/showcase/ui-entry/runtime/graphContract.unit.test.ts ../../products/showcase/ui-entry/runtime/graphRuntimeBridge.unit.test.ts` (`Failed to resolve import "./graphContract"`).
+- [x] `P2-S8-R-02` RED: Add UI/runtime test for emitting payload on graph edit.
+  - Evidence: Added `products/showcase/ui-entry/runtime/graphRuntimeBridge.unit.test.ts` and confirmed RED failure in the same run (`Failed to resolve import "./graphRuntimeBridge"`).
+- [x] `P2-S8-R-03` RED: Add DSP-side test for payload validation and apply behavior.
+  - Evidence: Added graph-contract apply tests in `products/showcase/dsp-entry/lib_test.mbt`; confirmed RED failure via `npm run test:dsp:showcase` with missing `apply_graph_contract` / contract error getter exports.
+- [x] `P2-S8-G-01` GREEN: Implement versioned graph payload schema and validators.
+  - Evidence: Added `products/showcase/ui-entry/runtime/graphContract.ts` with deterministic serialization, `graphSchemaVersion: 1`, strict node-kind/edge/param validation, and deserialize guards; new unit tests pass.
+- [x] `P2-S8-G-02` GREEN: Implement runtime transport in `products/showcase/ui-entry/runtime/*`.
+  - Evidence: Added `products/showcase/ui-entry/runtime/graphRuntimeBridge.ts` + `graphContractConstants.ts`, wired bridge sync in `NodeEditorShell` and runtime propagation from `App.tsx`; `graphRuntimeBridge.unit.test.ts` passes.
+- [x] `P2-S8-G-03` GREEN: Refactor `products/showcase/dsp-entry/lib.mbt` to wiring-only contract apply path.
+  - Evidence: Added `apply_graph_contract` and contract-state/error exports in `products/showcase/dsp-entry/lib.mbt`; `products/showcase/dsp-entry/lib_test.mbt` new apply/validation tests pass.
+- [x] `P2-S8-F-01` REFACTOR: Consolidate contract constants and error mapping.
+  - Evidence: Contract constants/error codes centralized in `products/showcase/ui-entry/runtime/graphContractConstants.ts` and reused by serializer/runtime bridge.
 
 Validation:
 - `npm run test:ui:unit`
+- `npm run test:dsp`
+
+---
+
+## Story S8.5: Graph-to-Audio Runtime Wiring
+
+- [x] `P2-S85-R-01` RED: Add DSP test proving `process_audio` output changes according to applied graph (not fixed reverb-only path).
+  - Evidence: Added `process audio output reflects applied graph contract shape` in `products/showcase/dsp-entry/lib_test.mbt`; confirmed RED failure via `npm run test:dsp:showcase` (`process_audio_frame_for_test` missing).
+- [x] `P2-S85-R-02` RED: Add DSP test for invalid/unsupported applied graph falling back to deterministic dry-safe behavior.
+  - Evidence: Added `process audio falls back to dry-safe path for unsupported applied graph` in `products/showcase/dsp-entry/lib_test.mbt`; confirmed RED failure in the same run before runtime wiring.
+- [x] `P2-S85-G-01` GREEN: Wire `products/showcase/dsp-entry/lib.mbt` contract apply state to executor input and route `process_audio` through graph execution path.
+  - Evidence: `process_audio` now reads memory input buffers, runs `run_applied_graph` -> `@engine.execute_graph_block_fx`, and writes block output back to memory in `products/showcase/dsp-entry/lib.mbt`.
+- [x] `P2-S85-G-02` GREEN: Ensure graph state changes are reflected in block processing on subsequent calls.
+  - Evidence: `apply_graph_contract` now updates runtime-shape flags/counts, and `process_audio_frame_for_test` assertions prove `2/1` vs `4/3` contract applies produce different output across subsequent calls.
+- [x] `P2-S85-F-01` REFACTOR: Consolidate graph-apply -> executor mapping helpers and fallback/error handling.
+  - Evidence: Extracted helpers (`build_runtime_nodes`, `build_runtime_edges`, `run_applied_graph`, `copy_dry_to_output`, `make_order_buffer`) centralize apply-to-executor mapping and deterministic dry fallback.
+
+Validation:
+- `npm run test:dsp:showcase`
 - `npm run test:dsp`
 
 ---
@@ -248,10 +274,13 @@ Validation:
 
 ## Change Log
 
+- `2026-02-21`: Completed Story S8.5 (`P2-S85-R/G/F`), added RED DSP tests for graph-driven `process_audio` output and unsupported-shape dry fallback; wired showcase `process_audio` through `@engine.execute_graph_block_fx` using applied contract state, and refactored runtime mapping/fallback into shared helpers in `products/showcase/dsp-entry/lib.mbt`.
 - `2026-02-20`: Completed Story S6 (`P2-S6-R/G/F`), added MoonBit RED tests for topological order, bypass pass-through, and invalid-graph dry fallback; implemented shared `packages/dsp-core/src/engine/graph_executor.mbt` with topological scheduling/stereo block execution/fallback safety and updated `scripts/select-product.js` to copy full `packages/dsp-core/src` (including new subpackages) into `build/dsp-active`.
 - `2026-02-20`: Completed Story S7 (`P2-S7-R/G/F`), added showcase RED tests for per-effect minimum behavior, extracted Dattorro reverb, and mixed-chain executor integration; implemented shared effect modules under `packages/dsp-core/src/effects/*`, added effect-node dispatch API (`ExecNode` / `execute_graph_block_fx`) in `graph_executor`, and kept showcase `lib.mbt` as thin reverb wiring.
+- `2026-02-21`: Completed Story S8 (`P2-S8-R/G/F`), added RED tests for versioned graph payload serialization/runtime emission and DSP-side apply validation; implemented deterministic UI graph contract serializer + validators, runtime bridge transport wiring (`runtime/*` + `App.tsx`/`NodeEditorShell.tsx`), and showcase DSP contract apply/error state exports in `products/showcase/dsp-entry/lib.mbt`.
 - `2026-02-20`: Completed Story S5 (`P2-S5-R/G/F`), added inspector editing component tests and implemented selected-node metadata, schema-driven parameter controls, bypass toggle wiring, and connection summaries using shared node parameter schema utilities.
 - `2026-02-18`: Completed Story S4 (`P2-S4-R/G/F`), added showcase canvas interaction component tests and implemented reducer-driven `NodePalette`/`GraphCanvas`/`EdgeLayer` flows (add/connect/disconnect/select) with deterministic placement and extracted interaction hook/utilities.
 - `2026-02-18`: Completed Story S3 (`P2-S3-R/G/F`), added showcase graph reducer unit tests and implemented graph state model/reducer with node limit, I/O guard, connect/disconnect, param updates, bypass, and DAG cycle rejection.
 - `2026-02-18`: Completed Story S2 (`P2-S2-R/G/F`), added reusable node primitive tests/components and refactored `NodeEditorShell` to consume primitives.
 - `2026-02-18`: Rewritten to strict TDD task ordering (`RED -> GREEN -> REFACTOR` per story).
+

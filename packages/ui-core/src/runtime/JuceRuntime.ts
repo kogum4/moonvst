@@ -1,4 +1,5 @@
 import type { AudioRuntime, ParamInfo } from './types'
+import { compileRuntimeGraphPayload } from './graphPayload'
 
 declare global {
   interface Window {
@@ -208,6 +209,7 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
   const getParamInfo = bridge.getNativeFunction('getParamInfo')
   const setParamNative = bridge.getNativeFunction('setParam')
   const getLevelNative = bridge.getNativeFunction('getLevel')
+  const applyRuntimeGraphNative = bridge.getNativeFunction('applyRuntimeGraph')
 
   // Fetch all parameter info at init
   const count = (await withTimeout(getParamCount() as Promise<number>, 'getParamCount')) as number
@@ -274,6 +276,33 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
       return currentLevel
     },
 
+    applyGraphPayload(payload: string) {
+      let runtimeGraph: ReturnType<typeof compileRuntimeGraphPayload>
+      try {
+        runtimeGraph = compileRuntimeGraphPayload(payload)
+      } catch {
+        return
+      }
+      void applyRuntimeGraphNative({
+        schemaVersion: runtimeGraph.schemaVersion,
+        hasOutputPath: runtimeGraph.hasOutputPath ? 1 : 0,
+        nodes: runtimeGraph.nodes.map((node) => ({
+          effectType: node.effectType,
+          bypass: node.bypass ? 1 : 0,
+          p1: node.p1,
+          p2: node.p2,
+          p3: node.p3,
+          p4: node.p4,
+          p5: node.p5,
+          p6: node.p6,
+          p7: node.p7,
+          p8: node.p8,
+          p9: node.p9,
+        })),
+        edges: runtimeGraph.edges,
+      })
+    },
+
     onParamChange(index: number, cb: (v: number) => void) {
       const p = params[index]
       if (!p) return () => {}
@@ -289,3 +318,4 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
     },
   }
 }
+
