@@ -34,6 +34,10 @@ pub fn set_runtime_node(
   _p3 : Float,
   _p4 : Float,
   _p5 : Float,
+  _p6 : Float,
+  _p7 : Float,
+  _p8 : Float,
+  _p9 : Float,
 ) -> Int {
   0
 }

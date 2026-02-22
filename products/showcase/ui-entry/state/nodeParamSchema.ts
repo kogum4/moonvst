@@ -33,9 +33,15 @@ const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
     { key: 'mix', label: 'Mix', min: 0, max: 100, step: 1, defaultValue: 35, formatValue: formatPercent },
   ],
   compressor: [
-    { key: 'threshold', label: 'Threshold', min: -48, max: 0, step: 0.5, defaultValue: -18, formatValue: formatDb },
-    { key: 'ratio', label: 'Ratio', min: 1, max: 20, step: 0.1, defaultValue: 4, formatValue: formatRatio },
-    { key: 'attack', label: 'Attack', min: 1, max: 100, step: 1, defaultValue: 10, formatValue: formatMs },
+    { key: 'pregain', label: 'Pregain', min: -24, max: 48, step: 0.1, defaultValue: 0, formatValue: formatDb },
+    { key: 'threshold', label: 'Threshold', min: -100, max: 0, step: 0.1, defaultValue: -24, formatValue: formatDb },
+    { key: 'knee', label: 'Knee', min: 0, max: 40, step: 0.1, defaultValue: 30, formatValue: formatDb },
+    { key: 'ratio', label: 'Ratio', min: 1, max: 20, step: 0.1, defaultValue: 12, formatValue: formatRatio },
+    { key: 'attack', label: 'Attack', min: 0.1, max: 1000, step: 0.1, defaultValue: 3, formatValue: formatMs },
+    { key: 'release', label: 'Release', min: 1, max: 1000, step: 1, defaultValue: 250, formatValue: formatMs },
+    { key: 'predelay', label: 'Predelay', min: 0, max: 20, step: 0.1, defaultValue: 6, formatValue: formatMs },
+    { key: 'postgain', label: 'Postgain', min: -24, max: 48, step: 0.1, defaultValue: 0, formatValue: formatDb },
+    { key: 'wet', label: 'Wet', min: 0, max: 100, step: 1, defaultValue: 100, formatValue: formatPercent },
   ],
   delay: [
     { key: 'time', label: 'Time', min: 1, max: 1200, step: 1, defaultValue: 375, formatValue: formatMs },

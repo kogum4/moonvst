@@ -45,9 +45,9 @@ const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
     icon: Gauge,
     label: 'Compressor',
     rows: [
-      { key: 'threshold', label: 'Threshold', value: '-18 dB' },
-      { key: 'ratio', label: 'Ratio', value: '4:1' },
-      { key: 'attack', label: 'Attack', value: '10 ms' },
+      { key: 'threshold', label: 'Threshold', value: '-24 dB' },
+      { key: 'ratio', label: 'Ratio', value: '12:1' },
+      { key: 'wet', label: 'Wet', value: '100%' },
     ],
   },
   delay: {

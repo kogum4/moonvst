@@ -294,6 +294,10 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
           p3: node.p3,
           p4: node.p4,
           p5: node.p5,
+          p6: node.p6,
+          p7: node.p7,
+          p8: node.p8,
+          p9: node.p9,
         })),
         edges: runtimeGraph.edges,
       })

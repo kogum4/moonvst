@@ -65,6 +65,10 @@ describe('showcase graph contract payload', () => {
       p3: 0.75,
       p4: 0.8,
       p5: 0.5,
+      p6: 0,
+      p7: 0,
+      p8: 0,
+      p9: 0,
     })
     expect(runtime.edges).toHaveLength(2)
   })
@@ -86,6 +90,39 @@ describe('showcase graph contract payload', () => {
     expect(chorusNode?.p2).toBeGreaterThan(0)
     expect(chorusNode?.p2).toBeLessThanOrEqual(1)
     expect(chorusNode?.p3).toBeCloseTo(0.42, 5)
+  })
+
+  test('maps compressor advanced params to runtime p1..p9', () => {
+    let state = createDefaultGraphState()
+    state = graphReducer(state, { type: 'addNode', kind: 'compressor', x: 240, y: 180, id: 'fx-comp' })
+    state = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'input', toNodeId: 'fx-comp' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'fx-comp', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'pregain', value: 6 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'threshold', value: -30 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'knee', value: 12 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'ratio', value: 6 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'attack', value: 10 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'release', value: 350 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'predelay', value: 5 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'postgain', value: 3 })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-comp', key: 'wet', value: 80 })
+
+    const runtime = compileRuntimeGraphPayload(serializeGraphPayload(state))
+    const compressorNode = runtime.nodes.find((node) => node.effectType === 2)
+    expect(compressorNode).toEqual({
+      effectType: 2,
+      bypass: false,
+      p1: 6,
+      p2: -30,
+      p3: 12,
+      p4: 6,
+      p5: 0.01,
+      p6: 0.35,
+      p7: 0.005,
+      p8: 3,
+      p9: 0.8,
+    })
   })
 
   test('maps filter mode and mix to runtime p3/p4', () => {
@@ -132,6 +169,10 @@ describe('showcase graph contract payload', () => {
       p3: 2.0,
       p4: -1.5,
       p5: 6.0,
+      p6: 0,
+      p7: 0,
+      p8: 0,
+      p9: 0,
     })
   })
 

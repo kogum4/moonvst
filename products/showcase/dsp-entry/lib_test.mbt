@@ -45,9 +45,9 @@ test "graph contract apply stores validated payload shape" {
 test "process audio output reflects runtime graph state changes" {
   product_reset()
   @src.clear_runtime_graph()
-  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
-  assert_eq(@src.set_runtime_node(1, @engine.effect_type_gain(), 0, 0.8, 0.0, 0.0, 0.0, 0.0), 0)
-  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_gain(), 0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 0)
   assert_eq(@src.set_runtime_edge(0, 0, 1), 0)
   assert_eq(@src.set_runtime_edge(1, 1, 2), 0)
   let err_a = @src.apply_graph_contract(@src.graph_contract_schema_version(), 3, 2)
@@ -55,7 +55,7 @@ test "process audio output reflects runtime graph state changes" {
   assert_eq(@src.apply_graph_runtime_mode(1, 0), 0)
   let (out_a_l, out_a_r) = @src.process_audio_frame_for_test(0.5, -0.25)
 
-  assert_eq(@src.set_runtime_node(1, @engine.effect_type_gain(), 0, 0.5, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_gain(), 0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 0)
   let (out_b_l, out_b_r) = @src.process_audio_frame_for_test(0.5, -0.25)
 
   assert_eq(approx_eq(out_a_l, out_b_l, 0.00001), false)
@@ -65,9 +65,9 @@ test "process audio output reflects runtime graph state changes" {
 test "process audio falls back to dry-safe path for invalid graph contract" {
   product_reset()
   @src.clear_runtime_graph()
-  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
-  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 0, 1.0, 0.5, 0.5, 1.0, 1.0), 0)
-  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 0, 1.0, 0.5, 0.5, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 0)
   assert_eq(@src.set_runtime_edge(0, 0, 1), 0)
   assert_eq(@src.set_runtime_edge(1, 1, 2), 0)
   let valid_err = @src.apply_graph_contract(@src.graph_contract_schema_version(), 3, 2)
@@ -106,9 +106,9 @@ test "process audio mutes when no input-to-output path is reported" {
 test "runtime graph node params and bypass affect output" {
   product_reset()
   @src.clear_runtime_graph()
-  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
-  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 0, 1.0, 0.5, 0.5, 1.0, 1.0), 0)
-  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(0, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 0, 1.0, 0.5, 0.5, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
+  assert_eq(@src.set_runtime_node(2, @engine.effect_type_gain(), 1, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 0)
   assert_eq(@src.set_runtime_edge(0, 0, 1), 0)
   assert_eq(@src.set_runtime_edge(1, 1, 2), 0)
   assert_eq(@src.apply_graph_contract(@src.graph_contract_schema_version(), 3, 2), @src.graph_contract_error_none())
@@ -118,7 +118,7 @@ test "runtime graph node params and bypass affect output" {
   assert_eq(approx_eq(wet_l, 0.8, 0.00001), false)
   assert_eq(approx_eq(wet_r, -0.8, 0.00001), false)
 
-  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 1, 1.0, 0.5, 0.5, 1.0, 1.0), 0)
+  assert_eq(@src.set_runtime_node(1, @engine.effect_type_distortion(), 1, 1.0, 0.5, 0.5, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0), 0)
   let (dry_l, dry_r) = @src.process_audio_frame_for_test(0.8, -0.8)
   assert_eq(approx_eq(dry_l, 0.8, 0.00001), true)
   assert_eq(approx_eq(dry_r, -0.8, 0.00001), true)

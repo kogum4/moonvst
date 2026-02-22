@@ -137,6 +137,10 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
           Number(node.p3 ?? 0),
           Number(node.p4 ?? 0),
           Number(node.p5 ?? 0),
+          Number(node.p6 ?? 0),
+          Number(node.p7 ?? 0),
+          Number(node.p8 ?? 0),
+          Number(node.p9 ?? 0),
         )
       }
       for (let i = 0; i < edges.length; i++) {

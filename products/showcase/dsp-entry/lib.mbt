@@ -22,6 +22,10 @@ let runtime_node_p2 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.
 let runtime_node_p3 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let runtime_node_p4 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let runtime_node_p5 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_node_p6 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_node_p7 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_node_p8 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+let runtime_node_p9 : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let runtime_edge_from : Array[Int] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 let runtime_edge_to : Array[Int] = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
@@ -49,6 +53,14 @@ fn reset_graph_contract_state() -> Unit {
   runtime_node_p4[1] = 0.0
   runtime_node_p5[0] = 0.0
   runtime_node_p5[1] = 0.0
+  runtime_node_p6[0] = 0.0
+  runtime_node_p6[1] = 0.0
+  runtime_node_p7[0] = 0.0
+  runtime_node_p7[1] = 0.0
+  runtime_node_p8[0] = 0.0
+  runtime_node_p8[1] = 0.0
+  runtime_node_p9[0] = 0.0
+  runtime_node_p9[1] = 0.0
   runtime_edge_from[0] = 0
   runtime_edge_to[0] = 1
 }
@@ -79,6 +91,10 @@ fn build_runtime_nodes() -> Array[@engine.ExecNode] {
         runtime_node_p3[i],
         runtime_node_p4[i],
         runtime_node_p5[i],
+        runtime_node_p6[i],
+        runtime_node_p7[i],
+        runtime_node_p8[i],
+        runtime_node_p9[i],
       ),
     )
   }
@@ -237,6 +253,10 @@ pub fn set_runtime_node(
   p3 : Float,
   p4 : Float,
   p5 : Float,
+  p6 : Float,
+  p7 : Float,
+  p8 : Float,
+  p9 : Float,
 ) -> Int {
   if index < 0 || index >= graph_contract_max_nodes {
     return graph_contract_err_node_limit
@@ -248,6 +268,10 @@ pub fn set_runtime_node(
   runtime_node_p3[index] = p3
   runtime_node_p4[index] = p4
   runtime_node_p5[index] = p5
+  runtime_node_p6[index] = p6
+  runtime_node_p7[index] = p7
+  runtime_node_p8[index] = p8
+  runtime_node_p9[index] = p9
   if index + 1 > runtime_graph_node_count_box[0] {
     runtime_graph_node_count_box[0] = index + 1
   }

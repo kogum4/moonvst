@@ -23,6 +23,10 @@ pub struct ExecNode {
   p3 : Float
   p4 : Float
   p5 : Float
+  p6 : Float
+  p7 : Float
+  p8 : Float
+  p9 : Float
 }
 
 pub fn make_exec_edge(from : Int, to : Int) -> ExecEdge {
@@ -37,8 +41,12 @@ pub fn make_exec_node(
   p3 : Float,
   p4 : Float,
   p5 : Float,
+  p6 : Float,
+  p7 : Float,
+  p8 : Float,
+  p9 : Float,
 ) -> ExecNode {
-  { effect_type, bypass, p1, p2, p3, p4, p5 }
+  { effect_type, bypass, p1, p2, p3, p4, p5, p6, p7, p8, p9 }
 }
 
 pub fn effect_type_gain() -> Int { 0 }
@@ -104,6 +112,7 @@ pub fn reset_effect_states() -> Unit {
     persistent_filter_ic1_r[i] = 0.0
     persistent_filter_ic2_r[i] = 0.0
   }
+  @effects.reset_compressor_state()
   @effects.reset_eq_state()
 }
 
@@ -221,7 +230,20 @@ fn execute_node_effect(
   } else if kind == effect_type_chorus() {
     @effects.chorus_process(node_in_l, node_in_r, node.p1, node.p2, node.p3)
   } else if kind == effect_type_compressor() {
-    @effects.compressor_process(node_in_l, node_in_r, node.p1, node.p2)
+    @effects.compressor_process(
+      node_index,
+      node_in_l,
+      node_in_r,
+      node.p1,
+      node.p2,
+      node.p3,
+      node.p4,
+      node.p5,
+      node.p6,
+      node.p7,
+      node.p8,
+      node.p9,
+    )
   } else if kind == effect_type_delay() {
     let (out_l, out_r, next_l, next_r) =
       @effects.delay_process_sample(node_in_l, node_in_r, effect_state_l[node_index], effect_state_r[node_index], node.p1, node.p2)

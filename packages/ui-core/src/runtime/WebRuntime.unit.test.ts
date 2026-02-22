@@ -162,13 +162,13 @@ describe('createWebRuntime', () => {
       }),
     )
     const runtimeGraphMessage = vi.mocked(latestWorkletNode!.port.postMessage).mock.calls[1]?.[0] as {
-      nodes: Array<{ effectType: number; bypass: number; p1: number; p2: number; p3: number; p4: number; p5: number }>
+      nodes: Array<{ effectType: number; bypass: number; p1: number; p2: number; p3: number; p4: number; p5: number; p6: number; p7: number; p8: number; p9: number }>
       edges: Array<{ fromIndex: number; toIndex: number }>
     }
     expect(runtimeGraphMessage.nodes).toHaveLength(3)
     expect(runtimeGraphMessage.nodes).toEqual(
       expect.arrayContaining([
-        { effectType: 4, bypass: 0, p1: 1, p2: 0.5, p3: 0.75, p4: 0.8, p5: 0.5 },
+        { effectType: 4, bypass: 0, p1: 1, p2: 0.5, p3: 0.75, p4: 0.8, p5: 0.5, p6: 0, p7: 0, p8: 0, p9: 0 },
       ]),
     )
     expect(runtimeGraphMessage.edges).toHaveLength(2)

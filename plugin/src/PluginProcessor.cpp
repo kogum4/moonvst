@@ -97,7 +97,19 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
             for (size_t i = 0; i < graphConfig.nodes.size(); ++i)
             {
                 const auto& node = graphConfig.nodes[i];
-                wasmDSP_.setRuntimeNode ((int) i, node.effectType, node.bypass, node.p1, node.p2, node.p3, node.p4, node.p5);
+                wasmDSP_.setRuntimeNode (
+                    (int) i,
+                    node.effectType,
+                    node.bypass,
+                    node.p1,
+                    node.p2,
+                    node.p3,
+                    node.p4,
+                    node.p5,
+                    node.p6,
+                    node.p7,
+                    node.p8,
+                    node.p9);
             }
             for (size_t i = 0; i < graphConfig.edges.size(); ++i)
             {
