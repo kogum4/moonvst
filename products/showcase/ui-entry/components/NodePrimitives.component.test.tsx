@@ -1,4 +1,4 @@
-import { render, screen, within } from '../../../../packages/ui-core/src/test/testing'
+import { render, screen, within } from '../test/testing'
 import { describe, expect, test } from 'vitest'
 import {
   EffectNode,

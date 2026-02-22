@@ -1,4 +1,4 @@
-import { render, screen } from '../../../packages/ui-core/src/test/testing'
+import { render, screen } from './test/testing'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import ShowcaseApp from './App'
 import { useRuntime } from '../../../packages/ui-core/src/runtime/useRuntime'

@@ -1,4 +1,4 @@
-import { render, screen } from '../../../../packages/ui-core/src/test/testing'
+import { render, screen } from '../test/testing'
 import { describe, expect, test, vi } from 'vitest'
 import { EdgeLayer } from './EdgeLayer'
 import type { GraphEdge, GraphNode } from '../state/graphTypes'

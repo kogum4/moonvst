@@ -1,4 +1,4 @@
-import { Blocks, LogIn, LogOut } from '../../../../packages/ui-core/src/vendor/lucide'
+import { Blocks, LogIn, LogOut } from '../vendor/lucide'
 import { LibItem } from './NodePrimitives'
 import type { EffectKind } from './graphUi'
 import { EFFECT_LIBRARY, getEffectVisual } from './graphUi'

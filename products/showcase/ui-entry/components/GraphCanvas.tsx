@@ -1,4 +1,4 @@
-import { LogIn, LogOut } from '../../../../packages/ui-core/src/vendor/lucide'
+import { LogIn, LogOut } from '../vendor/lucide'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { EdgeLayer } from './EdgeLayer'

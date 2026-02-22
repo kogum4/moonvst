@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '../../../../packages/ui-core/src/test/testing'
+import { fireEvent, render, screen } from '../test/testing'
 import { describe, expect, test, vi } from 'vitest'
 import { createDefaultGraphState } from '../state/graphReducer'
 import { GraphCanvas } from './GraphCanvas'

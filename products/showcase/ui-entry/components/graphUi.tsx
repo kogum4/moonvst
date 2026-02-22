@@ -6,8 +6,8 @@ import {
   Timer,
   Waves,
   Zap,
-} from '../../../../packages/ui-core/src/vendor/lucide'
-import type { LucideIcon } from '../../../../packages/ui-core/src/vendor/lucide'
+} from '../vendor/lucide'
+import type { LucideIcon } from '../vendor/lucide'
 import type { NodeKind } from '../state/graphTypes'
 
 export type EffectKind = Exclude<NodeKind, 'input' | 'output'>

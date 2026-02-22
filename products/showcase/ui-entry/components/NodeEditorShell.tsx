@@ -4,8 +4,8 @@ import {
   RotateCcw,
   Settings2,
   ZoomIn,
-} from '../../../../packages/ui-core/src/vendor/lucide'
-import '../../../../packages/ui-core/src/styles/showcaseFonts'
+} from '../vendor/lucide'
+import '../styles/showcaseFonts'
 import { useEffect, useMemo, type CSSProperties } from 'react'
 import type { AudioRuntime } from '../../../../packages/ui-core/src/runtime/types'
 import { GraphCanvas } from './GraphCanvas'
