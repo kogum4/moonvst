@@ -13,10 +13,10 @@ Status legend:
 
 ## Progress Dashboard
 
-- Overall stories done: `9 / 10`
-- Overall tasks done: `62 / 63`
-- Current story: `S9`
-- Last updated: `2026-02-21`
+- Overall stories done: `10 / 10`
+- Overall tasks done: `63 / 63`
+- Current story: `S9 (completed)`
+- Last updated: `2026-02-22`
 
 ## Update Rules
 
@@ -242,11 +242,16 @@ Validation:
 
 ## Story S9: End-to-End Showcase Behavior and Release Gate
 
-- [ ] `P2-S9-R-01` RED: Add e2e flow test: add -> connect -> edit param -> remove.
-- [ ] `P2-S9-R-02` RED: Add e2e/runtime assertion for graph edit reflecting behavior.
-- [ ] `P2-S9-G-01` GREEN: Implement missing glue until all e2e passes.
-- [ ] `P2-S9-G-02` GREEN: Run full showcase validation and fix release blockers.
-- [ ] `P2-S9-F-01` REFACTOR: Final cleanup (naming, dead code removal, docs sync).
+- [x] `P2-S9-R-01` RED: Add e2e flow test: add -> connect -> edit param -> remove.
+  - Evidence: Added `showcase flow: add -> connect -> edit param -> remove` in `packages/ui-core/tests/e2e/app.e2e.spec.ts`; confirmed RED failure before GREEN (`navigation "Node Library" not found`) via `npx playwright test --grep showcase`.
+- [x] `P2-S9-R-02` RED: Add e2e/runtime assertion for graph edit reflecting behavior.
+  - Evidence: Added `showcase runtime: graph edits are applied to runtime payload` in `packages/ui-core/tests/e2e/app.e2e.spec.ts`; confirmed RED failure in the same run before showcase web-server wiring.
+- [x] `P2-S9-G-01` GREEN: Implement missing glue until all e2e passes.
+  - Evidence: Updated `packages/ui-core/playwright.config.ts` web server command to `VITE_PRODUCT=showcase`, and both showcase e2e tests now pass via `npx playwright test --grep showcase`.
+- [x] `P2-S9-G-02` GREEN: Run full showcase validation and fix release blockers.
+  - Evidence: Ran full S9 validation set successfully (`npm run build:ui`, `npm run test:ui:unit`, `npm run test:ui:component`, `npm run test:ui:e2e`, `npm run build:dsp`, `npm run test:dsp`, `npm run release:vst:showcase`).
+- [x] `P2-S9-F-01` REFACTOR: Final cleanup (naming, dead code removal, docs sync).
+  - Evidence: Replaced legacy template-oriented e2e assertions with showcase-focused flows in `packages/ui-core/tests/e2e/app.e2e.spec.ts` and synced this checklist/document status.
 
 Validation:
 - `npm run build:ui`
@@ -275,6 +280,7 @@ Validation:
 ## Change Log
 
 - `2026-02-21`: Completed Story S8.5 (`P2-S85-R/G/F`), added RED DSP tests for graph-driven `process_audio` output and unsupported-shape dry fallback; wired showcase `process_audio` through `@engine.execute_graph_block_fx` using applied contract state, and refactored runtime mapping/fallback into shared helpers in `products/showcase/dsp-entry/lib.mbt`.
+- `2026-02-22`: Completed Story S9 (`P2-S9-R/G/F`), added showcase Playwright flows for `add -> connect -> edit param -> remove` and runtime payload-apply assertions in `packages/ui-core/tests/e2e/app.e2e.spec.ts`; wired Playwright web server to showcase product in `packages/ui-core/playwright.config.ts`; ran full S9 validation including `release:vst:showcase`.
 - `2026-02-20`: Completed Story S6 (`P2-S6-R/G/F`), added MoonBit RED tests for topological order, bypass pass-through, and invalid-graph dry fallback; implemented shared `packages/dsp-core/src/engine/graph_executor.mbt` with topological scheduling/stereo block execution/fallback safety and updated `scripts/select-product.js` to copy full `packages/dsp-core/src` (including new subpackages) into `build/dsp-active`.
 - `2026-02-20`: Completed Story S7 (`P2-S7-R/G/F`), added showcase RED tests for per-effect minimum behavior, extracted Dattorro reverb, and mixed-chain executor integration; implemented shared effect modules under `packages/dsp-core/src/effects/*`, added effect-node dispatch API (`ExecNode` / `execute_graph_block_fx`) in `graph_executor`, and kept showcase `lib.mbt` as thin reverb wiring.
 - `2026-02-21`: Completed Story S8 (`P2-S8-R/G/F`), added RED tests for versioned graph payload serialization/runtime emission and DSP-side apply validation; implemented deterministic UI graph contract serializer + validators, runtime bridge transport wiring (`runtime/*` + `App.tsx`/`NodeEditorShell.tsx`), and showcase DSP contract apply/error state exports in `products/showcase/dsp-entry/lib.mbt`.
