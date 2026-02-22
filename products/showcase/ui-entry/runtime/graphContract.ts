@@ -232,6 +232,29 @@ const chorusRateHzToParam = (rateHz: number): number => {
   return Math.pow(normalizedHz, 0.25)
 }
 
+const DELAY_WRAP_SAMPLES = 88_200
+const DELAY_REF_SAMPLE_RATE = 44_100
+const DELAY_SAMPLE_RATE = 48_000
+const delayTimeMsToParam = (timeMs: number): number => {
+  const clampedMs = clamp(timeMs, 80, 2000)
+  const targetSamples = (clampedMs / 1000) * DELAY_REF_SAMPLE_RATE
+  const speed = clamp(DELAY_WRAP_SAMPLES / targetSamples, 1, 26)
+  return Math.pow((speed - 1) / 25, 0.25)
+}
+const delayFeedbackToParam = (feedbackPercent: number): number => {
+  const feedbackGain = clamp(feedbackPercent / 100, 0, 0.95)
+  return Math.sqrt(feedbackGain)
+}
+const delayFilterHzToParam = (filterHz: number): number => {
+  const normalizedFreq = clamp(filterHz / DELAY_SAMPLE_RATE, 0.0001, 0.49)
+  const cCubed = clamp((normalizedFreq - 0.0001) / 0.4, 0, 1)
+  return Math.pow(cCubed, 1 / 3)
+}
+const delayFilterQToParam = (filterQ: number): number => {
+  const q = clamp(filterQ, 0.01, 1.01)
+  return Math.sqrt(clamp(q - 0.01, 0, 1))
+}
+
 const effectTypeByKind: Partial<Record<NodeKind, number>> = {
   chorus: 1,
   compressor: 2,
@@ -276,12 +299,12 @@ const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
       return {
         effectType: effectTypeByKind.delay!,
         bypass: node.bypass,
-        p1: toUnit(node.params.feedback ?? 35, 0, 100),
-        p2: toUnit(node.params.mix ?? 25, 0, 100),
-        p3: 0,
-        p4: 0,
-        p5: 0,
-        p6: 0,
+        p1: delayTimeMsToParam(node.params.timeMs ?? 375),
+        p2: delayFeedbackToParam(node.params.feedback ?? 35),
+        p3: delayFilterHzToParam(node.params.filterHz ?? 2400),
+        p4: delayFilterQToParam(node.params.filterQ ?? 0.25),
+        p5: toUnit(node.params.flutter ?? 0, 0, 100),
+        p6: toUnit(node.params.wetDry ?? 100, 0, 100),
         p7: 0,
         p8: 0,
         p9: 0,

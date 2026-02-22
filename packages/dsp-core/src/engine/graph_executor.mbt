@@ -3,8 +3,6 @@ let reverb_default_predelay_ms : Float = 20.0
 let reverb_default_decay : Float = 0.78
 let reverb_default_damping : Float = 0.35
 let reverb_default_diffusion : Float = 0.70
-let persistent_effect_state_l : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-let persistent_effect_state_r : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let persistent_filter_ic1_l : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let persistent_filter_ic2_l : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 let persistent_filter_ic1_r : Array[Float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -105,14 +103,13 @@ fn empty_f32_buffer() -> Array[Float] {
 
 pub fn reset_effect_states() -> Unit {
   for i = 0; i < graph_executor_max_nodes; i = i + 1 {
-    persistent_effect_state_l[i] = 0.0
-    persistent_effect_state_r[i] = 0.0
     persistent_filter_ic1_l[i] = 0.0
     persistent_filter_ic2_l[i] = 0.0
     persistent_filter_ic1_r[i] = 0.0
     persistent_filter_ic2_r[i] = 0.0
   }
   @effects.reset_compressor_state()
+  @effects.reset_delay_state()
   @effects.reset_eq_state()
 }
 
@@ -213,8 +210,6 @@ fn execute_node_effect(
   node_index : Int,
   node_in_l : Float,
   node_in_r : Float,
-  effect_state_l : Array[Float],
-  effect_state_r : Array[Float],
   filter_state_ic1_l : Array[Float],
   filter_state_ic2_l : Array[Float],
   filter_state_ic1_r : Array[Float],
@@ -245,11 +240,17 @@ fn execute_node_effect(
       node.p9,
     )
   } else if kind == effect_type_delay() {
-    let (out_l, out_r, next_l, next_r) =
-      @effects.delay_process_sample(node_in_l, node_in_r, effect_state_l[node_index], effect_state_r[node_index], node.p1, node.p2)
-    effect_state_l[node_index] = next_l
-    effect_state_r[node_index] = next_r
-    (out_l, out_r)
+    @effects.delay_process_sample(
+      node_index,
+      node_in_l,
+      node_in_r,
+      node.p1,
+      node.p2,
+      node.p3,
+      node.p4,
+      node.p5,
+      node.p6,
+    )
   } else if kind == effect_type_distortion() {
     @effects.distortion_process(node_index, node_in_l, node_in_r, node.p1, node.p2, node.p3, node.p4, node.p5)
   } else if kind == effect_type_eq() {
@@ -333,8 +334,6 @@ pub fn execute_graph_block_fx(
         node_index,
         node_in_l,
         node_in_r,
-        persistent_effect_state_l,
-        persistent_effect_state_r,
         persistent_filter_ic1_l,
         persistent_filter_ic2_l,
         persistent_filter_ic1_r,

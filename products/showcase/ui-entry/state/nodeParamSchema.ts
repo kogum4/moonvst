@@ -44,9 +44,12 @@ const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
     { key: 'wet', label: 'Wet', min: 0, max: 100, step: 1, defaultValue: 100, formatValue: formatPercent },
   ],
   delay: [
-    { key: 'time', label: 'Time', min: 1, max: 1200, step: 1, defaultValue: 375, formatValue: formatMs },
-    { key: 'feedback', label: 'Feedback', min: 0, max: 100, step: 1, defaultValue: 35, formatValue: formatPercent },
-    { key: 'mix', label: 'Mix', min: 0, max: 100, step: 1, defaultValue: 25, formatValue: formatPercent },
+    { key: 'timeMs', label: 'Time', min: 80, max: 2000, step: 1, defaultValue: 375, formatValue: formatMs },
+    { key: 'feedback', label: 'Feedback', min: 0, max: 95, step: 1, defaultValue: 35, formatValue: formatPercent },
+    { key: 'filterHz', label: 'Filter', min: 20, max: 12000, step: 1, defaultValue: 2400, formatValue: formatHz, scale: 'log' },
+    { key: 'filterQ', label: 'Filter Q', min: 0.01, max: 1.01, step: 0.01, defaultValue: 0.25, formatValue: formatUnitless },
+    { key: 'flutter', label: 'Flutter', min: 0, max: 100, step: 1, defaultValue: 0, formatValue: formatPercent },
+    { key: 'wetDry', label: 'Wet/Dry', min: 0, max: 100, step: 1, defaultValue: 100, formatValue: formatPercent },
   ],
   distortion: [
     { key: 'drive', label: 'Drive', min: 0, max: 100, step: 1, defaultValue: 60, formatValue: formatPercent },

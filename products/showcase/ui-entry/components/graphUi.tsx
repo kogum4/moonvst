@@ -55,9 +55,10 @@ const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
     icon: Timer,
     label: 'Delay',
     rows: [
-      { key: 'time', label: 'Time', value: '375 ms' },
-      { key: 'feedback', label: 'Feedback', value: '35%' },
-      { key: 'mix', label: 'Mix', value: '25%' },
+      { key: 'timeMs', label: 'Time', value: '375 ms' },
+      { key: 'feedback', label: 'Feedback', value: '0%' },
+      { key: 'filterHz', label: 'Filter', value: '2400 Hz' },
+      { key: 'wetDry', label: 'Wet/Dry', value: '100%' },
     ],
   },
   distortion: {

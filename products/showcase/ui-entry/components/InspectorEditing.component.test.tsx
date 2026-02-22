@@ -22,14 +22,14 @@ describe('inspector editing flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delay' }))
     fireEvent.click(screen.getByRole('group', { name: 'Effect Node Delay' }))
 
-    const mixSlider = screen.getByRole('slider', { name: 'Mix' })
-    fireEvent.change(mixSlider, { target: { value: '80' } })
+    const wetDrySlider = screen.getByRole('slider', { name: 'Wet/Dry' })
+    fireEvent.change(wetDrySlider, { target: { value: '80' } })
 
-    expect(mixSlider).toHaveValue('80')
+    expect(wetDrySlider).toHaveValue('80')
 
     fireEvent.click(screen.getByRole('group', { name: 'I/O Node INPUT' }))
     fireEvent.click(screen.getByRole('group', { name: 'Effect Node Delay' }))
-    expect(screen.getByRole('slider', { name: 'Mix' })).toHaveValue('80')
+    expect(screen.getByRole('slider', { name: 'Wet/Dry' })).toHaveValue('80')
   })
 
   test('toggles bypass and renders connection summary for selected node', () => {
