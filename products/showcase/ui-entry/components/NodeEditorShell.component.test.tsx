@@ -171,13 +171,8 @@ describe('node editor shell layout', () => {
   })
 
   test('shows overwrite warning when saving with existing preset name', () => {
+    seedUserPreset('MyPreset')
     render(<NodeEditorShell />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Open Save Preset Dialog' }))
-    fireEvent.change(screen.getByLabelText('Preset Name'), { target: { value: 'MyPreset' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm Save Preset' }))
-    expect(screen.getByText('MyPreset')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Save Preset Dialog' }))
     fireEvent.change(screen.getByLabelText('Preset Name'), { target: { value: 'MyPreset' } })
