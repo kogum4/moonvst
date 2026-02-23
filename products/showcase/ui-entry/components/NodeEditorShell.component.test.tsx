@@ -16,7 +16,7 @@ describe('node editor shell layout', () => {
     expect(screen.getByRole('main', { name: 'Graph Canvas' })).toHaveAttribute('data-region-id', 'jJBPL')
     expect(screen.getByRole('complementary', { name: 'Properties Panel' })).toHaveAttribute('data-region-id', 'P0JNl')
     expect(screen.getByRole('contentinfo', { name: 'Status Bar' })).toHaveAttribute('data-region-id', 'gkrb8')
-    expect(screen.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/kogum4/moonvst')
+    expect(screen.getByRole('link', { name: 'Open GitHub Repository' })).toHaveAttribute('href', 'https://github.com/kogum4/moonvst')
   })
 
   test('updates inspector node dot color to match selected node kind', () => {
@@ -101,26 +101,54 @@ describe('node editor shell layout', () => {
     expect(screen.getByText('Default Preset')).toBeInTheDocument()
   })
 
-  test('saves and loads presets', () => {
-    const prompt = vi.spyOn(window, 'prompt')
-      .mockImplementationOnce(() => 'MyPreset')
-      .mockImplementationOnce(() => 'MyPreset')
+  test('saves and loads presets from top bar dropdown + save dialog', () => {
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    const prompt = vi.spyOn(window, 'prompt').mockImplementation(() => 'Legacy prompt')
 
     render(<NodeEditorShell />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
     expect(screen.getByRole('group', { name: 'Effect Node Chorus' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Save Preset' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Save Preset Dialog' }))
+    expect(screen.getByRole('dialog', { name: 'Save Preset Dialog' })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Preset Name'), { target: { value: 'MyPreset' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Save Preset' }))
+    expect(screen.queryByRole('dialog', { name: 'Save Preset Dialog' })).not.toBeInTheDocument()
     expect(screen.getByText('MyPreset')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
     expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Preset' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open Preset Dropdown' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Load preset MyPreset' }))
     expect(screen.getByRole('group', { name: 'Effect Node Chorus' })).toBeInTheDocument()
     expect(alert).not.toHaveBeenCalled()
-    expect(prompt).toHaveBeenCalledTimes(2)
+    expect(prompt).not.toHaveBeenCalled()
+  })
+
+  test('opens preset dropdown from Default Preset selector', () => {
+    render(<NodeEditorShell />)
+
+    expect(screen.queryByRole('menu', { name: 'Preset Dropdown Menu' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Preset Dropdown' }))
+
+    expect(screen.getByRole('menu', { name: 'Preset Dropdown Menu' })).toBeInTheDocument()
+    expect(screen.getByText('FACTORY')).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Load preset Default Preset' })).toBeInTheDocument()
+    expect(screen.getByText('USER')).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Create New Preset' })).toBeInTheDocument()
+  })
+
+  test('closes preset dropdown when clicking outside', () => {
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Preset Dropdown' }))
+    expect(screen.getByRole('menu', { name: 'Preset Dropdown Menu' })).toBeInTheDocument()
+
+    fireEvent.pointerDown(screen.getByRole('main', { name: 'Graph Canvas' }))
+    expect(screen.queryByRole('menu', { name: 'Preset Dropdown Menu' })).not.toBeInTheDocument()
   })
 
 })

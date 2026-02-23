@@ -1,14 +1,22 @@
-import {
-  ArrowLeft,
-  ArrowRight,
+﻿import {
+  Check,
+  ChevronDown,
+  ChevronUp,
   Github,
+  Import,
   Moon,
+  Plus,
+  Redo2,
   RotateCcw,
+  Save,
   Settings2,
+  Type,
+  Undo2,
+  X,
   ZoomIn,
 } from '../vendor/lucide'
 import '../styles/showcaseFonts'
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import type { AudioRuntime } from '../../../../packages/ui-core/src/runtime/types'
 import { GraphCanvas } from './GraphCanvas'
 import { NodePalette } from './NodePalette'
@@ -72,24 +80,33 @@ const fromLogUnit = (unit: number, min: number, max: number) => {
   return Math.exp(logMin + t * (logMax - logMin))
 }
 
+interface PresetMenuItem {
+  name: string
+  available: boolean
+}
+
 function TopBar({
   canRedo,
   canUndo,
-  onLoadPreset,
+  isPresetMenuOpen,
   onRedo,
   onReset,
-  onSavePreset,
+  onTogglePresetMenu,
+  onOpenSaveDialog,
   onUndo,
   presetName,
+  presetToggleRef,
 }: {
   canRedo: boolean
   canUndo: boolean
-  onLoadPreset: () => void
+  isPresetMenuOpen: boolean
   onRedo: () => void
   onReset: () => void
-  onSavePreset: () => void
+  onTogglePresetMenu: () => void
+  onOpenSaveDialog: () => void
   onUndo: () => void
   presetName: string
+  presetToggleRef: RefObject<HTMLDivElement | null>
 }) {
   return (
     <header aria-label="Top Bar" className={styles.topBar} data-region-id="FMWVd">
@@ -99,20 +116,130 @@ function TopBar({
           <span className={styles.logoText}>MoonVST</span>
         </div>
         <div className={styles.vDivider} />
-        <button aria-label="Undo" className={styles.ghostButton} disabled={!canUndo} onClick={onUndo} type="button"><ArrowLeft size={14} />Undo</button>
-        <button aria-label="Redo" className={styles.ghostButton} disabled={!canRedo} onClick={onRedo} type="button"><ArrowRight size={14} />Redo</button>
+        <div className={styles.presetGroupWrap} ref={presetToggleRef}>
+          <div className={styles.presetGroup}>
+            <button
+              aria-expanded={isPresetMenuOpen}
+              aria-haspopup="menu"
+              aria-label="Open Preset Dropdown"
+              className={`${styles.presetSelector} ${isPresetMenuOpen ? styles.presetSelectorOpen : ''}`}
+              onClick={onTogglePresetMenu}
+              type="button"
+            >
+              <span className={styles.presetName}>{presetName}</span>
+              {isPresetMenuOpen ? <ChevronUp className={styles.presetChevronOpen} size={12} /> : <ChevronDown className={styles.presetChevron} size={12} />}
+            </button>
+            <button aria-label="Open Save Preset Dialog" className={styles.iconButton} onClick={onOpenSaveDialog} type="button">
+              <Save size={14} />
+            </button>
+          </div>
+        </div>
         <div className={styles.vDivider} />
-        <span className={styles.presetName}>{presetName}</span>
+        <div className={styles.undoRedoGroup}>
+          <button aria-label="Undo" className={styles.iconGhostButton} disabled={!canUndo} onClick={onUndo} type="button"><Undo2 size={14} /></button>
+          <button aria-label="Redo" className={styles.iconGhostButton} disabled={!canRedo} onClick={onRedo} type="button"><Redo2 size={14} /></button>
+        </div>
       </div>
       <div className={styles.topRight}>
-        <a className={styles.ghostButton} href="https://github.com/kogum4/moonvst" rel="noreferrer" target="_blank"><Github className={styles.addNodeIcon} size={14} />GitHub</a>
-        <button aria-label="Save Preset" className={styles.ghostButton} onClick={onSavePreset} type="button">Save Preset</button>
-        <button aria-label="Load Preset" className={styles.ghostButton} onClick={onLoadPreset} type="button">Load Preset</button>
-        <button aria-label="Reset" className={styles.ghostButton} onClick={onReset} type="button"><RotateCcw className={styles.resetIcon} size={14} />Reset</button>
+        <a aria-label="Open GitHub Repository" className={styles.iconButton} href="https://github.com/kogum4/moonvst" rel="noreferrer" target="_blank"><Github size={14} /></a>
+        <button aria-label="Reset" className={styles.resetButton} onClick={onReset} type="button"><RotateCcw className={styles.resetIcon} size={14} />Reset</button>
         <div className={styles.vDivider} />
-        <button className={styles.activeButton} type="button"><span className={styles.activeDot} />Active</button>
+        <button aria-label="Active" className={styles.activeButton} type="button"><span className={styles.activeDot} />Active</button>
       </div>
     </header>
+  )
+}
+
+function PresetDropdown({
+  factoryPresets,
+  onClosePresetMenu,
+  onCreatePreset,
+  onImportPreset,
+  onSelectPreset,
+  presetName,
+  presetDropdownRef,
+  userPresets,
+}: {
+  factoryPresets: PresetMenuItem[]
+  onClosePresetMenu: () => void
+  onCreatePreset: () => void
+  onImportPreset: () => void
+  onSelectPreset: (name: string) => void
+  presetName: string
+  presetDropdownRef: RefObject<HTMLDivElement | null>
+  userPresets: PresetMenuItem[]
+}) {
+  return (
+    <div className={styles.presetDropdownLayer} ref={presetDropdownRef}>
+      <div aria-label="Preset Dropdown Menu" className={styles.presetDropdown} role="menu">
+        <div className={styles.presetDropdownLabel}>FACTORY</div>
+        {factoryPresets.map((preset) => {
+          const isSelected = preset.name === presetName
+          return (
+            <button
+              aria-label={`Load preset ${preset.name}`}
+              className={`${styles.presetDropdownItem} ${isSelected ? styles.presetDropdownItemActive : ''}`}
+              disabled={!preset.available}
+              key={`factory-${preset.name}`}
+              onClick={() => {
+                onSelectPreset(preset.name)
+                onClosePresetMenu()
+              }}
+              role="menuitem"
+              type="button"
+            >
+              {isSelected ? <Check className={styles.presetDropdownIconActive} size={14} /> : null}
+              <span className={isSelected ? styles.presetDropdownTextActive : ''}>{preset.name}</span>
+            </button>
+          )
+        })}
+        <div className={styles.presetDropdownSeparator} />
+        <div className={styles.presetDropdownLabel}>USER</div>
+        {userPresets.map((preset) => (
+          <button
+            aria-label={`Load preset ${preset.name}`}
+            className={styles.presetDropdownItem}
+            disabled={!preset.available}
+            key={`user-${preset.name}`}
+            onClick={() => {
+              onSelectPreset(preset.name)
+              onClosePresetMenu()
+            }}
+            role="menuitem"
+            type="button"
+          >
+            <span>{preset.name}</span>
+          </button>
+        ))}
+        <div className={styles.presetDropdownSeparator} />
+        <button
+          aria-label="Create New Preset"
+          className={styles.presetDropdownAction}
+          onClick={() => {
+            onCreatePreset()
+            onClosePresetMenu()
+          }}
+          role="menuitem"
+          type="button"
+        >
+          <span className={styles.presetDropdownActionIcon}><Plus size={14} /></span>
+          <span>New Preset…</span>
+        </button>
+        <button
+          aria-label="Import Preset"
+          className={styles.presetDropdownAction}
+          onClick={() => {
+            onImportPreset()
+            onClosePresetMenu()
+          }}
+          role="menuitem"
+          type="button"
+        >
+          <span className={styles.presetDropdownActionIcon}><Import size={14} /></span>
+          <span>Import Preset…</span>
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -305,6 +432,11 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const { pendingFromNodeId, state } = interaction
   const [presetName, setPresetName] = useState(bootstrappedState?.lastPresetName ?? 'Default Preset')
   const [presets, setPresets] = useState<ShowcasePresetRecord[]>([])
+  const [isPresetMenuOpen, setPresetMenuOpen] = useState(false)
+  const [isSaveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveDraftName, setSaveDraftName] = useState('')
+  const presetToggleRef = useRef<HTMLDivElement | null>(null)
+  const presetDropdownRef = useRef<HTMLDivElement | null>(null)
   const hydratedRef = useRef(false)
   const persistenceReadyRef = useRef(false)
   const graphRuntimeBridge = useMemo(
@@ -454,30 +586,35 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     }
   }, [interaction, selectedNode])
 
+  const closeSaveDialog = () => {
+    setSaveDialogOpen(false)
+  }
+
+  const openSaveDialog = () => {
+    setSaveDraftName(presetName)
+    setSaveDialogOpen(true)
+  }
+
   const handleSavePreset = () => {
-    const nextName = window.prompt('Preset name', presetName)
+    const nextName = saveDraftName.trim()
     if (!nextName) {
       return
     }
     const updated = upsertPreset(presets, nextName, state)
     setPresets(updated)
     savePresetsToStorage(window.localStorage, updated)
-    setPresetName(nextName.trim())
+    setPresetName(nextName)
+    closeSaveDialog()
   }
 
-  const handleLoadPreset = () => {
-    if (presets.length === 0) {
-      window.alert('No presets saved yet.')
+  const handleLoadPreset = (name: string) => {
+    if (name === 'Default Preset') {
+      interaction.reset()
+      setPresetName('Default Preset')
       return
     }
-    const choices = presets.map((preset) => preset.name).join(', ')
-    const selected = window.prompt(`Load preset (${choices})`, presets[0]?.name ?? '')
-    if (!selected) {
-      return
-    }
-    const preset = presets.find((entry) => entry.name === selected.trim())
+    const preset = presets.find((entry) => entry.name === name.trim())
     if (!preset) {
-      window.alert('Preset not found.')
       return
     }
     interaction.replaceState(graphStateFromPreset(preset), true)
@@ -489,19 +626,95 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     setPresetName('Default Preset')
   }
 
+  useEffect(() => {
+    if (!isPresetMenuOpen) {
+      return
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) {
+        return
+      }
+      if (presetToggleRef.current?.contains(event.target) || presetDropdownRef.current?.contains(event.target)) {
+        return
+      }
+      setPresetMenuOpen(false)
+    }
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setPresetMenuOpen(false)
+      }
+    }
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [isPresetMenuOpen])
+
+  useEffect(() => {
+    if (!isSaveDialogOpen) {
+      return
+    }
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeSaveDialog()
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [isSaveDialogOpen])
+
+  const factoryPresets = useMemo<PresetMenuItem[]>(
+    () => [
+      { name: 'Default Preset', available: true },
+      { name: 'Warm Analog', available: false },
+      { name: 'Dark Shimmer', available: false },
+      { name: 'Crystal Clean', available: false },
+    ],
+    [],
+  )
+
+  const userPresets = useMemo<PresetMenuItem[]>(
+    () =>
+      presets.length > 0
+        ? presets.map((preset) => ({ name: preset.name, available: true }))
+        : [
+            { name: 'My Custom Lead', available: false },
+            { name: 'Lo-Fi Tape', available: false },
+          ],
+    [presets],
+  )
+
   return (
     <div className={styles.shell} data-region-id="kvMK5">
       <TopBar
         canRedo={interaction.canRedo}
         canUndo={interaction.canUndo}
-        onLoadPreset={handleLoadPreset}
+        isPresetMenuOpen={isPresetMenuOpen}
         onRedo={interaction.redo}
         onReset={handleReset}
-        onSavePreset={handleSavePreset}
+        onTogglePresetMenu={() => setPresetMenuOpen((current) => !current)}
+        onOpenSaveDialog={openSaveDialog}
         onUndo={interaction.undo}
         presetName={presetName}
+        presetToggleRef={presetToggleRef}
       />
       <section className={styles.contentArea} data-region-id="PdXfK">
+        {isPresetMenuOpen ? (
+          <PresetDropdown
+            factoryPresets={factoryPresets}
+            onClosePresetMenu={() => setPresetMenuOpen(false)}
+            onCreatePreset={openSaveDialog}
+            onImportPreset={() => {}}
+            onSelectPreset={handleLoadPreset}
+            presetDropdownRef={presetDropdownRef}
+            presetName={presetName}
+            userPresets={userPresets}
+          />
+        ) : null}
         <NodePalette onAddNode={interaction.addNode} />
         <GraphCanvas
           onAddNodeAt={interaction.addNodeAt}
@@ -523,8 +736,49 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
           selectedNode={selectedNode}
           selectedNodeLabel={selectedNodeLabel}
         />
+        {isSaveDialogOpen ? (
+          <div className={styles.modalOverlay}>
+            <div aria-label="Save Preset Dialog" className={styles.saveDialog} role="dialog">
+              <div className={styles.saveDialogHeader}>
+                <div className={styles.saveDialogHeaderLeft}>
+                  <span className={styles.saveDialogHeaderIcon}><Save size={18} /></span>
+                  <span className={styles.saveDialogHeaderText}>
+                    <span className={styles.saveDialogTitle}>Save Preset</span>
+                    <span className={styles.saveDialogSubtitle}>Store your current configuration</span>
+                  </span>
+                </div>
+                <button aria-label="Close Save Preset Dialog" className={styles.saveDialogClose} onClick={closeSaveDialog} type="button"><X size={14} /></button>
+              </div>
+              <div className={styles.saveDialogSeparator} />
+              <div className={styles.saveDialogBody}>
+                <label className={styles.saveDialogFieldLabel} htmlFor="preset-name-input">PRESET NAME</label>
+                <div className={styles.saveDialogInputWrap}>
+                  <Type className={styles.saveDialogInputIcon} size={14} />
+                  <input
+                    aria-label="Preset Name"
+                    className={styles.saveDialogInput}
+                    id="preset-name-input"
+                    onChange={(event) => setSaveDraftName(event.target.value)}
+                    value={saveDraftName}
+                  />
+                </div>
+                <div className={styles.saveDialogHint}>Enter a unique name for your preset</div>
+              </div>
+              <div className={styles.saveDialogSeparator} />
+              <div className={styles.saveDialogFooter}>
+                <button aria-label="Cancel Save Preset" className={styles.saveDialogCancel} onClick={closeSaveDialog} type="button">Cancel</button>
+                <button aria-label="Confirm Save Preset" className={styles.saveDialogConfirm} onClick={handleSavePreset} type="button">
+                  <Save size={14} />
+                  <span>Save Preset</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
       <StatusBar connectionCount={state.edges.length} lastError={state.lastError} nodeCount={state.nodes.length} />
     </div>
   )
 }
+
+
