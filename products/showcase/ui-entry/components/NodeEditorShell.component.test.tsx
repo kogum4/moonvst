@@ -151,6 +151,27 @@ describe('node editor shell layout', () => {
     expect(screen.queryByRole('menuitem', { name: 'Load preset MyPreset' })).not.toBeInTheDocument()
   })
 
+  test('shows overwrite warning when saving with existing preset name', () => {
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open Save Preset Dialog' }))
+    fireEvent.change(screen.getByLabelText('Preset Name'), { target: { value: 'MyPreset' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Save Preset' }))
+    expect(screen.getByText('MyPreset')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Save Preset Dialog' }))
+    fireEvent.change(screen.getByLabelText('Preset Name'), { target: { value: 'MyPreset' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Save Preset' }))
+
+    expect(screen.getByRole('dialog', { name: 'Save Preset Dialog' })).toBeInTheDocument()
+    expect(screen.getByText('This preset name already exists. Click Overwrite to replace it.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Confirm Overwrite Preset' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Overwrite Preset' }))
+    expect(screen.queryByRole('dialog', { name: 'Save Preset Dialog' })).not.toBeInTheDocument()
+  })
+
   test('opens preset dropdown from Default Preset selector', () => {
     render(<NodeEditorShell />)
 

@@ -15,6 +15,7 @@
   Type,
   Undo2,
   X,
+  Zap,
   ZoomIn,
 } from '../vendor/lucide'
 import '../styles/showcaseFonts'
@@ -454,6 +455,7 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletePresetName, setDeletePresetName] = useState<string | null>(null)
+  const [overwriteCandidateName, setOverwriteCandidateName] = useState<string | null>(null)
   const [saveDraftName, setSaveDraftName] = useState('')
   const presetToggleRef = useRef<HTMLDivElement | null>(null)
   const presetDropdownRef = useRef<HTMLDivElement | null>(null)
@@ -617,19 +619,32 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
 
   const openSaveDialog = () => {
     setSaveDraftName(presetName)
+    setOverwriteCandidateName(null)
     setSaveDialogOpen(true)
   }
 
-  const handleSavePreset = () => {
-    const nextName = saveDraftName.trim()
-    if (!nextName) {
-      return
-    }
-    const updated = upsertPreset(presets, nextName, state)
+  const savePresetWithName = (name: string) => {
+    const updated = upsertPreset(presets, name, state)
     setPresets(updated)
     savePresetsToStorage(window.localStorage, updated)
-    setPresetName(nextName)
+    setPresetName(name)
+    setOverwriteCandidateName(null)
     closeSaveDialog()
+  }
+
+  const handleSavePreset = () => {
+    const trimmedName = saveDraftName.trim()
+    if (!trimmedName) {
+      return
+    }
+
+    const existingPreset = presets.find((preset) => preset.name === trimmedName)
+    if (existingPreset && overwriteCandidateName !== trimmedName) {
+      setOverwriteCandidateName(trimmedName)
+      return
+    }
+
+    savePresetWithName(trimmedName)
   }
 
   const handleLoadPreset = (name: string) => {
@@ -747,6 +762,10 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     [presets],
   )
 
+  const isOverwriteWarningVisible =
+    overwriteCandidateName !== null &&
+    saveDraftName.trim() === overwriteCandidateName
+
   return (
     <div className={styles.shell} data-region-id="kvMK5">
       <TopBar
@@ -818,18 +837,33 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
                     aria-label="Preset Name"
                     className={styles.saveDialogInput}
                     id="preset-name-input"
-                    onChange={(event) => setSaveDraftName(event.target.value)}
+                    onChange={(event) => {
+                      setSaveDraftName(event.target.value)
+                      setOverwriteCandidateName(null)
+                    }}
                     value={saveDraftName}
                   />
                 </div>
-                <div className={styles.saveDialogHint}>Enter a unique name for your preset</div>
+                {isOverwriteWarningVisible ? (
+                  <div className={styles.saveDialogWarning}>
+                    <Zap className={styles.saveDialogWarningIcon} size={12} />
+                    <span>This preset name already exists. Click Overwrite to replace it.</span>
+                  </div>
+                ) : (
+                  <div className={styles.saveDialogHint}>Enter a unique name for your preset</div>
+                )}
               </div>
               <div className={styles.saveDialogSeparator} />
               <div className={styles.saveDialogFooter}>
                 <button aria-label="Cancel Save Preset" className={styles.saveDialogCancel} onClick={closeSaveDialog} type="button">Cancel</button>
-                <button aria-label="Confirm Save Preset" className={styles.saveDialogConfirm} onClick={handleSavePreset} type="button">
+                <button
+                  aria-label={isOverwriteWarningVisible ? 'Confirm Overwrite Preset' : 'Confirm Save Preset'}
+                  className={`${styles.saveDialogConfirm} ${isOverwriteWarningVisible ? styles.saveDialogConfirmOverwrite : ''}`}
+                  onClick={handleSavePreset}
+                  type="button"
+                >
                   <Save size={14} />
-                  <span>Save Preset</span>
+                  <span>{isOverwriteWarningVisible ? 'Overwrite' : 'Save Preset'}</span>
                 </button>
               </div>
             </div>

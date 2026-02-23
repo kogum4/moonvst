@@ -1026,6 +1026,19 @@
   font-family: var(--font-sans);
 }
 
+.saveDialogWarning {
+  color: #F59E0B;
+  font-size: 10px;
+  font-family: var(--font-sans);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saveDialogWarningIcon {
+  color: #F59E0B;
+}
+
 .saveDialogFooter {
   width: 100%;
   padding: 12px 24px 16px;
@@ -1061,6 +1074,12 @@
   font-family: var(--font-sans);
   font-weight: 600;
   cursor: pointer;
+}
+
+.saveDialogConfirmOverwrite {
+  border: 0;
+  background: linear-gradient(180deg, #D97706 0%, #B45309 100%);
+  box-shadow: 0 2px 8px #F59E0B66;
 }
 
 .deleteDialog {
