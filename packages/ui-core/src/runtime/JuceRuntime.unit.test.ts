@@ -17,11 +17,13 @@ describe('createJuceRuntime', () => {
     let sliderValue = 0.25
     const listeners = new Set<() => void>()
 
+    const customNative = vi.fn(async () => 'ok')
     const getNativeFunction = (name: string) => {
       if (name === 'getParamCount') return async () => 1
       if (name === 'getParamInfo') return async () => ({ name: 'gain', min: 0, max: 1, defaultValue: 0.2, index: 0 })
       if (name === 'setParam') return async (_index: number, value: number) => { sliderValue = value }
       if (name === 'getLevel') return async () => 0.4
+      if (name === 'customNative') return customNative
       return async () => 0
     }
 
@@ -54,6 +56,8 @@ describe('createJuceRuntime', () => {
     expect(onChange).toHaveBeenCalledWith(0.6)
 
     off()
+    await expect(runtime.invokeNative?.('customNative', 1, 'a')).resolves.toBe('ok')
+    expect(customNative).toHaveBeenCalledWith(1, 'a')
     runtime.dispose()
   })
 })

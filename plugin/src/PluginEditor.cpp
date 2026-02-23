@@ -173,6 +173,16 @@ bool PluginEditor::setupWebView()
         .withNativeFunction ("getLevel", [this] (auto& /*args*/, auto complete)
         {
             complete (juce::var ((double) processorRef.getOutputLevel()));
+        })
+        .withNativeFunction ("getUiState", [this] (auto& /*args*/, auto complete)
+        {
+            complete (juce::var (processorRef.getUiStateJson()));
+        })
+        .withNativeFunction ("setUiState", [this] (auto& args, auto complete)
+        {
+            if (args.size() >= 1)
+                processorRef.setUiStateJson (args[0].toString());
+            complete (juce::var());
         });
 
     // Create WebSliderRelay and bind each relay to the corresponding parameter.

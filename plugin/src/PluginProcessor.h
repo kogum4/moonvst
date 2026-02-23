@@ -39,6 +39,8 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const { return apvts; }
     float getOutputLevel() const { return outputLevel_.load(); }
+    void setUiStateJson(const juce::String& stateJson);
+    juce::String getUiStateJson() const;
 
 private:
     WasmDSP wasmDSP_;
@@ -47,6 +49,8 @@ private:
     std::vector<std::string> paramNames_;
     juce::AudioProcessorValueTreeState apvts;
     std::atomic<float> outputLevel_ { 0.0f };
+    juce::String uiStateJson_;
+    mutable juce::CriticalSection uiStateLock_;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
