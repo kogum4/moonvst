@@ -5,11 +5,13 @@
   Github,
   Import,
   Moon,
+  Music,
   Plus,
   Redo2,
   RotateCcw,
   Save,
   Settings2,
+  Trash2,
   Type,
   Undo2,
   X,
@@ -155,6 +157,7 @@ function PresetDropdown({
   onClosePresetMenu,
   onCreatePreset,
   onImportPreset,
+  onRequestDeletePreset,
   onSelectPreset,
   presetName,
   presetDropdownRef,
@@ -164,6 +167,7 @@ function PresetDropdown({
   onClosePresetMenu: () => void
   onCreatePreset: () => void
   onImportPreset: () => void
+  onRequestDeletePreset: (name: string) => void
   onSelectPreset: (name: string) => void
   presetName: string
   presetDropdownRef: RefObject<HTMLDivElement | null>
@@ -196,20 +200,34 @@ function PresetDropdown({
         <div className={styles.presetDropdownSeparator} />
         <div className={styles.presetDropdownLabel}>USER</div>
         {userPresets.map((preset) => (
-          <button
-            aria-label={`Load preset ${preset.name}`}
-            className={styles.presetDropdownItem}
-            disabled={!preset.available}
-            key={`user-${preset.name}`}
-            onClick={() => {
-              onSelectPreset(preset.name)
-              onClosePresetMenu()
-            }}
-            role="menuitem"
-            type="button"
-          >
-            <span>{preset.name}</span>
-          </button>
+          <div className={styles.presetDropdownUserRow} key={`user-${preset.name}`}>
+            <button
+              aria-label={`Load preset ${preset.name}`}
+              className={`${styles.presetDropdownItem} ${styles.presetDropdownUserItem}`}
+              disabled={!preset.available}
+              onClick={() => {
+                onSelectPreset(preset.name)
+                onClosePresetMenu()
+              }}
+              role="menuitem"
+              type="button"
+            >
+              <span>{preset.name}</span>
+            </button>
+            {preset.available ? (
+              <button
+                aria-label={`Delete preset ${preset.name}`}
+                className={styles.presetDropdownDeleteIconButton}
+                onClick={() => {
+                  onRequestDeletePreset(preset.name)
+                  onClosePresetMenu()
+                }}
+                type="button"
+              >
+                <Trash2 className={styles.presetDropdownDeleteIcon} size={13} />
+              </button>
+            ) : null}
+          </div>
         ))}
         <div className={styles.presetDropdownSeparator} />
         <button
@@ -434,6 +452,8 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const [presets, setPresets] = useState<ShowcasePresetRecord[]>([])
   const [isPresetMenuOpen, setPresetMenuOpen] = useState(false)
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletePresetName, setDeletePresetName] = useState<string | null>(null)
   const [saveDraftName, setSaveDraftName] = useState('')
   const presetToggleRef = useRef<HTMLDivElement | null>(null)
   const presetDropdownRef = useRef<HTMLDivElement | null>(null)
@@ -590,6 +610,11 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     setSaveDialogOpen(false)
   }
 
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false)
+    setDeletePresetName(null)
+  }
+
   const openSaveDialog = () => {
     setSaveDraftName(presetName)
     setSaveDialogOpen(true)
@@ -619,6 +644,25 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     }
     interaction.replaceState(graphStateFromPreset(preset), true)
     setPresetName(preset.name)
+  }
+
+  const handleOpenDeleteDialog = (name: string) => {
+    setDeletePresetName(name)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeletePreset = () => {
+    if (!deletePresetName) {
+      return
+    }
+    const updated = presets.filter((preset) => preset.name !== deletePresetName)
+    setPresets(updated)
+    savePresetsToStorage(window.localStorage, updated)
+    if (presetName === deletePresetName) {
+      interaction.reset()
+      setPresetName('Default Preset')
+    }
+    closeDeleteDialog()
   }
 
   const handleReset = () => {
@@ -667,6 +711,21 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     }
   }, [isSaveDialogOpen])
 
+  useEffect(() => {
+    if (!isDeleteDialogOpen) {
+      return
+    }
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeDeleteDialog()
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [isDeleteDialogOpen])
+
   const factoryPresets = useMemo<PresetMenuItem[]>(
     () => [
       { name: 'Default Preset', available: true },
@@ -709,6 +768,7 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
             onClosePresetMenu={() => setPresetMenuOpen(false)}
             onCreatePreset={openSaveDialog}
             onImportPreset={() => {}}
+            onRequestDeletePreset={handleOpenDeleteDialog}
             onSelectPreset={handleLoadPreset}
             presetDropdownRef={presetDropdownRef}
             presetName={presetName}
@@ -770,6 +830,40 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
                 <button aria-label="Confirm Save Preset" className={styles.saveDialogConfirm} onClick={handleSavePreset} type="button">
                   <Save size={14} />
                   <span>Save Preset</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {isDeleteDialogOpen ? (
+          <div className={styles.modalOverlay}>
+            <div aria-label="Delete Preset Dialog" className={styles.deleteDialog} role="dialog">
+              <div className={styles.deleteDialogHeader}>
+                <div className={styles.deleteDialogHeaderLeft}>
+                  <span className={styles.deleteDialogHeaderIcon}><Trash2 size={18} /></span>
+                  <span className={styles.deleteDialogHeaderText}>
+                    <span className={styles.deleteDialogTitle}>Delete Preset</span>
+                    <span className={styles.deleteDialogSubtitle}>This action cannot be undone</span>
+                  </span>
+                </div>
+                <button aria-label="Close Delete Preset Dialog" className={styles.deleteDialogClose} onClick={closeDeleteDialog} type="button"><X size={14} /></button>
+              </div>
+              <div className={styles.deleteDialogSeparator} />
+              <div className={styles.deleteDialogBody}>
+                <div className={styles.deleteDialogMessage}>
+                  Are you sure you want to delete this preset? This action is permanent and cannot be reversed.
+                </div>
+                <div className={styles.deleteDialogPresetInfo}>
+                  <Music className={styles.deleteDialogPresetInfoIcon} size={16} />
+                  <span className={styles.deleteDialogPresetInfoText}>{deletePresetName ?? ''}</span>
+                </div>
+              </div>
+              <div className={styles.deleteDialogSeparator} />
+              <div className={styles.deleteDialogFooter}>
+                <button aria-label="Cancel Delete Preset" className={styles.deleteDialogCancel} onClick={closeDeleteDialog} type="button">Cancel</button>
+                <button aria-label="Confirm Delete Preset" className={styles.deleteDialogConfirm} onClick={handleDeletePreset} type="button">
+                  <Trash2 size={14} />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>

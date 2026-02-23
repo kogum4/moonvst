@@ -208,6 +208,17 @@
   cursor: pointer;
 }
 
+.presetDropdownUserRow {
+  width: 100%;
+  position: relative;
+}
+
+.presetDropdownUserItem {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 8px 32px 8px 34px;
+}
+
 .presetDropdownItem:hover:enabled {
   background: #334155;
 }
@@ -273,6 +284,30 @@
   justify-content: center;
   width: 14px;
   height: 14px;
+}
+
+.presetDropdownDeleteIconButton {
+  border: 0;
+  background: transparent;
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.presetDropdownDeleteIcon {
+  color: #EF444566;
+}
+
+.presetDropdownDeleteIconButton:hover .presetDropdownDeleteIcon {
+  color: #EF4445;
 }
 
 .resetIcon {
@@ -1018,6 +1053,157 @@
   border-radius: 8px;
   padding: 8px 20px;
   box-shadow: 0 2px 8px #0E749066;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deleteDialog {
+  width: 420px;
+  border-radius: 12px;
+  border: 1px solid #EF444433;
+  background:
+    linear-gradient(180deg, #1E293B 0%, #0F172ACC 100%),
+    #0F172A;
+  box-shadow:
+    0 16px 48px #00000088,
+    0 0 32px -4px #EF444418;
+  display: flex;
+  flex-direction: column;
+}
+
+.deleteDialogHeader {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+}
+
+.deleteDialogHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deleteDialogHeaderIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #DC2626 0%, #991B1B 100%);
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  color: #F87171;
+}
+
+.deleteDialogHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.deleteDialogTitle {
+  color: #F1F5F9;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.deleteDialogSubtitle {
+  color: #475569;
+  font-size: 11px;
+  font-family: var(--font-sans);
+}
+
+.deleteDialogClose {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #64748B;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.deleteDialogSeparator {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, #33415500 0%, #334155 50%, #33415500 100%);
+}
+
+.deleteDialogBody {
+  width: 100%;
+  padding: 16px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.deleteDialogMessage {
+  color: #94A3B8;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.deleteDialogPresetInfo {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #EF444433;
+  background: #0A0F1C;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.deleteDialogPresetInfoIcon {
+  color: #EF4445;
+}
+
+.deleteDialogPresetInfoText {
+  color: #F1F5F9;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.deleteDialogFooter {
+  width: 100%;
+  padding: 12px 24px 16px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.deleteDialogCancel {
+  border: 1px solid #334155;
+  background: transparent;
+  border-radius: 8px;
+  padding: 8px 18px;
+  color: #94A3B8;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.deleteDialogConfirm {
+  border: 0;
+  background: linear-gradient(180deg, #DC2626 0%, #B91C1C 100%);
+  border-radius: 8px;
+  padding: 8px 20px;
+  box-shadow: 0 2px 8px #EF444466;
   display: inline-flex;
   align-items: center;
   gap: 6px;

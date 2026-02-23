@@ -127,6 +127,30 @@ describe('node editor shell layout', () => {
     expect(prompt).not.toHaveBeenCalled()
   })
 
+  test('deletes user preset from dropdown via trash icon with confirmation dialog', () => {
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open Save Preset Dialog' }))
+    fireEvent.change(screen.getByLabelText('Preset Name'), { target: { value: 'MyPreset' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Save Preset' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Preset Dropdown' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete preset MyPreset' }))
+
+    expect(screen.getByRole('dialog', { name: 'Delete Preset Dialog' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel Delete Preset' }))
+    expect(screen.queryByRole('dialog', { name: 'Delete Preset Dialog' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Open Preset Dropdown' }))
+    expect(screen.getByRole('menuitem', { name: 'Load preset MyPreset' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete preset MyPreset' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Delete Preset' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Delete Preset Dialog' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Load preset MyPreset' })).not.toBeInTheDocument()
+  })
+
   test('opens preset dropdown from Default Preset selector', () => {
     render(<NodeEditorShell />)
 
