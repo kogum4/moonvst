@@ -31,6 +31,8 @@
   padding: 0 16px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .topLeft,
@@ -128,6 +130,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .libHeader {
@@ -643,6 +647,8 @@
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 500;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .statusLeft,

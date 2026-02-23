@@ -60,4 +60,23 @@ describe('node editor shell layout', () => {
     expect(canvas).toHaveAttribute('data-can-scroll-y', 'false')
   })
 
+  test('prevents accidental text selection in properties panel', () => {
+    render(<NodeEditorShell />)
+
+    const inspector = screen.getByRole('complementary', { name: 'Properties Panel' })
+    expect(inspector).toHaveStyle({ userSelect: 'none' })
+  })
+
+  test('prevents accidental text selection in top, left and bottom bars', () => {
+    render(<NodeEditorShell />)
+
+    const topBar = screen.getByRole('banner', { name: 'Top Bar' })
+    const library = screen.getByRole('navigation', { name: 'Node Library' })
+    const statusBar = screen.getByRole('contentinfo', { name: 'Status Bar' })
+
+    expect(topBar).toHaveStyle({ userSelect: 'none' })
+    expect(library).toHaveStyle({ userSelect: 'none' })
+    expect(statusBar).toHaveStyle({ userSelect: 'none' })
+  })
+
 })

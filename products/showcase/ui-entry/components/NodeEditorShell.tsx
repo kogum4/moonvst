@@ -104,7 +104,12 @@ function InspectorPanel({
   const nodeColorRgb = hexToRgbChannels(nodeColor)
 
   return (
-    <aside aria-label="Properties Panel" className={styles.inspector} data-region-id="P0JNl">
+    <aside
+      aria-label="Properties Panel"
+      className={styles.inspector}
+      data-region-id="P0JNl"
+      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+    >
       <div className={styles.propsHeader}><Settings2 size={14} />PROPERTIES</div>
       <section className={styles.propsSection}>
         <div className={styles.nodeInfoRow}>
