@@ -1,12 +1,25 @@
-import {
+﻿import {
+  Check,
+  ChevronDown,
+  ChevronUp,
   Github,
+  Import,
   Moon,
+  Music,
+  Plus,
+  Redo2,
   RotateCcw,
+  Save,
   Settings2,
+  Trash2,
+  Type,
+  Undo2,
+  X,
+  Zap,
   ZoomIn,
 } from '../vendor/lucide'
 import '../styles/showcaseFonts'
-import { useEffect, useMemo, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import type { AudioRuntime } from '../../../../packages/ui-core/src/runtime/types'
 import { GraphCanvas } from './GraphCanvas'
 import { NodePalette } from './NodePalette'
@@ -20,6 +33,16 @@ import {
   isEffectNodeKind,
 } from '../state/nodeParamSchema'
 import { createGraphRuntimeBridge, emitGraphPayloadToRuntime } from '../runtime/graphRuntimeBridge'
+import {
+  deserializeShowcaseUiState,
+  graphStateFromPreset,
+  loadGraphStateFromStorage,
+  loadPresetsFromStorage,
+  saveGraphStateToStorage,
+  savePresetsToStorage,
+  upsertPreset,
+  type ShowcasePresetRecord,
+} from '../runtime/graphUiState'
 import styles from './NodeEditorShell.module.css'
 
 const isEditableElement = (target: EventTarget | null) => {
@@ -60,7 +83,34 @@ const fromLogUnit = (unit: number, min: number, max: number) => {
   return Math.exp(logMin + t * (logMax - logMin))
 }
 
-function TopBar() {
+interface PresetMenuItem {
+  name: string
+  available: boolean
+}
+
+function TopBar({
+  canRedo,
+  canUndo,
+  isPresetMenuOpen,
+  onRedo,
+  onReset,
+  onTogglePresetMenu,
+  onOpenSaveDialog,
+  onUndo,
+  presetName,
+  presetToggleRef,
+}: {
+  canRedo: boolean
+  canUndo: boolean
+  isPresetMenuOpen: boolean
+  onRedo: () => void
+  onReset: () => void
+  onTogglePresetMenu: () => void
+  onOpenSaveDialog: () => void
+  onUndo: () => void
+  presetName: string
+  presetToggleRef: RefObject<HTMLDivElement | null>
+}) {
   return (
     <header aria-label="Top Bar" className={styles.topBar} data-region-id="FMWVd">
       <div className={styles.topLeft}>
@@ -69,15 +119,146 @@ function TopBar() {
           <span className={styles.logoText}>MoonVST</span>
         </div>
         <div className={styles.vDivider} />
-        <span className={styles.presetName}>Default Preset</span>
+        <div className={styles.presetGroupWrap} ref={presetToggleRef}>
+          <div className={styles.presetGroup}>
+            <button
+              aria-expanded={isPresetMenuOpen}
+              aria-haspopup="menu"
+              aria-label="Open Preset Dropdown"
+              className={`${styles.presetSelector} ${isPresetMenuOpen ? styles.presetSelectorOpen : ''}`}
+              onClick={onTogglePresetMenu}
+              type="button"
+            >
+              <span className={styles.presetName}>{presetName}</span>
+              {isPresetMenuOpen ? <ChevronUp className={styles.presetChevronOpen} size={12} /> : <ChevronDown className={styles.presetChevron} size={12} />}
+            </button>
+            <button aria-label="Open Save Preset Dialog" className={styles.iconButton} onClick={onOpenSaveDialog} type="button">
+              <Save size={14} />
+            </button>
+          </div>
+        </div>
+        <div className={styles.vDivider} />
+        <div className={styles.undoRedoGroup}>
+          <button aria-label="Undo" className={styles.iconGhostButton} disabled={!canUndo} onClick={onUndo} type="button"><Undo2 size={14} /></button>
+          <button aria-label="Redo" className={styles.iconGhostButton} disabled={!canRedo} onClick={onRedo} type="button"><Redo2 size={14} /></button>
+        </div>
       </div>
       <div className={styles.topRight}>
-        <a className={styles.ghostButton} href="https://github.com/kogum4/moonvst" rel="noreferrer" target="_blank"><Github className={styles.addNodeIcon} size={14} />GitHub</a>
-        <button className={styles.ghostButton} type="button"><RotateCcw className={styles.resetIcon} size={14} />Reset</button>
+        <a aria-label="Open GitHub Repository" className={styles.iconButton} href="https://github.com/kogum4/moonvst" rel="noreferrer" target="_blank"><Github size={14} /></a>
+        <button aria-label="Reset" className={styles.resetButton} onClick={onReset} type="button"><RotateCcw className={styles.resetIcon} size={14} />Reset</button>
         <div className={styles.vDivider} />
-        <button className={styles.activeButton} type="button"><span className={styles.activeDot} />Active</button>
+        <button aria-label="Active" className={styles.activeButton} type="button"><span className={styles.activeDot} />Active</button>
       </div>
     </header>
+  )
+}
+
+function PresetDropdown({
+  factoryPresets,
+  onClosePresetMenu,
+  onCreatePreset,
+  onImportPreset,
+  onRequestDeletePreset,
+  onSelectPreset,
+  presetName,
+  presetDropdownRef,
+  userPresets,
+}: {
+  factoryPresets: PresetMenuItem[]
+  onClosePresetMenu: () => void
+  onCreatePreset: () => void
+  onImportPreset: () => void
+  onRequestDeletePreset: (name: string) => void
+  onSelectPreset: (name: string) => void
+  presetName: string
+  presetDropdownRef: RefObject<HTMLDivElement | null>
+  userPresets: PresetMenuItem[]
+}) {
+  return (
+    <div className={styles.presetDropdownLayer} ref={presetDropdownRef}>
+      <div aria-label="Preset Dropdown Menu" className={styles.presetDropdown} role="menu">
+        <div className={styles.presetDropdownLabel}>FACTORY</div>
+        {factoryPresets.map((preset) => {
+          const isSelected = preset.name === presetName
+          return (
+            <button
+              aria-label={`Load preset ${preset.name}`}
+              className={`${styles.presetDropdownItem} ${isSelected ? styles.presetDropdownItemActive : ''}`}
+              disabled={!preset.available}
+              key={`factory-${preset.name}`}
+              onClick={() => {
+                onSelectPreset(preset.name)
+                onClosePresetMenu()
+              }}
+              role="menuitem"
+              type="button"
+            >
+              {isSelected ? <Check className={styles.presetDropdownIconActive} size={14} /> : null}
+              <span className={isSelected ? styles.presetDropdownTextActive : ''}>{preset.name}</span>
+            </button>
+          )
+        })}
+        <div className={styles.presetDropdownSeparator} />
+        <div className={styles.presetDropdownLabel}>USER</div>
+        {userPresets.map((preset) => (
+          <div className={styles.presetDropdownUserRow} key={`user-${preset.name}`}>
+            <button
+              aria-label={`Load preset ${preset.name}`}
+              className={`${styles.presetDropdownItem} ${styles.presetDropdownUserItem}`}
+              disabled={!preset.available}
+              onClick={() => {
+                onSelectPreset(preset.name)
+                onClosePresetMenu()
+              }}
+              role="menuitem"
+              type="button"
+            >
+              <span>{preset.name}</span>
+            </button>
+            {preset.available ? (
+              <button
+                aria-label={`Delete preset ${preset.name}`}
+                className={styles.presetDropdownDeleteIconButton}
+                onClick={() => {
+                  onRequestDeletePreset(preset.name)
+                  onClosePresetMenu()
+                }}
+                type="button"
+              >
+                <Trash2 className={styles.presetDropdownDeleteIcon} size={13} />
+              </button>
+            ) : null}
+          </div>
+        ))}
+        <div className={styles.presetDropdownSeparator} />
+        <button
+          aria-label="Create New Preset"
+          className={styles.presetDropdownAction}
+          onClick={() => {
+            onCreatePreset()
+            onClosePresetMenu()
+          }}
+          role="menuitem"
+          type="button"
+        >
+          <span className={styles.presetDropdownActionIcon}><Plus size={14} /></span>
+          <span>New Preset…</span>
+        </button>
+        <button
+          aria-label="Import Preset"
+          className={styles.presetDropdownAction}
+          onClick={() => {
+            onImportPreset()
+            onClosePresetMenu()
+          }}
+          role="menuitem"
+          type="button"
+        >
+          <span className={styles.presetDropdownActionIcon}><Import size={14} /></span>
+          <span>Import Preset…</span>
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -104,7 +285,12 @@ function InspectorPanel({
   const nodeColorRgb = hexToRgbChannels(nodeColor)
 
   return (
-    <aside aria-label="Properties Panel" className={styles.inspector} data-region-id="P0JNl">
+    <aside
+      aria-label="Properties Panel"
+      className={styles.inspector}
+      data-region-id="P0JNl"
+      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+    >
       <div className={styles.propsHeader}><Settings2 size={14} />PROPERTIES</div>
       <section className={styles.propsSection}>
         <div className={styles.nodeInfoRow}>
@@ -257,8 +443,24 @@ function StatusBar({ connectionCount, lastError, nodeCount }: { connectionCount:
 }
 
 export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | null }) {
-  const interaction = useGraphInteraction()
+  const bootstrappedState = useMemo(
+    () => (typeof window === 'undefined' ? null : loadGraphStateFromStorage(window.localStorage)),
+    [],
+  )
+  const interaction = useGraphInteraction(bootstrappedState?.graphState)
   const { pendingFromNodeId, state } = interaction
+  const [presetName, setPresetName] = useState(bootstrappedState?.lastPresetName ?? 'Default Preset')
+  const [presets, setPresets] = useState<ShowcasePresetRecord[]>([])
+  const [isPresetMenuOpen, setPresetMenuOpen] = useState(false)
+  const [isSaveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletePresetName, setDeletePresetName] = useState<string | null>(null)
+  const [overwriteCandidateName, setOverwriteCandidateName] = useState<string | null>(null)
+  const [saveDraftName, setSaveDraftName] = useState('')
+  const presetToggleRef = useRef<HTMLDivElement | null>(null)
+  const presetDropdownRef = useRef<HTMLDivElement | null>(null)
+  const hydratedRef = useRef(false)
+  const persistenceReadyRef = useRef(false)
   const graphRuntimeBridge = useMemo(
     () =>
       createGraphRuntimeBridge((payload, revision) => {
@@ -313,11 +515,83 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   }, [selectedNode, state.edges, state.nodes])
 
   useEffect(() => {
+    if (!hydratedRef.current) {
+      return
+    }
     graphRuntimeBridge.sync(state)
   }, [graphRuntimeBridge, state])
 
   useEffect(() => {
+    const hydrate = async () => {
+      const storage = window.localStorage
+      let initial = bootstrappedState
+
+      if (runtime?.type === 'juce' && runtime.invokeNative) {
+        try {
+          const raw = await runtime.invokeNative('getUiState')
+          if (typeof raw === 'string' && raw.trim() !== '') {
+            const parsed = JSON.parse(raw) as unknown
+            const restored = deserializeShowcaseUiState(parsed)
+            if (restored) {
+              initial = restored
+            }
+          }
+        } catch {
+          // Ignore invalid host payload and fallback to browser storage.
+        }
+      }
+
+      const initialPresets = loadPresetsFromStorage(storage)
+      setPresets(initialPresets)
+
+      if (initial && runtime?.type === 'juce') {
+        interaction.replaceState(initial.graphState, false)
+        setPresetName(initial.lastPresetName)
+      }
+      persistenceReadyRef.current = false
+      hydratedRef.current = true
+    }
+
+    void hydrate()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bootstrappedState, runtime])
+
+  useEffect(() => {
+    if (!hydratedRef.current) {
+      return
+    }
+    if (!persistenceReadyRef.current) {
+      persistenceReadyRef.current = true
+      return
+    }
+    saveGraphStateToStorage(window.localStorage, state, presetName)
+    if (runtime?.type === 'juce' && runtime.invokeNative) {
+      const payload = JSON.stringify({
+        version: 1,
+        graphPayload: graphRuntimeBridge.sync(state),
+        lastPresetName: presetName,
+      })
+      void runtime.invokeNative('setUiState', payload)
+    }
+  }, [graphRuntimeBridge, presetName, runtime, state])
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const isMeta = event.ctrlKey || event.metaKey
+      if (isMeta && event.key.toLowerCase() === 'z') {
+        if (event.shiftKey) {
+          interaction.redo()
+        } else {
+          interaction.undo()
+        }
+        event.preventDefault()
+        return
+      }
+      if (isMeta && event.key.toLowerCase() === 'y') {
+        interaction.redo()
+        event.preventDefault()
+        return
+      }
       if (event.key !== 'Delete' && event.key !== 'Backspace') {
         return
       }
@@ -334,10 +608,192 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     }
   }, [interaction, selectedNode])
 
+  const closeSaveDialog = () => {
+    setSaveDialogOpen(false)
+  }
+
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false)
+    setDeletePresetName(null)
+  }
+
+  const openSaveDialog = () => {
+    setSaveDraftName(presetName)
+    setOverwriteCandidateName(null)
+    setSaveDialogOpen(true)
+  }
+
+  const savePresetWithName = (name: string) => {
+    const updated = upsertPreset(presets, name, state)
+    setPresets(updated)
+    savePresetsToStorage(window.localStorage, updated)
+    setPresetName(name)
+    setOverwriteCandidateName(null)
+    closeSaveDialog()
+  }
+
+  const handleSavePreset = () => {
+    const trimmedName = saveDraftName.trim()
+    if (!trimmedName) {
+      return
+    }
+
+    const existingPreset = presets.find((preset) => preset.name === trimmedName)
+    if (existingPreset && overwriteCandidateName !== trimmedName) {
+      setOverwriteCandidateName(trimmedName)
+      return
+    }
+
+    savePresetWithName(trimmedName)
+  }
+
+  const handleLoadPreset = (name: string) => {
+    if (name === 'Default Preset') {
+      interaction.reset()
+      setPresetName('Default Preset')
+      return
+    }
+    const preset = presets.find((entry) => entry.name === name.trim())
+    if (!preset) {
+      return
+    }
+    interaction.replaceState(graphStateFromPreset(preset), true)
+    setPresetName(preset.name)
+  }
+
+  const handleOpenDeleteDialog = (name: string) => {
+    setDeletePresetName(name)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeletePreset = () => {
+    if (!deletePresetName) {
+      return
+    }
+    const updated = presets.filter((preset) => preset.name !== deletePresetName)
+    setPresets(updated)
+    savePresetsToStorage(window.localStorage, updated)
+    if (presetName === deletePresetName) {
+      interaction.reset()
+      setPresetName('Default Preset')
+    }
+    closeDeleteDialog()
+  }
+
+  const handleReset = () => {
+    interaction.reset()
+    setPresetName('Default Preset')
+  }
+
+  useEffect(() => {
+    if (!isPresetMenuOpen) {
+      return
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) {
+        return
+      }
+      if (presetToggleRef.current?.contains(event.target) || presetDropdownRef.current?.contains(event.target)) {
+        return
+      }
+      setPresetMenuOpen(false)
+    }
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setPresetMenuOpen(false)
+      }
+    }
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [isPresetMenuOpen])
+
+  useEffect(() => {
+    if (!isSaveDialogOpen) {
+      return
+    }
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeSaveDialog()
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [isSaveDialogOpen])
+
+  useEffect(() => {
+    if (!isDeleteDialogOpen) {
+      return
+    }
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeDeleteDialog()
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [isDeleteDialogOpen])
+
+  const factoryPresets = useMemo<PresetMenuItem[]>(
+    () => [
+      { name: 'Default Preset', available: true },
+      { name: 'Warm Analog', available: false },
+      { name: 'Dark Shimmer', available: false },
+      { name: 'Crystal Clean', available: false },
+    ],
+    [],
+  )
+
+  const userPresets = useMemo<PresetMenuItem[]>(
+    () =>
+      presets.length > 0
+        ? presets.map((preset) => ({ name: preset.name, available: true }))
+        : [
+            { name: 'My Custom Lead', available: false },
+            { name: 'Lo-Fi Tape', available: false },
+          ],
+    [presets],
+  )
+
+  const isOverwriteWarningVisible =
+    overwriteCandidateName !== null &&
+    saveDraftName.trim() === overwriteCandidateName
+
   return (
     <div className={styles.shell} data-region-id="kvMK5">
-      <TopBar />
+      <TopBar
+        canRedo={interaction.canRedo}
+        canUndo={interaction.canUndo}
+        isPresetMenuOpen={isPresetMenuOpen}
+        onRedo={interaction.redo}
+        onReset={handleReset}
+        onTogglePresetMenu={() => setPresetMenuOpen((current) => !current)}
+        onOpenSaveDialog={openSaveDialog}
+        onUndo={interaction.undo}
+        presetName={presetName}
+        presetToggleRef={presetToggleRef}
+      />
       <section className={styles.contentArea} data-region-id="PdXfK">
+        {isPresetMenuOpen ? (
+          <PresetDropdown
+            factoryPresets={factoryPresets}
+            onClosePresetMenu={() => setPresetMenuOpen(false)}
+            onCreatePreset={openSaveDialog}
+            onImportPreset={() => {}}
+            onRequestDeletePreset={handleOpenDeleteDialog}
+            onSelectPreset={handleLoadPreset}
+            presetDropdownRef={presetDropdownRef}
+            presetName={presetName}
+            userPresets={userPresets}
+          />
+        ) : null}
         <NodePalette onAddNode={interaction.addNode} />
         <GraphCanvas
           onAddNodeAt={interaction.addNodeAt}
@@ -359,8 +815,98 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
           selectedNode={selectedNode}
           selectedNodeLabel={selectedNodeLabel}
         />
+        {isSaveDialogOpen ? (
+          <div className={styles.modalOverlay}>
+            <div aria-label="Save Preset Dialog" className={styles.saveDialog} role="dialog">
+              <div className={styles.saveDialogHeader}>
+                <div className={styles.saveDialogHeaderLeft}>
+                  <span className={styles.saveDialogHeaderIcon}><Save size={18} /></span>
+                  <span className={styles.saveDialogHeaderText}>
+                    <span className={styles.saveDialogTitle}>Save Preset</span>
+                    <span className={styles.saveDialogSubtitle}>Store your current configuration</span>
+                  </span>
+                </div>
+                <button aria-label="Close Save Preset Dialog" className={styles.saveDialogClose} onClick={closeSaveDialog} type="button"><X size={14} /></button>
+              </div>
+              <div className={styles.saveDialogSeparator} />
+              <div className={styles.saveDialogBody}>
+                <label className={styles.saveDialogFieldLabel} htmlFor="preset-name-input">PRESET NAME</label>
+                <div className={styles.saveDialogInputWrap}>
+                  <Type className={styles.saveDialogInputIcon} size={14} />
+                  <input
+                    aria-label="Preset Name"
+                    className={styles.saveDialogInput}
+                    id="preset-name-input"
+                    onChange={(event) => {
+                      setSaveDraftName(event.target.value)
+                      setOverwriteCandidateName(null)
+                    }}
+                    value={saveDraftName}
+                  />
+                </div>
+                {isOverwriteWarningVisible ? (
+                  <div className={styles.saveDialogWarning}>
+                    <Zap className={styles.saveDialogWarningIcon} size={12} />
+                    <span>This preset name already exists. Click Overwrite to replace it.</span>
+                  </div>
+                ) : (
+                  <div className={styles.saveDialogHint}>Enter a unique name for your preset</div>
+                )}
+              </div>
+              <div className={styles.saveDialogSeparator} />
+              <div className={styles.saveDialogFooter}>
+                <button aria-label="Cancel Save Preset" className={styles.saveDialogCancel} onClick={closeSaveDialog} type="button">Cancel</button>
+                <button
+                  aria-label={isOverwriteWarningVisible ? 'Confirm Overwrite Preset' : 'Confirm Save Preset'}
+                  className={`${styles.saveDialogConfirm} ${isOverwriteWarningVisible ? styles.saveDialogConfirmOverwrite : ''}`}
+                  onClick={handleSavePreset}
+                  type="button"
+                >
+                  <Save size={14} />
+                  <span>{isOverwriteWarningVisible ? 'Overwrite' : 'Save Preset'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {isDeleteDialogOpen ? (
+          <div className={styles.modalOverlay}>
+            <div aria-label="Delete Preset Dialog" className={styles.deleteDialog} role="dialog">
+              <div className={styles.deleteDialogHeader}>
+                <div className={styles.deleteDialogHeaderLeft}>
+                  <span className={styles.deleteDialogHeaderIcon}><Trash2 size={18} /></span>
+                  <span className={styles.deleteDialogHeaderText}>
+                    <span className={styles.deleteDialogTitle}>Delete Preset</span>
+                    <span className={styles.deleteDialogSubtitle}>This action cannot be undone</span>
+                  </span>
+                </div>
+                <button aria-label="Close Delete Preset Dialog" className={styles.deleteDialogClose} onClick={closeDeleteDialog} type="button"><X size={14} /></button>
+              </div>
+              <div className={styles.deleteDialogSeparator} />
+              <div className={styles.deleteDialogBody}>
+                <div className={styles.deleteDialogMessage}>
+                  Are you sure you want to delete this preset? This action is permanent and cannot be reversed.
+                </div>
+                <div className={styles.deleteDialogPresetInfo}>
+                  <Music className={styles.deleteDialogPresetInfoIcon} size={16} />
+                  <span className={styles.deleteDialogPresetInfoText}>{deletePresetName ?? ''}</span>
+                </div>
+              </div>
+              <div className={styles.deleteDialogSeparator} />
+              <div className={styles.deleteDialogFooter}>
+                <button aria-label="Cancel Delete Preset" className={styles.deleteDialogCancel} onClick={closeDeleteDialog} type="button">Cancel</button>
+                <button aria-label="Confirm Delete Preset" className={styles.deleteDialogConfirm} onClick={handleDeletePreset} type="button">
+                  <Trash2 size={14} />
+                  <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
       <StatusBar connectionCount={state.edges.length} lastError={state.lastError} nodeCount={state.nodes.length} />
     </div>
   )
 }
+
+

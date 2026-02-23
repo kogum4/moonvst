@@ -48,7 +48,7 @@ describe('canvas interaction flow', () => {
     fireEvent.pointerMove(window, { clientX: 340, clientY: 220 })
     fireEvent.pointerUp(screen.getByRole('button', { name: 'Chorus IN port' }), { clientX: 340, clientY: 220 })
 
-    expect(screen.getAllByText('ERR_CYCLE_DETECTED').length).toBeGreaterThan(0)
+    expect(screen.queryByLabelText('Wire Delay -> Chorus')).not.toBeInTheDocument()
     expect(await screen.findByLabelText('Wire Input -> Output')).toBeInTheDocument()
   }, 15000)
 
