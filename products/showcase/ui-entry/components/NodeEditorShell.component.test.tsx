@@ -1,8 +1,24 @@
 import { fireEvent, render, screen } from '../test/testing'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { NodeEditorShell } from './NodeEditorShell'
+import { SHOWCASE_PRESET_STORAGE_KEY } from '../runtime/graphUiState'
 
 describe('node editor shell layout', () => {
+  const seedUserPreset = (name: string) => {
+    window.localStorage.setItem(
+      SHOWCASE_PRESET_STORAGE_KEY,
+      JSON.stringify([
+        {
+          id: 'preset-seeded',
+          name,
+          createdAt: 1,
+          updatedAt: 1,
+          graphPayload: '{"version":1,"nodes":[],"edges":[]}',
+        },
+      ]),
+    )
+  }
+
   beforeEach(() => {
     window.localStorage.clear()
     vi.restoreAllMocks()
@@ -127,13 +143,9 @@ describe('node editor shell layout', () => {
     expect(prompt).not.toHaveBeenCalled()
   })
 
-  test('deletes user preset from dropdown via trash icon with confirmation dialog', () => {
+  test('keeps user preset when delete is canceled from confirmation dialog', () => {
+    seedUserPreset('MyPreset')
     render(<NodeEditorShell />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Open Save Preset Dialog' }))
-    fireEvent.change(screen.getByLabelText('Preset Name'), { target: { value: 'MyPreset' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm Save Preset' }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Preset Dropdown' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete preset MyPreset' }))
@@ -143,8 +155,15 @@ describe('node editor shell layout', () => {
     expect(screen.queryByRole('dialog', { name: 'Delete Preset Dialog' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Open Preset Dropdown' }))
     expect(screen.getByRole('menuitem', { name: 'Load preset MyPreset' })).toBeInTheDocument()
+  })
 
+  test('deletes user preset from dropdown via trash icon with confirmation dialog', () => {
+    seedUserPreset('MyPreset')
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Preset Dropdown' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete preset MyPreset' }))
+
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Delete Preset' }))
 
     expect(screen.queryByRole('dialog', { name: 'Delete Preset Dialog' })).not.toBeInTheDocument()
