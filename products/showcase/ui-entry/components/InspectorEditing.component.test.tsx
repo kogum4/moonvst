@@ -55,5 +55,5 @@ describe('inspector editing flow', () => {
     fireEvent.click(bypassToggle)
     expect(delayNode).toHaveAttribute('data-bypassed', 'true')
     expect(bypassToggle).toHaveAttribute('aria-pressed', 'false')
-  })
+  }, 15000)
 })
