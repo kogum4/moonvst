@@ -1,6 +1,7 @@
 export type NodeKind =
   | 'input'
   | 'output'
+  | 'gain'
   | 'chorus'
   | 'compressor'
   | 'delay'

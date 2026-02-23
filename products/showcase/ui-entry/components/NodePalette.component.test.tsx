@@ -17,6 +17,11 @@ const createDataTransfer = () => {
 }
 
 describe('NodePalette', () => {
+  test('shows Gain node in effect library', () => {
+    render(<NodePalette onAddNode={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Gain' })).toBeInTheDocument()
+  })
+
   test('uses node-like drag preview when dragging an effect', () => {
     const onAddNode = vi.fn()
     render(<NodePalette onAddNode={onAddNode} />)

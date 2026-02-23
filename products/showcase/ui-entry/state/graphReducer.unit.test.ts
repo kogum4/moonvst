@@ -26,7 +26,7 @@ describe('showcase graph reducer', () => {
     expect(configurable.nodeLimit).toBe(16)
 
     let atLimit = createDefaultGraphState()
-    for (const kind of ['reverb', 'delay', 'chorus', 'compressor', 'eq', 'filter'] as const) {
+    for (const kind of ['reverb', 'delay', 'gain', 'compressor', 'eq', 'filter'] as const) {
       atLimit = graphReducer(atLimit, {
         type: 'addNode',
         kind,

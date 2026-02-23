@@ -14,6 +14,7 @@ export {
   Settings2,
   SlidersHorizontal,
   Timer,
+  Volume2,
   Waves,
   Zap,
   ZoomIn,

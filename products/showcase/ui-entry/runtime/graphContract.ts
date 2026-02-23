@@ -10,6 +10,7 @@ import {
 const ALLOWED_NODE_KINDS: ReadonlySet<NodeKind> = new Set([
   'input',
   'output',
+  'gain',
   'chorus',
   'compressor',
   'delay',
@@ -254,8 +255,11 @@ const delayFilterQToParam = (filterQ: number): number => {
   const q = clamp(filterQ, 0.01, 1.01)
   return Math.sqrt(clamp(q - 0.01, 0, 1))
 }
+const gainDbToLinear = (gainDb: number): number =>
+  Math.pow(10, clamp(gainDb, -60, 12) / 20)
 
 const effectTypeByKind: Partial<Record<NodeKind, number>> = {
+  gain: 0,
   chorus: 1,
   compressor: 2,
   delay: 3,
@@ -267,6 +271,20 @@ const effectTypeByKind: Partial<Record<NodeKind, number>> = {
 
 const normalizeNodeParams = (node: GraphPayloadNode): RuntimeGraphNode => {
   switch (node.kind) {
+    case 'gain':
+      return {
+        effectType: effectTypeByKind.gain!,
+        bypass: node.bypass,
+        p1: gainDbToLinear(node.params.gainDb ?? 0),
+        p2: 0,
+        p3: 0,
+        p4: 0,
+        p5: 0,
+        p6: 0,
+        p7: 0,
+        p8: 0,
+        p9: 0,
+      }
     case 'chorus':
       return {
         effectType: effectTypeByKind.chorus!,

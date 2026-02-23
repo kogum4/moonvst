@@ -4,6 +4,7 @@ import {
   Gauge,
   SlidersHorizontal,
   Timer,
+  Volume2,
   Waves,
   Zap,
 } from '../vendor/lucide'
@@ -20,6 +21,7 @@ type EffectVisual = {
 }
 
 export const EFFECT_LIBRARY: Array<{ kind: EffectKind; label: string; color: string; icon: LucideIcon }> = [
+  { kind: 'gain', label: 'Gain', color: '#FACC15', icon: Volume2 },
   { kind: 'chorus', label: 'Chorus', color: '#818CF8', icon: Waves },
   { kind: 'compressor', label: 'Compressor', color: '#F97316', icon: Gauge },
   { kind: 'delay', label: 'Delay', color: '#22D3EE', icon: Timer },
@@ -30,6 +32,14 @@ export const EFFECT_LIBRARY: Array<{ kind: EffectKind; label: string; color: str
 ]
 
 const EFFECT_VISUALS: Record<EffectKind, EffectVisual> = {
+  gain: {
+    color: '#FACC15',
+    icon: Volume2,
+    label: 'Gain',
+    rows: [
+      { key: 'gainDb', label: 'Gain', value: '0.0 dB' },
+    ],
+  },
   chorus: {
     color: '#818CF8',
     icon: Waves,

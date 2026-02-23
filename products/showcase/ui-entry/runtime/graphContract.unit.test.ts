@@ -92,6 +92,28 @@ describe('showcase graph contract payload', () => {
     expect(chorusNode?.p3).toBeCloseTo(0.42, 5)
   })
 
+  test('maps gain dB to runtime linear gain', () => {
+    let state = createDefaultGraphState()
+    state = graphReducer(state, { type: 'addNode', kind: 'gain', x: 240, y: 180, id: 'fx-gain' })
+    state = graphReducer(state, { type: 'disconnect', fromNodeId: 'input', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'input', toNodeId: 'fx-gain' })
+    state = graphReducer(state, { type: 'connect', fromNodeId: 'fx-gain', toNodeId: 'output' })
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-gain', key: 'gainDb', value: -6 })
+    let runtime = compileRuntimeGraphPayload(serializeGraphPayload(state))
+    let gainNode = runtime.nodes.find((node) => node.effectType === 0 && node.bypass === false)
+    expect(gainNode?.p1).toBeCloseTo(0.5012, 4)
+
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-gain', key: 'gainDb', value: 0 })
+    runtime = compileRuntimeGraphPayload(serializeGraphPayload(state))
+    gainNode = runtime.nodes.find((node) => node.effectType === 0 && node.bypass === false)
+    expect(gainNode?.p1).toBeCloseTo(1, 5)
+
+    state = graphReducer(state, { type: 'updateNodeParam', nodeId: 'fx-gain', key: 'gainDb', value: 12 })
+    runtime = compileRuntimeGraphPayload(serializeGraphPayload(state))
+    gainNode = runtime.nodes.find((node) => node.effectType === 0 && node.bypass === false)
+    expect(gainNode?.p1).toBeCloseTo(3.9811, 4)
+  })
+
   test('maps delay tape params to runtime p1..p6', () => {
     let state = createDefaultGraphState()
     state = graphReducer(state, { type: 'addNode', kind: 'delay', x: 240, y: 180, id: 'fx-delay' })

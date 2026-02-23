@@ -27,6 +27,9 @@ const formatFilterMode = (value: number) => {
 }
 
 const EFFECT_NODE_PARAM_SPECS: Record<EffectNodeKind, NodeParamSpec[]> = {
+  gain: [
+    { key: 'gainDb', label: 'Gain', min: -60, max: 12, step: 0.1, defaultValue: 0, formatValue: formatDb },
+  ],
   chorus: [
     { key: 'rate', label: 'Rate', min: 0.05, max: 5.0, step: 0.01, defaultValue: 1.2, formatValue: formatRateHz },
     { key: 'depth', label: 'Depth', min: 0, max: 100, step: 1, defaultValue: 55, formatValue: formatPercent },
