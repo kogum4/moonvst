@@ -1,8 +1,13 @@
 import { fireEvent, render, screen } from '../test/testing'
-import { describe, expect, test } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { NodeEditorShell } from './NodeEditorShell'
 
 describe('node editor shell layout', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    vi.restoreAllMocks()
+  })
+
   test('renders Pencil-mapped regions with semantic roles and region ids', () => {
     render(<NodeEditorShell />)
 
@@ -77,6 +82,45 @@ describe('node editor shell layout', () => {
     expect(topBar).toHaveStyle({ userSelect: 'none' })
     expect(library).toHaveStyle({ userSelect: 'none' })
     expect(statusBar).toHaveStyle({ userSelect: 'none' })
+  })
+
+  test('supports undo/redo and reset from top bar controls', () => {
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
+    expect(screen.getByRole('group', { name: 'Effect Node Chorus' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Redo' }))
+    expect(screen.getByRole('group', { name: 'Effect Node Chorus' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
+    expect(screen.getByText('Default Preset')).toBeInTheDocument()
+  })
+
+  test('saves and loads presets', () => {
+    const prompt = vi.spyOn(window, 'prompt')
+      .mockImplementationOnce(() => 'MyPreset')
+      .mockImplementationOnce(() => 'MyPreset')
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
+
+    render(<NodeEditorShell />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
+    expect(screen.getByRole('group', { name: 'Effect Node Chorus' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Save Preset' }))
+    expect(screen.getByText('MyPreset')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load Preset' }))
+    expect(screen.getByRole('group', { name: 'Effect Node Chorus' })).toBeInTheDocument()
+    expect(alert).not.toHaveBeenCalled()
+    expect(prompt).toHaveBeenCalledTimes(2)
   })
 
 })

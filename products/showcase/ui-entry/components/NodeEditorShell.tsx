@@ -1,4 +1,6 @@
 import {
+  ArrowLeft,
+  ArrowRight,
   Github,
   Moon,
   RotateCcw,
@@ -6,7 +8,7 @@ import {
   ZoomIn,
 } from '../vendor/lucide'
 import '../styles/showcaseFonts'
-import { useEffect, useMemo, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { AudioRuntime } from '../../../../packages/ui-core/src/runtime/types'
 import { GraphCanvas } from './GraphCanvas'
 import { NodePalette } from './NodePalette'
@@ -20,6 +22,16 @@ import {
   isEffectNodeKind,
 } from '../state/nodeParamSchema'
 import { createGraphRuntimeBridge, emitGraphPayloadToRuntime } from '../runtime/graphRuntimeBridge'
+import {
+  deserializeShowcaseUiState,
+  graphStateFromPreset,
+  loadGraphStateFromStorage,
+  loadPresetsFromStorage,
+  saveGraphStateToStorage,
+  savePresetsToStorage,
+  upsertPreset,
+  type ShowcasePresetRecord,
+} from '../runtime/graphUiState'
 import styles from './NodeEditorShell.module.css'
 
 const isEditableElement = (target: EventTarget | null) => {
@@ -60,7 +72,25 @@ const fromLogUnit = (unit: number, min: number, max: number) => {
   return Math.exp(logMin + t * (logMax - logMin))
 }
 
-function TopBar() {
+function TopBar({
+  canRedo,
+  canUndo,
+  onLoadPreset,
+  onRedo,
+  onReset,
+  onSavePreset,
+  onUndo,
+  presetName,
+}: {
+  canRedo: boolean
+  canUndo: boolean
+  onLoadPreset: () => void
+  onRedo: () => void
+  onReset: () => void
+  onSavePreset: () => void
+  onUndo: () => void
+  presetName: string
+}) {
   return (
     <header aria-label="Top Bar" className={styles.topBar} data-region-id="FMWVd">
       <div className={styles.topLeft}>
@@ -69,11 +99,16 @@ function TopBar() {
           <span className={styles.logoText}>MoonVST</span>
         </div>
         <div className={styles.vDivider} />
-        <span className={styles.presetName}>Default Preset</span>
+        <button aria-label="Undo" className={styles.ghostButton} disabled={!canUndo} onClick={onUndo} type="button"><ArrowLeft size={14} />Undo</button>
+        <button aria-label="Redo" className={styles.ghostButton} disabled={!canRedo} onClick={onRedo} type="button"><ArrowRight size={14} />Redo</button>
+        <div className={styles.vDivider} />
+        <span className={styles.presetName}>{presetName}</span>
       </div>
       <div className={styles.topRight}>
         <a className={styles.ghostButton} href="https://github.com/kogum4/moonvst" rel="noreferrer" target="_blank"><Github className={styles.addNodeIcon} size={14} />GitHub</a>
-        <button className={styles.ghostButton} type="button"><RotateCcw className={styles.resetIcon} size={14} />Reset</button>
+        <button aria-label="Save Preset" className={styles.ghostButton} onClick={onSavePreset} type="button">Save Preset</button>
+        <button aria-label="Load Preset" className={styles.ghostButton} onClick={onLoadPreset} type="button">Load Preset</button>
+        <button aria-label="Reset" className={styles.ghostButton} onClick={onReset} type="button"><RotateCcw className={styles.resetIcon} size={14} />Reset</button>
         <div className={styles.vDivider} />
         <button className={styles.activeButton} type="button"><span className={styles.activeDot} />Active</button>
       </div>
@@ -262,8 +297,16 @@ function StatusBar({ connectionCount, lastError, nodeCount }: { connectionCount:
 }
 
 export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | null }) {
-  const interaction = useGraphInteraction()
+  const bootstrappedState = useMemo(
+    () => (typeof window === 'undefined' ? null : loadGraphStateFromStorage(window.localStorage)),
+    [],
+  )
+  const interaction = useGraphInteraction(bootstrappedState?.graphState)
   const { pendingFromNodeId, state } = interaction
+  const [presetName, setPresetName] = useState(bootstrappedState?.lastPresetName ?? 'Default Preset')
+  const [presets, setPresets] = useState<ShowcasePresetRecord[]>([])
+  const hydratedRef = useRef(false)
+  const persistenceReadyRef = useRef(false)
   const graphRuntimeBridge = useMemo(
     () =>
       createGraphRuntimeBridge((payload, revision) => {
@@ -318,11 +361,83 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   }, [selectedNode, state.edges, state.nodes])
 
   useEffect(() => {
+    if (!hydratedRef.current) {
+      return
+    }
     graphRuntimeBridge.sync(state)
   }, [graphRuntimeBridge, state])
 
   useEffect(() => {
+    const hydrate = async () => {
+      const storage = window.localStorage
+      let initial = bootstrappedState
+
+      if (runtime?.type === 'juce' && runtime.invokeNative) {
+        try {
+          const raw = await runtime.invokeNative('getUiState')
+          if (typeof raw === 'string' && raw.trim() !== '') {
+            const parsed = JSON.parse(raw) as unknown
+            const restored = deserializeShowcaseUiState(parsed)
+            if (restored) {
+              initial = restored
+            }
+          }
+        } catch {
+          // Ignore invalid host payload and fallback to browser storage.
+        }
+      }
+
+      const initialPresets = loadPresetsFromStorage(storage)
+      setPresets(initialPresets)
+
+      if (initial && runtime?.type === 'juce') {
+        interaction.replaceState(initial.graphState, false)
+        setPresetName(initial.lastPresetName)
+      }
+      persistenceReadyRef.current = false
+      hydratedRef.current = true
+    }
+
+    void hydrate()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bootstrappedState, runtime])
+
+  useEffect(() => {
+    if (!hydratedRef.current) {
+      return
+    }
+    if (!persistenceReadyRef.current) {
+      persistenceReadyRef.current = true
+      return
+    }
+    saveGraphStateToStorage(window.localStorage, state, presetName)
+    if (runtime?.type === 'juce' && runtime.invokeNative) {
+      const payload = JSON.stringify({
+        version: 1,
+        graphPayload: graphRuntimeBridge.sync(state),
+        lastPresetName: presetName,
+      })
+      void runtime.invokeNative('setUiState', payload)
+    }
+  }, [graphRuntimeBridge, presetName, runtime, state])
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const isMeta = event.ctrlKey || event.metaKey
+      if (isMeta && event.key.toLowerCase() === 'z') {
+        if (event.shiftKey) {
+          interaction.redo()
+        } else {
+          interaction.undo()
+        }
+        event.preventDefault()
+        return
+      }
+      if (isMeta && event.key.toLowerCase() === 'y') {
+        interaction.redo()
+        event.preventDefault()
+        return
+      }
       if (event.key !== 'Delete' && event.key !== 'Backspace') {
         return
       }
@@ -339,9 +454,53 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     }
   }, [interaction, selectedNode])
 
+  const handleSavePreset = () => {
+    const nextName = window.prompt('Preset name', presetName)
+    if (!nextName) {
+      return
+    }
+    const updated = upsertPreset(presets, nextName, state)
+    setPresets(updated)
+    savePresetsToStorage(window.localStorage, updated)
+    setPresetName(nextName.trim())
+  }
+
+  const handleLoadPreset = () => {
+    if (presets.length === 0) {
+      window.alert('No presets saved yet.')
+      return
+    }
+    const choices = presets.map((preset) => preset.name).join(', ')
+    const selected = window.prompt(`Load preset (${choices})`, presets[0]?.name ?? '')
+    if (!selected) {
+      return
+    }
+    const preset = presets.find((entry) => entry.name === selected.trim())
+    if (!preset) {
+      window.alert('Preset not found.')
+      return
+    }
+    interaction.replaceState(graphStateFromPreset(preset), true)
+    setPresetName(preset.name)
+  }
+
+  const handleReset = () => {
+    interaction.reset()
+    setPresetName('Default Preset')
+  }
+
   return (
     <div className={styles.shell} data-region-id="kvMK5">
-      <TopBar />
+      <TopBar
+        canRedo={interaction.canRedo}
+        canUndo={interaction.canUndo}
+        onLoadPreset={handleLoadPreset}
+        onRedo={interaction.redo}
+        onReset={handleReset}
+        onSavePreset={handleSavePreset}
+        onUndo={interaction.undo}
+        presetName={presetName}
+      />
       <section className={styles.contentArea} data-region-id="PdXfK">
         <NodePalette onAddNode={interaction.addNode} />
         <GraphCanvas

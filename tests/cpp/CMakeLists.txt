@@ -56,7 +56,9 @@ if(NOT TARGET ${MOONVST_PLUGIN_TARGET})
 endif()
 
 target_include_directories(plugin_smoke_test PRIVATE
+    ${CMAKE_SOURCE_DIR}/plugin/include
     ${CMAKE_SOURCE_DIR}/plugin/src
+    ${WAMR_ROOT}/core/iwasm/include
     ${CMAKE_SOURCE_DIR}/libs/juce/modules
 )
 

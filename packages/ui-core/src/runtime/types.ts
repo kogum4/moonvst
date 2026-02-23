@@ -13,6 +13,7 @@ export interface AudioRuntime {
   getParam(index: number): number
   getLevel(): number
   onParamChange(index: number, cb: (v: number) => void): () => void
+  invokeNative?(name: string, ...args: unknown[]): Promise<unknown>
   dispose(): void
 }
 
