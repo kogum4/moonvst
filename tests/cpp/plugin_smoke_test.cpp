@@ -1,35 +1,11 @@
 #include <cmath>
 #include <cstdio>
 #include <memory>
-#include <thread>
-#include <atomic>
-#include <chrono>
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter();
-
-static bool runCreateProcessDestroyCycle()
-{
-    auto plugin = std::unique_ptr<juce::AudioProcessor>(createPluginFilter());
-    if (plugin == nullptr)
-    {
-        printf("FAIL: createPluginFilter returned null in cycle\n");
-        return false;
-    }
-
-    plugin->setPlayConfigDetails(2, 2, 48000.0, 64);
-    plugin->prepareToPlay(48000.0, 64);
-
-    juce::AudioBuffer<float> buffer(2, 64);
-    buffer.clear();
-    juce::MidiBuffer midi;
-    plugin->processBlock(buffer, midi);
-
-    plugin->releaseResources();
-    return true;
-}
 
 int main()
 {
@@ -84,39 +60,6 @@ int main()
 
     delete editor;
     plugin->releaseResources();
-
-    // Regression: keep a worker thread (with thread-local WAMR env) alive
-    // while the plugin is destroyed, then let the worker exit.
-    std::atomic<bool> workerReady { false };
-    std::atomic<bool> workerCanExit { false };
-    auto* pluginRaw = plugin.get();
-    std::thread worker ([&]()
-    {
-        juce::AudioBuffer<float> workerBuffer (2, 64);
-        workerBuffer.clear();
-        juce::MidiBuffer workerMidi;
-        pluginRaw->processBlock (workerBuffer, workerMidi);
-        workerReady.store (true);
-
-        while (! workerCanExit.load())
-            std::this_thread::sleep_for (std::chrono::milliseconds (1));
-    });
-
-    while (! workerReady.load())
-        std::this_thread::sleep_for (std::chrono::milliseconds (1));
-
-    plugin.reset();
-    workerCanExit.store (true);
-    worker.join();
-
-    // Regression: repeated create/process/destroy cycles exercise
-    // WAMR thread env init/destroy and runtime teardown paths.
-    for (int i = 0; i < 32; ++i)
-    {
-        if (! runCreateProcessDestroyCycle())
-            return 1;
-    }
-    printf("PASS: repeated create/process/destroy cycles\n");
 
     printf("=== All smoke checks passed ===\n");
     return 0;

@@ -3,7 +3,6 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <string>
 #include <atomic>
-#include <mutex>
 #include "wasm_export.h"
 
 class WasmDSP
@@ -51,9 +50,8 @@ private:
     static constexpr int OUTPUT_RIGHT_OFFSET = 0x40000;
 
     std::atomic<bool> initialized_ { false };
-    bool runtimeAcquired_ = false;
+    std::atomic<bool> runtimeInitialized_ { false };
     int cachedParamCount_ = 0;
-    mutable std::recursive_mutex instanceMutex_;
 
     bool lookupFunctions();
 };

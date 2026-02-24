@@ -1,7 +1,6 @@
 #include "moonvst/WasmDSP.h"
 #include "BinaryData.h"
 #include <cstring>
-#include <mutex>
 
 #if MOONVST_DISABLE_WASM_DSP
 
@@ -25,51 +24,14 @@ bool WasmDSP::lookupFunctions() { return false; }
 
 namespace
 {
-std::mutex gRuntimeMutex;
-bool gRuntimeInitialized = false;
-int gRuntimeRefCount = 0;
-
-bool acquireRuntime()
+struct ThreadEnvGuard
 {
-    std::lock_guard<std::mutex> lock (gRuntimeMutex);
-    if (! gRuntimeInitialized)
-    {
-        RuntimeInitArgs initArgs;
-        std::memset (&initArgs, 0, sizeof (initArgs));
-        initArgs.mem_alloc_type = Alloc_With_System_Allocator;
-
-        if (! wasm_runtime_full_init (&initArgs))
-            return false;
-
-        gRuntimeInitialized = true;
-    }
-
-    ++gRuntimeRefCount;
-    return true;
-}
-
-void releaseRuntime()
-{
-    std::lock_guard<std::mutex> lock (gRuntimeMutex);
-    if (gRuntimeRefCount <= 0)
-        return;
-
-    --gRuntimeRefCount;
-    if (gRuntimeRefCount == 0 && gRuntimeInitialized)
-    {
-        wasm_runtime_destroy();
-        gRuntimeInitialized = false;
-    }
-}
-
-struct ScopedThreadEnv
-{
-    ScopedThreadEnv()
+    ThreadEnvGuard()
     {
         initialized = wasm_runtime_init_thread_env();
     }
 
-    ~ScopedThreadEnv()
+    ~ThreadEnvGuard()
     {
         if (initialized)
             wasm_runtime_destroy_thread_env();
@@ -77,6 +39,13 @@ struct ScopedThreadEnv
 
     bool initialized = false;
 };
+
+bool ensureThreadEnv()
+{
+    thread_local ThreadEnvGuard threadEnvGuard;
+    return threadEnvGuard.initialized;
+}
+
 bool callVoid (wasm_exec_env_t execEnv, wasm_function_inst_t fn, wasm_val_t* args, uint32_t numArgs)
 {
     return wasm_runtime_call_wasm_a (execEnv, fn, 0, nullptr, numArgs, args);
@@ -114,8 +83,6 @@ WasmDSP::~WasmDSP()
 
 bool WasmDSP::initialize()
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (initialized_.load())
         return true;
 
@@ -123,9 +90,14 @@ bool WasmDSP::initialize()
     return false;
 #endif
 
-    if (! acquireRuntime())
+    // Initialize WAMR runtime
+    RuntimeInitArgs initArgs;
+    std::memset (&initArgs, 0, sizeof (initArgs));
+    initArgs.mem_alloc_type = Alloc_With_System_Allocator;
+
+    if (! wasm_runtime_full_init (&initArgs))
         return false;
-    runtimeAcquired_ = true;
+    runtimeInitialized_.store (true);
 
     // Load AOT binary from embedded resource
     // BinaryData contains the .aot file compiled from MoonBit WASM
@@ -202,20 +174,7 @@ bool WasmDSP::initialize()
 
 void WasmDSP::shutdown()
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     initialized_.store (false);
-    cachedParamCount_ = 0;
-    fn_init_ = nullptr;
-    fn_process_block_ = nullptr;
-    fn_get_param_count_ = nullptr;
-    fn_get_param_name_ = nullptr;
-    fn_get_param_name_len_ = nullptr;
-    fn_get_param_default_ = nullptr;
-    fn_get_param_min_ = nullptr;
-    fn_get_param_max_ = nullptr;
-    fn_set_param_ = nullptr;
-    fn_get_param_ = nullptr;
 
     if (execEnv_ != nullptr)
     {
@@ -235,11 +194,8 @@ void WasmDSP::shutdown()
         module_ = nullptr;
     }
 
-    if (runtimeAcquired_)
-    {
-        runtimeAcquired_ = false;
-        releaseRuntime();
-    }
+    if (runtimeInitialized_.exchange (false))
+        wasm_runtime_destroy();
 }
 
 bool WasmDSP::lookupFunctions()
@@ -268,13 +224,10 @@ void WasmDSP::prepare (double /*sampleRate*/, int /*samplesPerBlock*/)
 
 void WasmDSP::processBlock (juce::AudioBuffer<float>& buffer)
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (! initialized_.load())
         return;
 
-    ScopedThreadEnv threadEnv;
-    if (! threadEnv.initialized)
+    if (! ensureThreadEnv())
         return;
 
     const int numSamples = buffer.getNumSamples();
@@ -315,12 +268,9 @@ void WasmDSP::processBlock (juce::AudioBuffer<float>& buffer)
 
 int WasmDSP::getParamCount()
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (fn_get_param_count_ == nullptr)
         return 0;
-    ScopedThreadEnv threadEnv;
-    if (! threadEnv.initialized)
+    if (! ensureThreadEnv())
         return 0;
 
     int32_t count = 0;
@@ -331,12 +281,9 @@ int WasmDSP::getParamCount()
 
 std::string WasmDSP::getParamName (int index)
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (fn_get_param_name_ == nullptr || fn_get_param_name_len_ == nullptr)
         return "";
-    ScopedThreadEnv threadEnv;
-    if (! threadEnv.initialized)
+    if (! ensureThreadEnv())
         return "";
 
     // Get name length
@@ -371,12 +318,9 @@ std::string WasmDSP::getParamName (int index)
 
 float WasmDSP::getParamDefault (int index)
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (fn_get_param_default_ == nullptr)
         return 0.0f;
-    ScopedThreadEnv threadEnv;
-    if (! threadEnv.initialized)
+    if (! ensureThreadEnv())
         return 0.0f;
 
     wasm_val_t args[1];
@@ -391,12 +335,9 @@ float WasmDSP::getParamDefault (int index)
 
 float WasmDSP::getParamMin (int index)
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (fn_get_param_min_ == nullptr)
         return 0.0f;
-    ScopedThreadEnv threadEnv;
-    if (! threadEnv.initialized)
+    if (! ensureThreadEnv())
         return 0.0f;
 
     wasm_val_t args[1];
@@ -411,12 +352,9 @@ float WasmDSP::getParamMin (int index)
 
 float WasmDSP::getParamMax (int index)
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (fn_get_param_max_ == nullptr)
         return 1.0f;
-    ScopedThreadEnv threadEnv;
-    if (! threadEnv.initialized)
+    if (! ensureThreadEnv())
         return 1.0f;
 
     wasm_val_t args[1];
@@ -431,12 +369,9 @@ float WasmDSP::getParamMax (int index)
 
 void WasmDSP::setParam (int index, float value)
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (fn_set_param_ == nullptr)
         return;
-    ScopedThreadEnv threadEnv;
-    if (! threadEnv.initialized)
+    if (! ensureThreadEnv())
         return;
 
     wasm_val_t args[2];
@@ -449,12 +384,9 @@ void WasmDSP::setParam (int index, float value)
 
 float WasmDSP::getParam (int index)
 {
-    std::lock_guard<std::recursive_mutex> lock (instanceMutex_);
-
     if (fn_get_param_ == nullptr)
         return 0.0f;
-    ScopedThreadEnv threadEnv;
-    if (! threadEnv.initialized)
+    if (! ensureThreadEnv())
         return 0.0f;
 
     wasm_val_t args[1];
