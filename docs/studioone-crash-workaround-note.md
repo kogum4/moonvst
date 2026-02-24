@@ -1,41 +1,77 @@
-# Studio One Crash Workaround Note
+# Studio One Crash Root-Cause / Fix Note
 
-## Status
+## Status (2026-02-25)
 
-Current fix on branch `fix/studioone-crash-unloaded-vst3` includes a **temporary workaround**.
+- Temporary module pin workaround was removed.
+- Crash is fixed by WAMR-side VEH lifecycle handling changes.
+- UI slowdown/blank symptoms observed with module pin are no longer reproduced.
 
-## Temporary Workaround Implemented
+## Root Cause
 
-- Windows only: plugin module is pinned with `GetModuleHandleEx(...GET_MODULE_HANDLE_EX_FLAG_PIN...)` in `PluginProcessor`.
-- Purpose: avoid calling vectored exception handlers from an unloaded VST3 module.
+- On Windows, crash occurred after plugin unload in `ntdll.dll` (`RtlpCallVectoredHandlers` path).
+- Dump analysis showed references into unloaded VST3 image (`showcase.vst3_unloaded` / `template.vst3_unloaded`).
+- WAMR runtime signal lifecycle could register VEH multiple times (runtime init + thread env init paths), and handler removal lifecycle was not robust enough for repeated init/destroy host flows.
 
-## Why This Is Temporary
+## Permanent Fix Implemented
 
-- Crash dumps indicate repeated calls through `RtlpCallVectoredHandlers` into:
-  - `<Unloaded_showcase.vst3>`
-  - `<Unloaded_template.vst3>`
-- This suggests handler lifetime interaction with WAMR/Windows VEH behavior.
-- Pinning prevents unload, but does not solve root ownership/lifecycle in runtime integration.
+File: `libs/wamr/core/iwasm/common/wasm_runtime_common.c`
 
-## Observed Side Effects
+- Keep VEH handle (`AddVectoredExceptionHandler` return value) and remove with that handle.
+- Add Windows-only VEH reference count to avoid duplicate registration.
+- Guard init/destroy with mutex.
+- Remove VEH only when ref count reaches zero.
+- If `RemoveVectoredExceptionHandler` fails, keep handle and keep ref count alive (retry-able on next destroy cycle), instead of losing ownership by clearing handle.
 
-- UI can become slow on 2nd+ plugin re-open.
-- UI can become blank after repeated remove/add cycles.
+## Product-Side Changes
 
-## Permanent Fix Direction (Next Session)
+- Removed temporary plugin module pin (`GetModuleHandleEx(...PIN...)`) from `plugin/src/PluginProcessor.cpp`.
+- Added regression coverage in `tests/cpp/plugin_smoke_test.cpp`:
+  - worker-thread lifetime overlap test
+  - repeated create/process/destroy cycles
 
-1. Root-cause the VEH registration/removal lifecycle around WAMR on Windows.
-2. Remove module pin workaround after lifecycle fix is verified.
-3. Add regression test scenario for repeated open/close/remove cycles in host-like flow.
+## Validation
 
-## Repro Summary
+- `cmake --build libs/wamr/product-mini/platforms/windows/build --config Release`
+- `npm run build:plugin`
+- `ctest --test-dir build -C Release --output-on-failure`
 
-- Remove VST from track.
-- Open/close DAW top menu repeatedly.
-- Re-add plugin multiple times.
+All passed on 2026-02-25.
+
+## Repro Scenario (for regression check)
+
+- Remove VST from track
+- Open/close DAW top menu repeatedly
+- Re-add plugin multiple times
 
 ## Related Dumps
 
 - `C:\Dumps\StudioOne\Studio One.exe_260224_232000.dmp`
 - `C:\Dumps\StudioOne\Studio One.exe_260224_232642.dmp`
+- `C:\Dumps\StudioOne\Studio One.exe_260225_003150.dmp`
 
+## Operational Plan for WAMR Submodule
+
+Submodule is third-party, so keep local divergence explicit and reproducible.
+
+Detailed runbook: `docs/wamr-submodule-operations.md`
+
+Recommended options (in order):
+
+1. **Fork-and-pin (recommended)**
+- Create `moonvst`-managed WAMR fork.
+- Open PR upstream to WAMR.
+- Until upstream merge, pin submodule to fork commit containing the fix.
+- When upstream includes the fix, repoint submodule back to upstream official commit.
+
+2. **Patch-at-setup (fallback)**
+- Keep upstream submodule commit unchanged.
+- Store patch under repository (e.g. `patches/wamr/*.patch`).
+- Apply patch automatically in setup/build script before WAMR build.
+- Verify patch application in CI to avoid silent drift.
+
+3. **Do not keep hidden local-only edits**
+- Avoid manual ad-hoc edits inside `libs/wamr` without tracked procedure.
+- If local edit is unavoidable, require:
+  - patch file update
+  - document update
+  - CI validation on clean checkout

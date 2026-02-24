@@ -10,6 +10,27 @@
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter();
 
+static bool runCreateProcessDestroyCycle()
+{
+    auto plugin = std::unique_ptr<juce::AudioProcessor>(createPluginFilter());
+    if (plugin == nullptr)
+    {
+        printf("FAIL: createPluginFilter returned null in cycle\n");
+        return false;
+    }
+
+    plugin->setPlayConfigDetails(2, 2, 48000.0, 64);
+    plugin->prepareToPlay(48000.0, 64);
+
+    juce::AudioBuffer<float> buffer(2, 64);
+    buffer.clear();
+    juce::MidiBuffer midi;
+    plugin->processBlock(buffer, midi);
+
+    plugin->releaseResources();
+    return true;
+}
+
 int main()
 {
     printf("=== Plugin Smoke Test ===\n");
@@ -87,6 +108,15 @@ int main()
     plugin.reset();
     workerCanExit.store (true);
     worker.join();
+
+    // Regression: repeated create/process/destroy cycles exercise
+    // WAMR thread env init/destroy and runtime teardown paths.
+    for (int i = 0; i < 32; ++i)
+    {
+        if (! runCreateProcessDestroyCycle())
+            return 1;
+    }
+    printf("PASS: repeated create/process/destroy cycles\n");
 
     printf("=== All smoke checks passed ===\n");
     return 0;
