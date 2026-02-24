@@ -208,6 +208,7 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
   const getParamInfo = bridge.getNativeFunction('getParamInfo')
   const setParamNative = bridge.getNativeFunction('setParam')
   const getLevelNative = bridge.getNativeFunction('getLevel')
+  const invokeNative = (name: string, ...args: unknown[]) => bridge.getNativeFunction(name)(...args)
 
   // Fetch all parameter info at init
   const count = (await withTimeout(getParamCount() as Promise<number>, 'getParamCount')) as number
@@ -282,6 +283,10 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
       const listener = () => cb(slider.getValue())
       slider.addListener(listener)
       return () => slider.removeListener(listener)
+    },
+
+    invokeNative(name: string, ...args: unknown[]) {
+      return invokeNative(name, ...args)
     },
 
     dispose() {

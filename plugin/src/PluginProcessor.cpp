@@ -110,6 +110,10 @@ juce::AudioProcessorEditor* PluginProcessor::createEditor()
 void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
+    {
+        const juce::ScopedLock lock (uiStateLock_);
+        state.setProperty ("uiStateJson", uiStateJson_, nullptr);
+    }
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -118,7 +122,23 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, sizeInBytes));
     if (xml != nullptr && xml->hasTagName (apvts.state.getType()))
+    {
         apvts.replaceState (juce::ValueTree::fromXml (*xml));
+        const juce::ScopedLock lock (uiStateLock_);
+        uiStateJson_ = apvts.state.getProperty ("uiStateJson").toString();
+    }
+}
+
+void PluginProcessor::setUiStateJson(const juce::String& stateJson)
+{
+    const juce::ScopedLock lock (uiStateLock_);
+    uiStateJson_ = stateJson;
+}
+
+juce::String PluginProcessor::getUiStateJson() const
+{
+    const juce::ScopedLock lock (uiStateLock_);
+    return uiStateJson_;
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

@@ -1,6 +1,7 @@
-import { useReducer, useState } from 'react'
-import { createDefaultGraphState, graphReducer } from '../state/graphReducer'
-import type { NodeId } from '../state/graphTypes'
+import { useCallback, useReducer, useState } from 'react'
+import { createDefaultGraphState } from '../state/graphReducer'
+import { createGraphHistoryState, graphHistoryReducer } from '../state/graphHistory'
+import type { GraphAction, GraphState, NodeId } from '../state/graphTypes'
 import type { EffectKind } from './graphUi'
 
 const fxPlacement = (fxCount: number) => {
@@ -12,13 +13,20 @@ const fxPlacement = (fxCount: number) => {
   }
 }
 
-export function useGraphInteraction() {
-  const [state, dispatch] = useReducer(graphReducer, undefined, () => createDefaultGraphState())
+export function useGraphInteraction(initialState?: GraphState) {
+  const [historyState, dispatch] = useReducer(graphHistoryReducer, undefined, () =>
+    createGraphHistoryState(initialState ?? createDefaultGraphState()),
+  )
   const [pendingFromNodeId, setPendingFromNodeId] = useState<NodeId | null>(null)
+  const state = historyState.present
+
+  const dispatchGraph = useCallback((action: GraphAction) => {
+    dispatch({ type: 'graph', action, trackHistory: true })
+  }, [])
 
   const addNode = (kind: EffectKind) => {
     const fxCount = state.nodes.filter((node) => node.kind !== 'input' && node.kind !== 'output').length
-    dispatch({
+    dispatchGraph({
       type: 'addNode',
       kind,
       ...fxPlacement(fxCount),
@@ -26,7 +34,7 @@ export function useGraphInteraction() {
   }
 
   const addNodeAt = (kind: EffectKind, x: number, y: number) => {
-    dispatch({
+    dispatchGraph({
       type: 'addNode',
       kind,
       x,
@@ -42,7 +50,7 @@ export function useGraphInteraction() {
     if (!pendingFromNodeId) {
       return
     }
-    dispatch({
+    dispatchGraph({
       type: 'connect',
       fromNodeId: pendingFromNodeId,
       toNodeId,
@@ -51,15 +59,15 @@ export function useGraphInteraction() {
   }
 
   const disconnect = (fromNodeId: NodeId, toNodeId: NodeId) => {
-    dispatch({ type: 'disconnect', fromNodeId, toNodeId })
+    dispatchGraph({ type: 'disconnect', fromNodeId, toNodeId })
   }
 
   const selectNode = (nodeId: NodeId | null) => {
-    dispatch({ type: 'selectNode', nodeId })
+    dispatch({ type: 'graph', action: { type: 'selectNode', nodeId }, trackHistory: false })
   }
 
   const moveNode = (nodeId: NodeId, x: number, y: number) => {
-    dispatch({ type: 'moveNode', nodeId, x, y })
+    dispatchGraph({ type: 'moveNode', nodeId, x, y })
   }
 
   const removeNode = (nodeId: NodeId) => {
@@ -67,18 +75,38 @@ export function useGraphInteraction() {
     if (!target || target.kind === 'input' || target.kind === 'output') {
       return
     }
-    dispatch({ type: 'removeNode', nodeId })
+    dispatchGraph({ type: 'removeNode', nodeId })
     if (pendingFromNodeId === nodeId) {
       setPendingFromNodeId(null)
     }
   }
 
   const updateNodeParam = (nodeId: NodeId, key: string, value: number) => {
-    dispatch({ type: 'updateNodeParam', nodeId, key, value })
+    dispatchGraph({ type: 'updateNodeParam', nodeId, key, value })
   }
 
   const toggleNodeBypass = (nodeId: NodeId) => {
-    dispatch({ type: 'toggleNodeBypass', nodeId })
+    dispatchGraph({ type: 'toggleNodeBypass', nodeId })
+  }
+
+  const undo = () => {
+    dispatch({ type: 'undo' })
+    setPendingFromNodeId(null)
+  }
+
+  const redo = () => {
+    dispatch({ type: 'redo' })
+    setPendingFromNodeId(null)
+  }
+
+  const reset = () => {
+    dispatch({ type: 'reset' })
+    setPendingFromNodeId(null)
+  }
+
+  const replaceState = (nextState: GraphState, trackHistory: boolean) => {
+    dispatch({ type: 'replace', state: nextState, trackHistory })
+    setPendingFromNodeId(null)
   }
 
   return {
@@ -88,9 +116,15 @@ export function useGraphInteraction() {
     disconnect,
     moveNode,
     removeNode,
+    undo,
+    redo,
+    reset,
+    replaceState,
     toggleNodeBypass,
     updateNodeParam,
     pendingFromNodeId,
+    canUndo: historyState.past.length > 0,
+    canRedo: historyState.future.length > 0,
     selectNode,
     startConnection,
     state,
