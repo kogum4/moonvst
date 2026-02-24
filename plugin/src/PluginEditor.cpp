@@ -24,11 +24,28 @@ DefaultEditorSize getDefaultEditorSize()
 
 juce::String normaliseResourcePath (juce::String path)
 {
+    // Remove query/hash from resource requests (e.g. "index.js?v=123").
+    if (const auto hashPos = path.indexOfChar ('#'); hashPos >= 0)
+        path = path.substring (0, hashPos);
+    if (const auto queryPos = path.indexOfChar ('?'); queryPos >= 0)
+        path = path.substring (0, queryPos);
+
     path = path.replaceCharacter ('\\', '/').trim();
     while (path.startsWithChar ('/'))
         path = path.substring (1);
 
     return path.isEmpty() ? "index.html" : path;
+}
+
+juce::File getWebViewUserDataFolder()
+{
+    auto folder = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                      .getChildFile ("MoonVST")
+                      .getChildFile ("WebView2")
+                      .getChildFile (MOONVST_PRODUCT_NAME);
+
+    folder.createDirectory();
+    return folder;
 }
 
 juce::String getPathBasename (const juce::String& path)
@@ -73,7 +90,13 @@ PluginEditor::PluginEditor (PluginProcessor& p)
 #endif
 }
 
-PluginEditor::~PluginEditor() = default;
+PluginEditor::~PluginEditor()
+{
+    // Tear down browser-side callbacks while this object is still alive.
+    webView.reset();
+    sliderAttachments.clear();
+    sliderRelays.clear();
+}
 
 bool PluginEditor::setupWebView()
 {
@@ -82,23 +105,36 @@ bool PluginEditor::setupWebView()
 #else
     juce::WebBrowserComponent::Options options;
     const auto webView2Options = juce::WebBrowserComponent::Options::WinWebView2 {}
-        .withUserDataFolder (juce::File::getSpecialLocation (juce::File::tempDirectory));
+        .withUserDataFolder (getWebViewUserDataFolder());
+    juce::Component::SafePointer<PluginEditor> safeThis (this);
 
     // Register native functions for generic parameter API
     auto opts = options
         .withBackend (juce::WebBrowserComponent::Options::Backend::webview2)
         .withWinWebView2Options (webView2Options)
         .withNativeIntegrationEnabled()
-        .withResourceProvider ([this] (const auto& url)
+        .withResourceProvider ([safeThis] (const auto& url)
         {
-            return getUIResource (url);
+            if (auto* self = safeThis.getComponent())
+                return self->getUIResource (url);
+            return std::optional<juce::WebBrowserComponent::Resource> {};
         })
-        .withNativeFunction ("getParamCount", [this] (auto& /*args*/, auto complete)
+        .withNativeFunction ("getParamCount", [safeThis] (auto& /*args*/, auto complete)
         {
-            complete (juce::var (processorRef.getWasmParamCount()));
+            if (auto* self = safeThis.getComponent())
+                complete (juce::var (self->processorRef.getWasmParamCount()));
+            else
+                complete (juce::var (0));
         })
-        .withNativeFunction ("getParamInfo", [this] (auto& args, auto complete)
+        .withNativeFunction ("getParamInfo", [safeThis] (auto& args, auto complete)
         {
+            auto* self = safeThis.getComponent();
+            if (self == nullptr)
+            {
+                complete (juce::var());
+                return;
+            }
+
             if (args.size() < 1)
             {
                 complete (juce::var());
@@ -106,18 +142,18 @@ bool PluginEditor::setupWebView()
             }
 
             int index = (int) args[0];
-            if (index < 0 || index >= processorRef.getWasmParamCount())
+            if (index < 0 || index >= self->processorRef.getWasmParamCount())
             {
                 complete (juce::var());
                 return;
             }
 
-            const auto& name = processorRef.getWasmParamName (index);
+            const auto& name = self->processorRef.getWasmParamName (index);
             float minVal = 0.0f;
             float maxVal = 1.0f;
             float defVal = 0.0f;
 
-            if (auto* param = processorRef.getAPVTS().getParameter (name))
+            if (auto* param = self->processorRef.getAPVTS().getParameter (name))
             {
                 defVal = param->convertFrom0to1 (param->getDefaultValue());
                 if (auto* floatParam = dynamic_cast<juce::AudioParameterFloat*> (param))
@@ -136,17 +172,24 @@ bool PluginEditor::setupWebView()
 
             complete (juce::var (obj));
         })
-        .withNativeFunction ("setParam", [this] (auto& args, auto complete)
+        .withNativeFunction ("setParam", [safeThis] (auto& args, auto complete)
         {
+            auto* self = safeThis.getComponent();
+            if (self == nullptr)
+            {
+                complete (juce::var());
+                return;
+            }
+
             if (args.size() >= 2)
             {
                 int index = (int) args[0];
                 float value = (float) (double) args[1];
 
-                if (index >= 0 && index < processorRef.getWasmParamCount())
+                if (index >= 0 && index < self->processorRef.getWasmParamCount())
                 {
-                    auto& name = processorRef.getWasmParamName (index);
-                    if (auto* param = processorRef.getAPVTS().getParameter (name))
+                    auto& name = self->processorRef.getWasmParamName (index);
+                    if (auto* param = self->processorRef.getAPVTS().getParameter (name))
                     {
                         param->setValueNotifyingHost (
                             param->convertTo0to1 (value));
@@ -155,24 +198,34 @@ bool PluginEditor::setupWebView()
             }
             complete (juce::var());
         })
-        .withNativeFunction ("getParam", [this] (auto& args, auto complete)
+        .withNativeFunction ("getParam", [safeThis] (auto& args, auto complete)
         {
+            auto* self = safeThis.getComponent();
+            if (self == nullptr)
+            {
+                complete (juce::var (0.0));
+                return;
+            }
+
             if (args.size() >= 1)
             {
                 int index = (int) args[0];
-                if (index >= 0 && index < processorRef.getWasmParamCount())
+                if (index >= 0 && index < self->processorRef.getWasmParamCount())
                 {
-                    auto& name = processorRef.getWasmParamName (index);
-                    float value = *processorRef.getAPVTS().getRawParameterValue (name);
+                    auto& name = self->processorRef.getWasmParamName (index);
+                    float value = *self->processorRef.getAPVTS().getRawParameterValue (name);
                     complete (juce::var ((double) value));
                     return;
                 }
             }
             complete (juce::var (0.0));
         })
-        .withNativeFunction ("getLevel", [this] (auto& /*args*/, auto complete)
+        .withNativeFunction ("getLevel", [safeThis] (auto& /*args*/, auto complete)
         {
-            complete (juce::var ((double) processorRef.getOutputLevel()));
+            if (auto* self = safeThis.getComponent())
+                complete (juce::var ((double) self->processorRef.getOutputLevel()));
+            else
+                complete (juce::var (0.0));
         });
 
     // Create WebSliderRelay and bind each relay to the corresponding parameter.

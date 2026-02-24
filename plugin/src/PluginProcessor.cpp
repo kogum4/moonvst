@@ -1,5 +1,28 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <mutex>
+
+#if JUCE_WINDOWS
+#include <windows.h>
+#endif
+
+namespace
+{
+#if JUCE_WINDOWS
+void pinCurrentPluginModule()
+{
+    static std::once_flag once;
+    std::call_once (once, []
+    {
+        HMODULE module = nullptr;
+        (void) GetModuleHandleExW (GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+                                       | GET_MODULE_HANDLE_EX_FLAG_PIN,
+                                   reinterpret_cast<LPCWSTR> (&pinCurrentPluginModule),
+                                   &module);
+    });
+}
+#endif
+}
 
 PluginProcessor::PluginProcessor()
     : AudioProcessor (BusesProperties()
@@ -7,6 +30,11 @@ PluginProcessor::PluginProcessor()
                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "Parameters", createParameterLayout())
 {
+#if JUCE_WINDOWS
+    // Workaround: WAMR installs a vectored exception handler whose callback can
+    // outlive plugin instances. Keep this module loaded for process lifetime.
+    pinCurrentPluginModule();
+#endif
 }
 
 PluginProcessor::~PluginProcessor()

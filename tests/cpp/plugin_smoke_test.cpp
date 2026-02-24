@@ -1,6 +1,9 @@
 #include <cmath>
 #include <cstdio>
 #include <memory>
+#include <thread>
+#include <atomic>
+#include <chrono>
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -60,6 +63,30 @@ int main()
 
     delete editor;
     plugin->releaseResources();
+
+    // Regression: keep a worker thread (with thread-local WAMR env) alive
+    // while the plugin is destroyed, then let the worker exit.
+    std::atomic<bool> workerReady { false };
+    std::atomic<bool> workerCanExit { false };
+    auto* pluginRaw = plugin.get();
+    std::thread worker ([&]()
+    {
+        juce::AudioBuffer<float> workerBuffer (2, 64);
+        workerBuffer.clear();
+        juce::MidiBuffer workerMidi;
+        pluginRaw->processBlock (workerBuffer, workerMidi);
+        workerReady.store (true);
+
+        while (! workerCanExit.load())
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    });
+
+    while (! workerReady.load())
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+
+    plugin.reset();
+    workerCanExit.store (true);
+    worker.join();
 
     printf("=== All smoke checks passed ===\n");
     return 0;
