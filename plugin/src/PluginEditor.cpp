@@ -53,6 +53,15 @@ juce::String getMimeTypeForPath (const juce::String& path)
     if (ext == "txt")                    return "text/plain";
     return "application/octet-stream";
 }
+
+juce::String getWebViewFailureMessage()
+{
+#if JUCE_WINDOWS
+    return "UI load failed. Check WebView2 runtime.";
+#else
+    return "UI load failed. Check embedded WebView support.";
+#endif
+}
 }
 
 PluginEditor::PluginEditor (PluginProcessor& p)
@@ -69,7 +78,7 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     if (setupWebView())
         fallbackLabel.setVisible (false);
     else
-        fallbackLabel.setText ("UI load failed. Check WebView2 runtime.", juce::dontSendNotification);
+        fallbackLabel.setText (getWebViewFailureMessage(), juce::dontSendNotification);
 #endif
 }
 
@@ -81,13 +90,7 @@ bool PluginEditor::setupWebView()
     return false;
 #else
     juce::WebBrowserComponent::Options options;
-    const auto webView2Options = juce::WebBrowserComponent::Options::WinWebView2 {}
-        .withUserDataFolder (juce::File::getSpecialLocation (juce::File::tempDirectory));
-
-    // Register native functions for generic parameter API
     auto opts = options
-        .withBackend (juce::WebBrowserComponent::Options::Backend::webview2)
-        .withWinWebView2Options (webView2Options)
         .withNativeIntegrationEnabled()
         .withResourceProvider ([this] (const auto& url)
         {
@@ -184,6 +187,14 @@ bool PluginEditor::setupWebView()
                 processorRef.setUiStateJson (args[0].toString());
             complete (juce::var());
         });
+
+#if JUCE_WINDOWS
+    const auto webView2Options = juce::WebBrowserComponent::Options::WinWebView2 {}
+        .withUserDataFolder (juce::File::getSpecialLocation (juce::File::tempDirectory));
+    opts = opts
+        .withBackend (juce::WebBrowserComponent::Options::Backend::webview2)
+        .withWinWebView2Options (webView2Options);
+#endif
 
     // Create WebSliderRelay and bind each relay to the corresponding parameter.
     int paramCount = processorRef.getWasmParamCount();
