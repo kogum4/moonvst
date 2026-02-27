@@ -45,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           products='${{ needs.discover-products.outputs.products }}'
-          mkdir -p ci-artifacts
+          mkdir -p ci-artifacts ci-archives
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Building product: $product ==="
             target_suffix="${product//-/_}"
@@ -72,6 +72,7 @@ jobs:
             cp build/tests/cpp/plugin_smoke_test "$product_dir/tests/plugin_smoke_test"
             cp build/tests/cpp/wasm_dsp_test "$product_dir/tests/wasm_dsp_test"
             cp build/tests/cpp/moonvst_dsp.aot "$product_dir/tests/moonvst_dsp.aot"
+            tar -C ci-artifacts -czf "ci-archives/${product}.tar.gz" "$product"
           done
 
       - name: Upload product artifacts
@@ -79,7 +80,7 @@ jobs:
         with:
           name: moonvst-macos-products
           if-no-files-found: error
-          path: ci-artifacts/
+          path: ci-archives/*.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -160,12 +161,19 @@ jobs:
         run: |
           set -euo pipefail
           products='${{ needs.discover-products.outputs.products }}'
+          mkdir -p products/extracted
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Testing product: $product ==="
-            test -d "products/$product/plugin/VST3/${product}.vst3"
-            test -f "products/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
-            chmod +x "products/$product/tests/wasm_dsp_test" "products/$product/tests/plugin_smoke_test"
-            (cd "products/$product/tests" && ./wasm_dsp_test && ./plugin_smoke_test)
+            tar -C products/extracted -xzf "products/${product}.tar.gz"
+            test -d "products/extracted/$product/plugin/VST3/${product}.vst3"
+            test -x "products/extracted/$product/plugin/VST3/${product}.vst3/Contents/MacOS/${product}"
+            test -f "products/extracted/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
+            test -x "products/extracted/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
+            if [ -d "products/extracted/$product/plugin/AU/${product}.component" ]; then
+              test -x "products/extracted/$product/plugin/AU/${product}.component/Contents/MacOS/${product}"
+            fi
+            chmod +x "products/extracted/$product/tests/wasm_dsp_test" "products/extracted/$product/tests/plugin_smoke_test"
+            (cd "products/extracted/$product/tests" && ./wasm_dsp_test && ./plugin_smoke_test)
           done
 
   test-artifact-windows:
@@ -218,11 +226,15 @@ jobs:
         run: |
           set -euo pipefail
           product='${{ needs.discover-products.outputs.default_product }}'
+          mkdir -p macos-products/extracted
+          tar -C macos-products/extracted -xzf "macos-products/${product}.tar.gz"
           mkdir -p package/macos package/windows
-          cp -R "macos-products/$product/plugin/." package/macos/
+          cp -R "macos-products/extracted/$product/plugin/." package/macos/
           cp -R "windows-products/$product/plugin/." package/windows/
           test -d "package/macos/VST3/${product}.vst3"
           test -f "package/macos/Standalone/${product}.app/Contents/MacOS/${product}"
+          test -x "package/macos/VST3/${product}.vst3/Contents/MacOS/${product}"
+          test -x "package/macos/Standalone/${product}.app/Contents/MacOS/${product}"
           test -d "package/windows/VST3/${product}.vst3"
           test -f "package/windows/Standalone/${product}.exe"
 
