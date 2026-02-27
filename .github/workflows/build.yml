@@ -27,6 +27,11 @@ jobs:
   build-macos:
     runs-on: macos-14
     needs: discover-products
+    env:
+      MACOS_CERT_P12_B64: ${{ secrets.MACOS_CERT_P12_B64 }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+      MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+      MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,6 +44,22 @@ jobs:
 
       - name: Run macOS setup script
         run: bash scripts/setup-macos.sh
+
+      - name: Import macOS signing certificate
+        if: env.MACOS_CERT_P12_B64 != '' && env.MACOS_CERT_PASSWORD != '' && env.MACOS_SIGN_IDENTITY != '' && env.MACOS_KEYCHAIN_PASSWORD != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/macos-signing.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          echo "$MACOS_CERT_P12_B64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$MACOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
 
       - name: Build all products
         shell: bash
@@ -60,14 +81,27 @@ jobs:
 
             cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON -DMOONVST_PRODUCT="$product"
             npm run build:plugin
+            artefacts_root="build/plugin/MoonVST_${target_suffix}_artefacts/Release"
+
+            if [ -n "${MACOS_SIGN_IDENTITY:-}" ]; then
+              for bundle in \
+                "$artefacts_root/VST3/${product}.vst3" \
+                "$artefacts_root/Standalone/${product}.app" \
+                "$artefacts_root/AU/${product}.component"; do
+                if [ -d "$bundle" ]; then
+                  codesign --force --deep --options runtime --timestamp --sign "$MACOS_SIGN_IDENTITY" "$bundle"
+                  codesign --verify --deep --strict --verbose=2 "$bundle"
+                fi
+              done
+            fi
 
             product_dir="ci-artifacts/$product"
             mkdir -p "$product_dir/plugin" "$product_dir/tests"
-            cp -R "build/plugin/MoonVST_${target_suffix}_artefacts/Release/VST3" "$product_dir/plugin/VST3"
-            cp -R "build/plugin/MoonVST_${target_suffix}_artefacts/Release/Standalone" "$product_dir/plugin/Standalone"
-            cp -R "build/plugin/MoonVST_${target_suffix}_artefacts/Release/Unity" "$product_dir/plugin/Unity"
-            if [ -d "build/plugin/MoonVST_${target_suffix}_artefacts/Release/AU" ]; then
-              cp -R "build/plugin/MoonVST_${target_suffix}_artefacts/Release/AU" "$product_dir/plugin/AU"
+            cp -R "$artefacts_root/VST3" "$product_dir/plugin/VST3"
+            cp -R "$artefacts_root/Standalone" "$product_dir/plugin/Standalone"
+            cp -R "$artefacts_root/Unity" "$product_dir/plugin/Unity"
+            if [ -d "$artefacts_root/AU" ]; then
+              cp -R "$artefacts_root/AU" "$product_dir/plugin/AU"
             fi
             cp build/tests/cpp/plugin_smoke_test "$product_dir/tests/plugin_smoke_test"
             cp build/tests/cpp/wasm_dsp_test "$product_dir/tests/wasm_dsp_test"
@@ -203,12 +237,24 @@ jobs:
           }
 
   release:
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     needs: [discover-products, test-artifact-macos, test-artifact-windows]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
+    env:
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
+      - name: Validate notarization secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${APPLE_ID:-}" || { echo "Missing secret: APPLE_ID"; exit 1; }
+          test -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" || { echo "Missing secret: APPLE_APP_SPECIFIC_PASSWORD"; exit 1; }
+          test -n "${APPLE_TEAM_ID:-}" || { echo "Missing secret: APPLE_TEAM_ID"; exit 1; }
+
       - name: Download macOS product artifacts
         uses: actions/download-artifact@v4
         with:
@@ -237,6 +283,29 @@ jobs:
           test -x "package/macos/Standalone/${product}.app/Contents/MacOS/${product}"
           test -d "package/windows/VST3/${product}.vst3"
           test -f "package/windows/Standalone/${product}.exe"
+
+      - name: Notarize and staple macOS bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          product='${{ needs.discover-products.outputs.default_product }}'
+          xcrun notarytool store-credentials moonvst-notary \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+          ditto -c -k --sequesterRsrc --keepParent package/macos notarize-macos.zip
+          xcrun notarytool submit notarize-macos.zip --keychain-profile moonvst-notary --wait
+          xcrun stapler staple "package/macos/Standalone/${product}.app"
+          xcrun stapler staple "package/macos/VST3/${product}.vst3"
+          if [ -d "package/macos/AU/${product}.component" ]; then
+            xcrun stapler staple "package/macos/AU/${product}.component"
+          fi
+          spctl --assess --type execute --verbose=2 "package/macos/Standalone/${product}.app"
+          codesign --verify --deep --strict --verbose=2 "package/macos/Standalone/${product}.app"
+          codesign --verify --deep --strict --verbose=2 "package/macos/VST3/${product}.vst3"
+          if [ -d "package/macos/AU/${product}.component" ]; then
+            codesign --verify --deep --strict --verbose=2 "package/macos/AU/${product}.component"
+          fi
 
       - name: Create release archives
         run: |
