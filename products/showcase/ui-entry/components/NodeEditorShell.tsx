@@ -443,13 +443,9 @@ function StatusBar({ connectionCount, lastError, nodeCount }: { connectionCount:
 }
 
 export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | null }) {
-  const bootstrappedState = useMemo(
-    () => (typeof window === 'undefined' ? null : loadGraphStateFromStorage(window.localStorage)),
-    [],
-  )
-  const interaction = useGraphInteraction(bootstrappedState?.graphState)
+  const interaction = useGraphInteraction()
   const { pendingFromNodeId, state } = interaction
-  const [presetName, setPresetName] = useState(bootstrappedState?.lastPresetName ?? 'Default Preset')
+  const [presetName, setPresetName] = useState('Default Preset')
   const [presets, setPresets] = useState<ShowcasePresetRecord[]>([])
   const [isPresetMenuOpen, setPresetMenuOpen] = useState(false)
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false)
@@ -460,7 +456,6 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const presetToggleRef = useRef<HTMLDivElement | null>(null)
   const presetDropdownRef = useRef<HTMLDivElement | null>(null)
   const hydratedRef = useRef(false)
-  const persistenceReadyRef = useRef(false)
   const graphRuntimeBridge = useMemo(
     () =>
       createGraphRuntimeBridge((payload, revision) => {
@@ -524,9 +519,16 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   useEffect(() => {
     const hydrate = async () => {
       const storage = window.localStorage
-      let initial = bootstrappedState
+      const isJuceHost = (window as Window & { __JUCE__?: unknown }).__JUCE__ !== undefined
+      const shouldRestoreFromHost = runtime?.type === 'juce' || isJuceHost
+      let initial: ReturnType<typeof loadGraphStateFromStorage> = null
 
-      if (runtime?.type === 'juce' && runtime.invokeNative) {
+      if (shouldRestoreFromHost) {
+        // In JUCE hosts, wait for runtime bridge and restore only from the host-owned instance state.
+        if (runtime?.type !== 'juce' || !runtime.invokeNative) {
+          return
+        }
+
         try {
           const raw = await runtime.invokeNative('getUiState')
           if (typeof raw === 'string' && raw.trim() !== '') {
@@ -537,31 +539,28 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
             }
           }
         } catch {
-          // Ignore invalid host payload and fallback to browser storage.
+          // Ignore invalid host payload and keep default state.
         }
+      } else {
+        initial = loadGraphStateFromStorage(storage)
       }
 
       const initialPresets = loadPresetsFromStorage(storage)
       setPresets(initialPresets)
 
-      if (initial && runtime?.type === 'juce') {
+      if (initial) {
         interaction.replaceState(initial.graphState, false)
         setPresetName(initial.lastPresetName)
       }
-      persistenceReadyRef.current = false
       hydratedRef.current = true
     }
 
     void hydrate()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bootstrappedState, runtime])
+  }, [runtime])
 
   useEffect(() => {
     if (!hydratedRef.current) {
-      return
-    }
-    if (!persistenceReadyRef.current) {
-      persistenceReadyRef.current = true
       return
     }
     saveGraphStateToStorage(window.localStorage, state, presetName)
