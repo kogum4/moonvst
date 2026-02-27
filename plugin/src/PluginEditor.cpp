@@ -82,7 +82,14 @@ PluginEditor::PluginEditor (PluginProcessor& p)
 #endif
 }
 
-PluginEditor::~PluginEditor() = default;
+PluginEditor::~PluginEditor()
+{
+    // Destroy WebView first while relay/listener objects are still alive.
+    // This avoids dangling WebViewLifetimeListener pointers during teardown.
+    webView.reset();
+    sliderAttachments.clear();
+    sliderRelays.clear();
+}
 
 bool PluginEditor::setupWebView()
 {

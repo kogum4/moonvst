@@ -178,6 +178,7 @@ Windows is fully verified. macOS builds but has not been extensively tested in D
 |---------|-----|
 | `WAMR runtime library not found` | Re-run the setup script |
 | `wamrc not found` | Re-run the setup script |
+| Standalone app hangs on exit (macOS rainbow spinner / high CPU) | Rebuild WAMR with `-DWAMR_DISABLE_HW_BOUND_CHECK=1`, then rebuild plugin |
 | UI shows `JUCE bridge not available` | Start Vite dev server (`npm run dev`) or run `npm run build:ui` before `npm run build:plugin` |
 | JUCE/WAMR build issues | Run `git submodule update --init --recursive` |
 

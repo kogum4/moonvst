@@ -58,7 +58,8 @@ cmake .. \
     -DWAMR_BUILD_AOT=1 \
     -DWAMR_BUILD_INTERP=0 \
     -DWAMR_BUILD_LIBC_BUILTIN=1 \
-    -DWAMR_BUILD_LIBC_WASI=0
+    -DWAMR_BUILD_LIBC_WASI=0 \
+    -DWAMR_DISABLE_HW_BOUND_CHECK=1
 make -j$(sysctl -n hw.ncpu)
 
 # 4. Install LLVM (required for wamrc AOT compiler)
