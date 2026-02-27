@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from '../test/testing'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { NodeEditorShell } from './NodeEditorShell'
-import { SHOWCASE_PRESET_STORAGE_KEY } from '../runtime/graphUiState'
+import {
+  SHOWCASE_PRESET_STORAGE_KEY,
+  SHOWCASE_UI_STATE_STORAGE_KEY,
+  serializeShowcaseUiState,
+} from '../runtime/graphUiState'
+import { createDefaultGraphState, graphReducer } from '../state/graphReducer'
 
 describe('node editor shell layout', () => {
   const seedUserPreset = (name: string) => {
@@ -208,6 +213,31 @@ describe('node editor shell layout', () => {
 
     fireEvent.pointerDown(screen.getByRole('main', { name: 'Graph Canvas' }))
     expect(screen.queryByRole('menu', { name: 'Preset Dropdown Menu' })).not.toBeInTheDocument()
+  })
+
+  test('does not bootstrap JUCE instance state from browser localStorage when host ui state is empty', async () => {
+    let state = createDefaultGraphState()
+    state = graphReducer(state, { type: 'addNode', kind: 'chorus', x: 220, y: 140, id: 'fx-1' })
+    window.localStorage.setItem(
+      SHOWCASE_UI_STATE_STORAGE_KEY,
+      JSON.stringify(serializeShowcaseUiState(state, 'Leaked Local Preset')),
+    )
+
+    const runtime = {
+      type: 'juce' as const,
+      getParams: () => [],
+      setParam: () => {},
+      getParam: () => 0,
+      getLevel: () => 0,
+      onParamChange: () => () => {},
+      invokeNative: vi.fn(async (name: string) => (name === 'getUiState' ? '' : undefined)),
+      dispose: () => {},
+    }
+
+    render(<NodeEditorShell runtime={runtime} />)
+
+    expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
+    expect(screen.getByText('Default Preset')).toBeInTheDocument()
   })
 
 })
