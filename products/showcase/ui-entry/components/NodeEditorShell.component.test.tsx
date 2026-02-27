@@ -240,4 +240,29 @@ describe('node editor shell layout', () => {
     expect(screen.getByText('Default Preset')).toBeInTheDocument()
   })
 
+  test('persists first edit to JUCE host state immediately after hydration', async () => {
+    const runtime = {
+      type: 'juce' as const,
+      getParams: () => [],
+      setParam: () => {},
+      getParam: () => 0,
+      getLevel: () => 0,
+      onParamChange: () => () => {},
+      invokeNative: vi.fn(async (name: string) => (name === 'getUiState' ? '' : undefined)),
+      dispose: () => {},
+    }
+
+    render(<NodeEditorShell runtime={runtime} />)
+
+    await vi.waitFor(() => {
+      expect(runtime.invokeNative).toHaveBeenCalledWith('getUiState')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
+
+    await vi.waitFor(() => {
+      expect(runtime.invokeNative).toHaveBeenCalledWith('setUiState', expect.any(String))
+    })
+  })
+
 })

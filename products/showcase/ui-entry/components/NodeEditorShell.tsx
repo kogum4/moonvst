@@ -456,7 +456,6 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const presetToggleRef = useRef<HTMLDivElement | null>(null)
   const presetDropdownRef = useRef<HTMLDivElement | null>(null)
   const hydratedRef = useRef(false)
-  const persistenceReadyRef = useRef(false)
   const graphRuntimeBridge = useMemo(
     () =>
       createGraphRuntimeBridge((payload, revision) => {
@@ -553,7 +552,6 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
         interaction.replaceState(initial.graphState, false)
         setPresetName(initial.lastPresetName)
       }
-      persistenceReadyRef.current = false
       hydratedRef.current = true
     }
 
@@ -563,10 +561,6 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
 
   useEffect(() => {
     if (!hydratedRef.current) {
-      return
-    }
-    if (!persistenceReadyRef.current) {
-      persistenceReadyRef.current = true
       return
     }
     saveGraphStateToStorage(window.localStorage, state, presetName)
