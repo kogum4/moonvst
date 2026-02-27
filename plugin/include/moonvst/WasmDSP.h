@@ -48,9 +48,9 @@ private:
     static constexpr int INPUT_RIGHT_OFFSET = 0x20000;
     static constexpr int OUTPUT_LEFT_OFFSET = 0x30000;
     static constexpr int OUTPUT_RIGHT_OFFSET = 0x40000;
+    static constexpr int MAX_BUFFER_SAMPLES = 16384;
 
     std::atomic<bool> initialized_ { false };
-    std::atomic<bool> runtimeInitialized_ { false };
     int cachedParamCount_ = 0;
 
     bool lookupFunctions();

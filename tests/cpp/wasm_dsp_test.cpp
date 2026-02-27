@@ -76,7 +76,7 @@ int main()
     printf("PASS: Module loaded\n");
 
     // 4. Instantiate
-    wasm_module_inst_t inst = wasm_runtime_instantiate(module, 256 * 1024, 1024 * 1024,
+    wasm_module_inst_t inst = wasm_runtime_instantiate(module, 512 * 1024, 64 * 1024 * 1024,
                                                         errorBuf, sizeof(errorBuf));
     if (!inst)
     {

@@ -1,6 +1,7 @@
 #include "moonvst/WasmDSP.h"
 #include "BinaryData.h"
 #include <cstring>
+#include <mutex>
 
 #if MOONVST_DISABLE_WASM_DSP
 
@@ -24,27 +25,49 @@ bool WasmDSP::lookupFunctions() { return false; }
 
 namespace
 {
-struct ThreadEnvGuard
+bool ensureRuntimeInitialized()
 {
-    ThreadEnvGuard()
+    static std::once_flag once;
+    static bool initialized = false;
+
+    std::call_once (once, []
     {
-        initialized = wasm_runtime_init_thread_env();
+        RuntimeInitArgs initArgs;
+        std::memset (&initArgs, 0, sizeof (initArgs));
+        initArgs.mem_alloc_type = Alloc_With_System_Allocator;
+        initialized = wasm_runtime_full_init (&initArgs);
+    });
+
+    return initialized;
+}
+
+class ScopedThreadEnv
+{
+public:
+    ScopedThreadEnv()
+    {
+        if (wasm_runtime_thread_env_inited())
+        {
+            valid_ = true;
+            return;
+        }
+
+        owned_ = wasm_runtime_init_thread_env();
+        valid_ = owned_;
     }
 
-    ~ThreadEnvGuard()
+    ~ScopedThreadEnv()
     {
-        if (initialized)
+        if (owned_)
             wasm_runtime_destroy_thread_env();
     }
 
-    bool initialized = false;
-};
+    bool isValid() const { return valid_; }
 
-bool ensureThreadEnv()
-{
-    thread_local ThreadEnvGuard threadEnvGuard;
-    return threadEnvGuard.initialized;
-}
+private:
+    bool owned_ = false;
+    bool valid_ = false;
+};
 
 bool callVoid (wasm_exec_env_t execEnv, wasm_function_inst_t fn, wasm_val_t* args, uint32_t numArgs)
 {
@@ -90,14 +113,9 @@ bool WasmDSP::initialize()
     return false;
 #endif
 
-    // Initialize WAMR runtime
-    RuntimeInitArgs initArgs;
-    std::memset (&initArgs, 0, sizeof (initArgs));
-    initArgs.mem_alloc_type = Alloc_With_System_Allocator;
-
-    if (! wasm_runtime_full_init (&initArgs))
+    // WAMR signal handlers are process-wide. Keep runtime alive for the process lifetime.
+    if (! ensureRuntimeInitialized())
         return false;
-    runtimeInitialized_.store (true);
 
     // Load AOT binary from embedded resource
     // BinaryData contains the .aot file compiled from MoonBit WASM
@@ -127,8 +145,8 @@ bool WasmDSP::initialize()
     if (module_ == nullptr)
         return false;
 
-    // Instantiate module (256KB stack, 1MB heap)
-    moduleInst_ = wasm_runtime_instantiate (module_, 256 * 1024, 1024 * 1024,
+    // Instantiate module (512KB stack, 64MB heap)
+    moduleInst_ = wasm_runtime_instantiate (module_, 512 * 1024, 64 * 1024 * 1024,
                                              errorBuf, sizeof (errorBuf));
     if (moduleInst_ == nullptr)
     {
@@ -158,6 +176,13 @@ bool WasmDSP::initialize()
     // Call init()
     if (fn_init_ != nullptr)
     {
+        const ScopedThreadEnv threadEnv;
+        if (! threadEnv.isValid())
+        {
+            shutdown();
+            return false;
+        }
+
         if (! callVoid (execEnv_, fn_init_, nullptr, 0))
         {
             shutdown();
@@ -194,8 +219,6 @@ void WasmDSP::shutdown()
         module_ = nullptr;
     }
 
-    if (runtimeInitialized_.exchange (false))
-        wasm_runtime_destroy();
 }
 
 bool WasmDSP::lookupFunctions()
@@ -227,11 +250,15 @@ void WasmDSP::processBlock (juce::AudioBuffer<float>& buffer)
     if (! initialized_.load())
         return;
 
-    if (! ensureThreadEnv())
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
         return;
 
     const int numSamples = buffer.getNumSamples();
     const int numChannels = buffer.getNumChannels();
+
+    if (numSamples > MAX_BUFFER_SAMPLES)
+        return;
 
     // Copy input to WASM linear memory
     if (auto* wasmMemory = (uint8_t*) wasm_runtime_addr_app_to_native (moduleInst_, 0))
@@ -270,7 +297,9 @@ int WasmDSP::getParamCount()
 {
     if (fn_get_param_count_ == nullptr)
         return 0;
-    if (! ensureThreadEnv())
+
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
         return 0;
 
     int32_t count = 0;
@@ -283,7 +312,9 @@ std::string WasmDSP::getParamName (int index)
 {
     if (fn_get_param_name_ == nullptr || fn_get_param_name_len_ == nullptr)
         return "";
-    if (! ensureThreadEnv())
+
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
         return "";
 
     // Get name length
@@ -320,7 +351,9 @@ float WasmDSP::getParamDefault (int index)
 {
     if (fn_get_param_default_ == nullptr)
         return 0.0f;
-    if (! ensureThreadEnv())
+
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
         return 0.0f;
 
     wasm_val_t args[1];
@@ -337,7 +370,9 @@ float WasmDSP::getParamMin (int index)
 {
     if (fn_get_param_min_ == nullptr)
         return 0.0f;
-    if (! ensureThreadEnv())
+
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
         return 0.0f;
 
     wasm_val_t args[1];
@@ -354,7 +389,9 @@ float WasmDSP::getParamMax (int index)
 {
     if (fn_get_param_max_ == nullptr)
         return 1.0f;
-    if (! ensureThreadEnv())
+
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
         return 1.0f;
 
     wasm_val_t args[1];
@@ -371,7 +408,9 @@ void WasmDSP::setParam (int index, float value)
 {
     if (fn_set_param_ == nullptr)
         return;
-    if (! ensureThreadEnv())
+
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
         return;
 
     wasm_val_t args[2];
@@ -386,7 +425,9 @@ float WasmDSP::getParam (int index)
 {
     if (fn_get_param_ == nullptr)
         return 0.0f;
-    if (! ensureThreadEnv())
+
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
         return 0.0f;
 
     wasm_val_t args[1];
