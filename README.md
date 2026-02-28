@@ -181,6 +181,15 @@ Windows is fully verified. macOS builds but has not been extensively tested in D
 | Standalone app hangs on exit (macOS rainbow spinner / high CPU) | Rebuild WAMR with `-DWAMR_DISABLE_HW_BOUND_CHECK=1`, then rebuild plugin |
 | UI shows `JUCE bridge not available` | Start Vite dev server (`npm run dev`) or run `npm run build:ui` before `npm run build:plugin` |
 | JUCE/WAMR build issues | Run `git submodule update --init --recursive` |
+| Downloaded macOS plugin/app is blocked (`damaged`, `cannot be opened`) during local development | Remove `com.apple.quarantine` from installed bundle paths (commands below). For distribution, use proper code signing and notarization. |
+
+macOS local development workaround:
+
+```bash
+xattr -rd com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/YourPlugin.component
+xattr -rd com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/YourPlugin.vst3
+sudo xattr -rd com.apple.quarantine /Applications/YourPlugin.app
+```
 
 ## Additional Targets
 

@@ -66,7 +66,7 @@ jobs:
         run: |
           set -euo pipefail
           products='${{ needs.discover-products.outputs.products }}'
-          mkdir -p ci-artifacts ci-archives
+          mkdir -p ci-artifacts
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Building product: $product ==="
             target_suffix="${product//-/_}"
@@ -103,10 +103,21 @@ jobs:
             if [ -d "$artefacts_root/AU" ]; then
               cp -R "$artefacts_root/AU" "$product_dir/plugin/AU"
             fi
+            cat > "$product_dir/plugin/MACOS_LOCAL_DEV_NOTE.txt" <<'EOF'
+            This build is intended for local development/testing.
+            
+            If macOS blocks the plugin/app after download ("damaged" or "cannot be opened"),
+            remove quarantine attributes from installed bundle paths:
+            
+            xattr -rd com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/YourPlugin.component
+            xattr -rd com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/YourPlugin.vst3
+            sudo xattr -rd com.apple.quarantine /Applications/YourPlugin.app
+            
+            For public distribution, use proper code signing and notarization.
+            EOF
             cp build/tests/cpp/plugin_smoke_test "$product_dir/tests/plugin_smoke_test"
             cp build/tests/cpp/wasm_dsp_test "$product_dir/tests/wasm_dsp_test"
             cp build/tests/cpp/moonvst_dsp.aot "$product_dir/tests/moonvst_dsp.aot"
-            tar -C ci-artifacts -czf "ci-archives/${product}.tar.gz" "$product"
           done
 
       - name: Upload product artifacts
@@ -114,7 +125,7 @@ jobs:
         with:
           name: moonvst-macos-products
           if-no-files-found: error
-          path: ci-archives/*.tar.gz
+          path: ci-artifacts/
 
   build-windows:
     runs-on: windows-latest
@@ -195,19 +206,17 @@ jobs:
         run: |
           set -euo pipefail
           products='${{ needs.discover-products.outputs.products }}'
-          mkdir -p products/extracted
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Testing product: $product ==="
-            tar -C products/extracted -xzf "products/${product}.tar.gz"
-            test -d "products/extracted/$product/plugin/VST3/${product}.vst3"
-            test -x "products/extracted/$product/plugin/VST3/${product}.vst3/Contents/MacOS/${product}"
-            test -f "products/extracted/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
-            test -x "products/extracted/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
-            if [ -d "products/extracted/$product/plugin/AU/${product}.component" ]; then
-              test -x "products/extracted/$product/plugin/AU/${product}.component/Contents/MacOS/${product}"
+            test -d "products/$product/plugin/VST3/${product}.vst3"
+            test -x "products/$product/plugin/VST3/${product}.vst3/Contents/MacOS/${product}"
+            test -f "products/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
+            test -x "products/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
+            if [ -d "products/$product/plugin/AU/${product}.component" ]; then
+              test -x "products/$product/plugin/AU/${product}.component/Contents/MacOS/${product}"
             fi
-            chmod +x "products/extracted/$product/tests/wasm_dsp_test" "products/extracted/$product/tests/plugin_smoke_test"
-            (cd "products/extracted/$product/tests" && ./wasm_dsp_test && ./plugin_smoke_test)
+            chmod +x "products/$product/tests/wasm_dsp_test" "products/$product/tests/plugin_smoke_test"
+            (cd "products/$product/tests" && ./wasm_dsp_test && ./plugin_smoke_test)
           done
 
   test-artifact-windows:
@@ -272,10 +281,8 @@ jobs:
         run: |
           set -euo pipefail
           product='${{ needs.discover-products.outputs.default_product }}'
-          mkdir -p macos-products/extracted
-          tar -C macos-products/extracted -xzf "macos-products/${product}.tar.gz"
           mkdir -p package/macos package/windows
-          cp -R "macos-products/extracted/$product/plugin/." package/macos/
+          cp -R "macos-products/$product/plugin/." package/macos/
           cp -R "windows-products/$product/plugin/." package/windows/
           test -d "package/macos/VST3/${product}.vst3"
           test -f "package/macos/Standalone/${product}.app/Contents/MacOS/${product}"
