@@ -103,18 +103,18 @@ jobs:
             if [ -d "$artefacts_root/AU" ]; then
               cp -R "$artefacts_root/AU" "$product_dir/plugin/AU"
             fi
-            cat > "$product_dir/plugin/MACOS_LOCAL_DEV_NOTE.txt" <<'EOF'
-This build is intended for local development/testing.
-
-If macOS blocks the plugin/app after download ("damaged" or "cannot be opened"),
-remove quarantine attributes from installed bundle paths:
-
-xattr -rd com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/YourPlugin.component
-xattr -rd com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/YourPlugin.vst3
-sudo xattr -rd com.apple.quarantine /Applications/YourPlugin.app
-
-For public distribution, use proper code signing and notarization.
-EOF
+            printf '%s\n' \
+              'This build is intended for local development/testing.' \
+              '' \
+              'If macOS blocks the plugin/app after download ("damaged" or "cannot be opened"),' \
+              'remove quarantine attributes from installed bundle paths:' \
+              '' \
+              'xattr -rd com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/YourPlugin.component' \
+              'xattr -rd com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/YourPlugin.vst3' \
+              'sudo xattr -rd com.apple.quarantine /Applications/YourPlugin.app' \
+              '' \
+              'For public distribution, use proper code signing and notarization.' \
+              > "$product_dir/plugin/MACOS_LOCAL_DEV_NOTE.txt"
             cp build/tests/cpp/plugin_smoke_test "$product_dir/tests/plugin_smoke_test"
             cp build/tests/cpp/wasm_dsp_test "$product_dir/tests/wasm_dsp_test"
             cp build/tests/cpp/moonvst_dsp.aot "$product_dir/tests/moonvst_dsp.aot"
