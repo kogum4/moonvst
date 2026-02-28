@@ -23,6 +23,93 @@
   color: var(--text-primary);
 }
 
+.loadingShell {
+  min-height: 100vh;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0A0F1C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.loadingLogoGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.loadingLogoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loadingLogoIcon {
+  color: #22D3EE;
+}
+
+.loadingLogoText {
+  color: #FFFFFF;
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  line-height: 1;
+}
+
+.loadingVersionText {
+  color: #64748B;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+.loadingArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.loadingBarBackground {
+  width: 240px;
+  height: 4px;
+  border-radius: 2px;
+  background: #1E293B;
+  overflow: hidden;
+}
+
+.loadingBarFill {
+  width: 168px;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #22D3EE 0%, #818CF8 100%);
+  animation: loadingBarDrift 1.6s ease-in-out infinite alternate;
+}
+
+.loadingText {
+  color: #475569;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+@keyframes loadingBarDrift {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(72px);
+  }
+}
+
 .topBar {
   height: 48px;
   display: flex;
