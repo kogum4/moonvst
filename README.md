@@ -170,7 +170,7 @@ libs/               Submodules (JUCE, WAMR)
 
 MoonBit CLI is installed automatically by the setup script. Linux is not currently supported.
 
-Windows is fully verified. macOS builds but has not been extensively tested in DAW hosts.
+Verified on Windows 11 and macOS 26.
 
 ## Troubleshooting
 
