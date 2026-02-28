@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <chrono>
 
 PluginProcessor::PluginProcessor()
     : AudioProcessor (BusesProperties()
@@ -72,6 +73,8 @@ void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     if (! wasmReady_)
         wasmReady_ = wasmDSP_.initialize();
 
+    sampleRateHz_.store (sampleRate);
+    blockSizeSamples_.store (samplesPerBlock);
     wasmDSP_.prepare (sampleRate, samplesPerBlock);
 }
 
@@ -82,6 +85,7 @@ void PluginProcessor::releaseResources()
 void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
+    const auto blockStart = std::chrono::high_resolution_clock::now();
 
     if (wasmReady_)
     {
@@ -100,6 +104,30 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     for (int ch = 0; ch < numChannels; ++ch)
         peak = juce::jmax (peak, buffer.getMagnitude (ch, 0, numSamples));
     outputLevel_.store (juce::jlimit (0.0f, 1.0f, peak));
+
+    const auto blockEnd = std::chrono::high_resolution_clock::now();
+    const double processSec = std::chrono::duration<double> (blockEnd - blockStart).count();
+    const double sampleRate = sampleRateHz_.load();
+    const double blockDurationSec = sampleRate > 0.0 ? static_cast<double> (numSamples) / sampleRate : 0.0;
+    if (blockDurationSec > 0.0)
+    {
+        const auto prevCpuLoad = static_cast<double> (cpuLoad_.load());
+        const auto rawCpuLoad = juce::jlimit (0.0, 1.0, processSec / blockDurationSec);
+        const auto smoothed = static_cast<float> (prevCpuLoad * 0.85 + rawCpuLoad * 0.15);
+        cpuLoad_.store (juce::jlimit (0.0f, 1.0f, smoothed));
+    }
+}
+
+double PluginProcessor::getLatencyMs() const
+{
+    const auto sampleRate = sampleRateHz_.load();
+    if (sampleRate <= 0.0)
+        return 0.0;
+
+    const auto samplesPerBlock = blockSizeSamples_.load();
+    const auto totalLatencySamples = getLatencySamples() + samplesPerBlock;
+    const auto latencyMs = (static_cast<double> (totalLatencySamples) / sampleRate) * 1000.0;
+    return juce::jmax (0.0, latencyMs);
 }
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()

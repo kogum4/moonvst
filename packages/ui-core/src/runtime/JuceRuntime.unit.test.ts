@@ -23,6 +23,8 @@ describe('createJuceRuntime', () => {
       if (name === 'getParamInfo') return async () => ({ name: 'gain', min: 0, max: 1, defaultValue: 0.2, index: 0 })
       if (name === 'setParam') return async (_index: number, value: number) => { sliderValue = value }
       if (name === 'getLevel') return async () => 0.4
+      if (name === 'getCpuLoad') return async () => 0.33
+      if (name === 'getLatencyMs') return async () => 7.25
       if (name === 'customNative') return customNative
       return async () => 0
     }
@@ -58,6 +60,45 @@ describe('createJuceRuntime', () => {
     off()
     await expect(runtime.invokeNative?.('customNative', 1, 'a')).resolves.toBe('ok')
     expect(customNative).toHaveBeenCalledWith(1, 'a')
+    await vi.waitFor(() => {
+      expect(runtime.getCpuLoad?.()).toBeCloseTo(0.33, 5)
+      expect(runtime.getLatencyMs?.()).toBeCloseTo(7.25, 5)
+    })
+    runtime.dispose()
+  })
+
+  test('stays compatible when optional metric natives are missing', async () => {
+    let sliderValue = 0.25
+    const getNativeFunction = (name: string) => {
+      if (name === 'getParamCount') return async () => 1
+      if (name === 'getParamInfo') return async () => ({ name: 'gain', min: 0, max: 1, defaultValue: 0.2, index: 0 })
+      if (name === 'setParam') return async (_index: number, value: number) => { sliderValue = value }
+      if (name === 'getLevel') return async () => 0.4
+      if (name === 'getCpuLoad' || name === 'getLatencyMs') {
+        throw new Error(`${name} not available`)
+      }
+      return async () => 0
+    }
+
+    const getSliderState = () => ({
+      getValue: () => sliderValue,
+      setValue: (v: number) => {
+        sliderValue = v
+      },
+      addListener: () => {},
+      removeListener: () => {},
+    })
+
+    ;(window as Window & { __JUCE__?: unknown }).__JUCE__ = {
+      getNativeFunction,
+      getSliderState,
+    }
+
+    const runtime = await createJuceRuntime()
+    expect(runtime.type).toBe('juce')
+    expect(runtime.getParams()).toHaveLength(1)
+    expect(runtime.getCpuLoad?.()).toBeNull()
+    expect(runtime.getLatencyMs?.()).toBeNull()
     runtime.dispose()
   })
 })

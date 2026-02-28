@@ -208,6 +208,15 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
   const getParamInfo = bridge.getNativeFunction('getParamInfo')
   const setParamNative = bridge.getNativeFunction('setParam')
   const getLevelNative = bridge.getNativeFunction('getLevel')
+  const getOptionalNative = (name: string) => {
+    try {
+      return bridge.getNativeFunction(name)
+    } catch {
+      return null
+    }
+  }
+  const getCpuLoadNative = getOptionalNative('getCpuLoad')
+  const getLatencyMsNative = getOptionalNative('getLatencyMs')
   const invokeNative = (name: string, ...args: unknown[]) => bridge.getNativeFunction(name)(...args)
 
   // Fetch all parameter info at init
@@ -239,6 +248,8 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
 
   const getRelayName = (index: number) => `param_${index}`
   let currentLevel = 0
+  let currentCpuLoad: number | null = null
+  let currentLatencyMs: number | null = null
   const pollLevel = async () => {
     try {
       const raw = Number(await (getLevelNative() as Promise<number>))
@@ -248,9 +259,32 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
       // Ignore transient bridge failures.
     }
   }
+  const pollMetrics = async () => {
+    if (getCpuLoadNative) {
+      try {
+        const rawCpuLoad = Number(await (getCpuLoadNative() as Promise<number>))
+        if (Number.isFinite(rawCpuLoad))
+          currentCpuLoad = Math.max(0, Math.min(1, rawCpuLoad))
+      } catch {
+        // Ignore transient bridge failures.
+      }
+    }
+    if (getLatencyMsNative) {
+      try {
+        const rawLatencyMs = Number(await (getLatencyMsNative() as Promise<number>))
+        if (Number.isFinite(rawLatencyMs) && rawLatencyMs >= 0) {
+          currentLatencyMs = rawLatencyMs
+        }
+      } catch {
+        // Ignore transient bridge failures.
+      }
+    }
+  }
   void pollLevel()
+  void pollMetrics()
   const levelTimer = setInterval(() => {
     void pollLevel()
+    void pollMetrics()
   }, 50)
 
   return {
@@ -273,6 +307,14 @@ export async function createJuceRuntime(): Promise<AudioRuntime> {
 
     getLevel() {
       return currentLevel
+    },
+
+    getCpuLoad() {
+      return currentCpuLoad
+    },
+
+    getLatencyMs() {
+      return currentLatencyMs
     },
 
     onParamChange(index: number, cb: (v: number) => void) {

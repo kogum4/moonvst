@@ -184,6 +184,14 @@ bool PluginEditor::setupWebView()
         {
             complete (juce::var ((double) processorRef.getOutputLevel()));
         })
+        .withNativeFunction ("getCpuLoad", [this] (auto& /*args*/, auto complete)
+        {
+            complete (juce::var ((double) processorRef.getCpuLoad()));
+        })
+        .withNativeFunction ("getLatencyMs", [this] (auto& /*args*/, auto complete)
+        {
+            complete (juce::var (processorRef.getLatencyMs()));
+        })
         .withNativeFunction ("getUiState", [this] (auto& /*args*/, auto complete)
         {
             complete (juce::var (processorRef.getUiStateJson()));

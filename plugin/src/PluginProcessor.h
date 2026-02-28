@@ -39,6 +39,8 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const { return apvts; }
     float getOutputLevel() const { return outputLevel_.load(); }
+    float getCpuLoad() const { return cpuLoad_.load(); }
+    double getLatencyMs() const;
     void setUiStateJson(const juce::String& stateJson);
     juce::String getUiStateJson() const;
 
@@ -49,6 +51,9 @@ private:
     std::vector<std::string> paramNames_;
     juce::AudioProcessorValueTreeState apvts;
     std::atomic<float> outputLevel_ { 0.0f };
+    std::atomic<float> cpuLoad_ { 0.0f };
+    std::atomic<double> sampleRateHz_ { 0.0 };
+    std::atomic<int> blockSizeSamples_ { 0 };
     juce::String uiStateJson_;
     mutable juce::CriticalSection uiStateLock_;
 

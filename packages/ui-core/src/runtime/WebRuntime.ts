@@ -78,6 +78,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
   let hasAudio = false
   let isPlaying = false
   let currentLevel = 0
+  let currentCpuLoad = 0
   let inputMode: 'none' | 'file' | 'mic' = 'none'
   let micState: 'inactive' | 'requesting' | 'active' | 'denied' | 'error' = 'inactive'
 
@@ -85,6 +86,10 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
     const data = event.data as { type?: string; value?: number; message?: string }
     if (data?.type === 'level' && typeof data.value === 'number' && Number.isFinite(data.value)) {
       currentLevel = Math.max(0, Math.min(1, data.value))
+      return
+    }
+    if (data?.type === 'cpuLoad' && typeof data.value === 'number' && Number.isFinite(data.value)) {
+      currentCpuLoad = Math.max(0, Math.min(1, data.value))
       return
     }
     if (data?.type === 'error') {
@@ -218,6 +223,20 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
       return currentLevel
     },
 
+    getCpuLoad() {
+      return currentCpuLoad
+    },
+
+    getLatencyMs() {
+      const baseLatency = Number((ctx as AudioContext & { baseLatency?: number }).baseLatency)
+      const outputLatency = Number((ctx as AudioContext & { outputLatency?: number }).outputLatency ?? 0)
+      if (!Number.isFinite(baseLatency) || baseLatency < 0) {
+        return null
+      }
+      const totalLatencyMs = (baseLatency + (Number.isFinite(outputLatency) && outputLatency > 0 ? outputLatency : 0)) * 1000
+      return Number.isFinite(totalLatencyMs) ? Math.max(0, totalLatencyMs) : null
+    },
+
     async loadAudioData(bytes: ArrayBuffer, mimeType?: string) {
       await loadAudioDataInternal(bytes, mimeType)
     },
@@ -317,6 +336,7 @@ export async function createWebRuntime(): Promise<WebAudioRuntime> {
 
     dispose() {
       currentLevel = 0
+      currentCpuLoad = 0
       stopMicInternal()
       if (audioElement) {
         audioElement.pause()

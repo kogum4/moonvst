@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { createWebRuntime, resolveRuntimeAssetPath } from './WebRuntime'
 
 class MockAudioWorkletNode {
+  static instances: MockAudioWorkletNode[] = []
   public port: { postMessage: ReturnType<typeof vi.fn>; onmessage: ((e: any) => void) | null }
   connect = vi.fn()
   disconnect = vi.fn()
 
   constructor() {
     this.port = { postMessage: vi.fn(), onmessage: null }
+    MockAudioWorkletNode.instances.push(this)
   }
 }
 
@@ -21,6 +23,7 @@ describe('createWebRuntime', () => {
   let lastAudioContextOptions: AudioContextOptions | undefined
 
   beforeEach(() => {
+    MockAudioWorkletNode.instances = []
     const memory = new WebAssembly.Memory({ initial: 1 })
     const encoder = new TextEncoder()
     const nameBytes = encoder.encode('gain')
@@ -46,6 +49,8 @@ describe('createWebRuntime', () => {
       constructor(options?: AudioContextOptions) {
         lastAudioContextOptions = options
       }
+      baseLatency = 0.02
+      outputLatency = 0.01
       audioWorklet = {
         addModule: vi.fn(async () => {}),
       }
@@ -95,6 +100,20 @@ describe('createWebRuntime', () => {
 
     runtime.setParam(0, 0.9)
     expect(runtime.getParam(0)).toBe(0.5)
+
+    runtime.dispose()
+  })
+
+  test('exposes estimated cpu load and latency metrics', async () => {
+    const runtime = await createWebRuntime()
+    const node = MockAudioWorkletNode.instances[0]
+    expect(node).toBeDefined()
+
+    expect(runtime.getCpuLoad?.()).toBe(0)
+    expect(runtime.getLatencyMs?.()).toBeCloseTo(30, 5)
+
+    node.port.onmessage?.({ data: { type: 'cpuLoad', value: 0.37 } })
+    expect(runtime.getCpuLoad?.()).toBeCloseTo(0.37, 5)
 
     runtime.dispose()
   })

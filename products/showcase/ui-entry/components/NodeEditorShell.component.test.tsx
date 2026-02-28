@@ -327,4 +327,89 @@ describe('node editor shell layout', () => {
     })
   })
 
+  test('shows estimated CPU and latency labels for web runtime', async () => {
+    const runtime = {
+      type: 'web' as const,
+      getParams: () => [],
+      setParam: () => {},
+      getParam: () => 0,
+      getLevel: () => 0,
+      getCpuLoad: () => 0.123,
+      getLatencyMs: () => 9.876,
+      onParamChange: () => () => {},
+      dispose: () => {},
+      loadAudioData: async () => {},
+      loadAudioFile: async () => {},
+      play: async () => {},
+      stop: () => {},
+      startMic: async () => {},
+      stopMic: () => {},
+      hasAudioLoaded: () => false,
+      getIsPlaying: () => false,
+      getInputMode: () => 'none' as const,
+      getMicState: () => 'inactive' as const,
+    }
+
+    render(<NodeEditorShell runtime={runtime} />)
+    await vi.waitFor(() => {
+      expect(screen.getByText('CPU(est): 12.3%')).toBeInTheDocument()
+      expect(screen.getByText('Latency(est): 9.9 ms')).toBeInTheDocument()
+    })
+  })
+
+  test('shows exact CPU and latency labels for juce runtime', async () => {
+    const runtime = {
+      type: 'juce' as const,
+      getParams: () => [],
+      setParam: () => {},
+      getParam: () => 0,
+      getLevel: () => 0,
+      getCpuLoad: () => 0.42,
+      getLatencyMs: () => 5.4321,
+      onParamChange: () => () => {},
+      invokeNative: vi.fn(async (name: string) => (name === 'getUiState' ? '' : undefined)),
+      dispose: () => {},
+    }
+
+    render(<NodeEditorShell runtime={runtime} />)
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('status', { name: 'Loading Screen' })).not.toBeInTheDocument()
+    })
+    await vi.waitFor(() => {
+      expect(screen.getByText('CPU: 42.0%')).toBeInTheDocument()
+      expect(screen.getByText('Latency: 5.4 ms')).toBeInTheDocument()
+    })
+  })
+
+  test('falls back to placeholder metric values when runtime metrics are unavailable', async () => {
+    const runtime = {
+      type: 'web' as const,
+      getParams: () => [],
+      setParam: () => {},
+      getParam: () => 0,
+      getLevel: () => 0,
+      getCpuLoad: () => null,
+      getLatencyMs: () => null,
+      onParamChange: () => () => {},
+      dispose: () => {},
+      loadAudioData: async () => {},
+      loadAudioFile: async () => {},
+      play: async () => {},
+      stop: () => {},
+      startMic: async () => {},
+      stopMic: () => {},
+      hasAudioLoaded: () => false,
+      getIsPlaying: () => false,
+      getInputMode: () => 'none' as const,
+      getMicState: () => 'inactive' as const,
+    }
+
+    render(<NodeEditorShell runtime={runtime} />)
+    await vi.waitFor(() => {
+      expect(screen.getByText('CPU(est): --')).toBeInTheDocument()
+      expect(screen.getByText('Latency(est): --')).toBeInTheDocument()
+    })
+  })
+
 })

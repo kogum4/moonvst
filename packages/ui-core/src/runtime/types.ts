@@ -12,6 +12,8 @@ export interface AudioRuntime {
   setParam(index: number, value: number): void
   getParam(index: number): number
   getLevel(): number
+  getCpuLoad?(): number | null
+  getLatencyMs?(): number | null
   onParamChange(index: number, cb: (v: number) => void): () => void
   invokeNative?(name: string, ...args: unknown[]): Promise<unknown>
   dispose(): void

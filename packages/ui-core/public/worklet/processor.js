@@ -11,6 +11,9 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
     this.levelPeak = 0
     this.levelSampleCounter = 0
     this.levelEmitIntervalSamples = Math.max(1, Math.floor(sampleRate * 0.05))
+    this.cpuLoadSmoothed = 0
+    this.cpuLoadSampleCounter = 0
+    this.cpuEmitIntervalSamples = Math.max(1, Math.floor(sampleRate * 0.05))
 
     // Memory offsets (must match packages/dsp-core/src/utils/constants.mbt)
     this.INPUT_LEFT_OFFSET = 0x10000
@@ -45,8 +48,12 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
     const input = inputs[0]
     const output = outputs[0]
     const numSamples = output[0]?.length ?? 0
+    const now = globalThis.performance && typeof globalThis.performance.now === 'function'
+      ? () => globalThis.performance.now()
+      : () => Date.now()
 
     if (numSamples === 0) return true
+    const startMs = now()
 
     const mem = new Float32Array(this.wasmMemory.buffer)
     const bytesPerFloat = 4
@@ -69,6 +76,12 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
 
     // Process
     this.wasmInstance.exports.process_block(numSamples)
+    const processMs = now() - startMs
+    const blockMs = (numSamples / sampleRate) * 1000
+    if (blockMs > 0) {
+      const blockLoad = Math.max(0, Math.min(1, processMs / blockMs))
+      this.cpuLoadSmoothed = this.cpuLoadSmoothed * 0.85 + blockLoad * 0.15
+    }
 
     // Copy output from WASM memory
     const outLOffset = this.OUTPUT_LEFT_OFFSET / bytesPerFloat
@@ -99,10 +112,15 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
 
     if (blockPeak > this.levelPeak) this.levelPeak = blockPeak
     this.levelSampleCounter += numSamples
+    this.cpuLoadSampleCounter += numSamples
     if (this.levelSampleCounter >= this.levelEmitIntervalSamples) {
       this.port.postMessage({ type: 'level', value: Math.min(1, this.levelPeak) })
       this.levelPeak = 0
       this.levelSampleCounter = 0
+    }
+    if (this.cpuLoadSampleCounter >= this.cpuEmitIntervalSamples) {
+      this.port.postMessage({ type: 'cpuLoad', value: Math.max(0, Math.min(1, this.cpuLoadSmoothed)) })
+      this.cpuLoadSampleCounter = 0
     }
 
     return true

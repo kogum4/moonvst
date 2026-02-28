@@ -436,12 +436,28 @@ function InspectorPanel({
   )
 }
 
-function StatusBar({ connectionCount, lastError, nodeCount }: { connectionCount: number; lastError: string | null; nodeCount: number }) {
+function StatusBar({
+  connectionCount,
+  cpuLabel,
+  cpuText,
+  lastError,
+  latencyLabel,
+  latencyText,
+  nodeCount,
+}: {
+  connectionCount: number
+  cpuLabel: string
+  cpuText: string
+  lastError: string | null
+  latencyLabel: string
+  latencyText: string
+  nodeCount: number
+}) {
   return (
     <footer aria-label="Status Bar" className={styles.statusBar} data-region-id="gkrb8">
       <div className={styles.statusLeft}>
-        <span>CPU: 4.2%</span>
-        <span>Latency: 256 smp</span>
+        <span>{cpuLabel}: {cpuText}</span>
+        <span>{latencyLabel}: {latencyText}</span>
         <span>{lastError ?? 'Ready'}</span>
       </div>
       <div className={styles.statusRight}><span>{nodeCount} nodes | {connectionCount} connections</span><span className={styles.zoomBadge}><ZoomIn size={10} />100%</span></div>
@@ -484,6 +500,8 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const presetDropdownRef = useRef<HTMLDivElement | null>(null)
   const hydratedRef = useRef(false)
   const [isHydrationPending, setHydrationPending] = useState(() => runtime?.type === 'juce' || hasJuceBridge())
+  const [cpuLoad, setCpuLoad] = useState<number | null>(null)
+  const [latencyMs, setLatencyMs] = useState<number | null>(null)
   const graphRuntimeBridge = useMemo(
     () =>
       createGraphRuntimeBridge((payload, revision) => {
@@ -803,6 +821,31 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
     overwriteCandidateName !== null &&
     saveDraftName.trim() === overwriteCandidateName
 
+  useEffect(() => {
+    const refreshMetrics = () => {
+      if (!runtime) {
+        setCpuLoad(null)
+        setLatencyMs(null)
+        return
+      }
+      const nextCpuLoad = runtime.getCpuLoad?.()
+      setCpuLoad(Number.isFinite(nextCpuLoad) ? (nextCpuLoad as number) : null)
+      const nextLatency = runtime.getLatencyMs?.()
+      setLatencyMs(Number.isFinite(nextLatency) ? (nextLatency as number) : null)
+    }
+    refreshMetrics()
+    const timerId = window.setInterval(refreshMetrics, 100)
+    return () => {
+      window.clearInterval(timerId)
+    }
+  }, [runtime])
+
+  const isJuceRuntime = runtime?.type === 'juce'
+  const cpuLabel = isJuceRuntime ? 'CPU' : 'CPU(est)'
+  const latencyLabel = isJuceRuntime ? 'Latency' : 'Latency(est)'
+  const cpuText = cpuLoad !== null ? `${(cpuLoad * 100).toFixed(1)}%` : '--'
+  const latencyText = latencyMs !== null ? `${latencyMs.toFixed(1)} ms` : '--'
+
   if (isHydrationPending) {
     return <LoadingScreen />
   }
@@ -945,7 +988,15 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
           </div>
         ) : null}
       </section>
-      <StatusBar connectionCount={state.edges.length} lastError={state.lastError} nodeCount={state.nodes.length} />
+      <StatusBar
+        connectionCount={state.edges.length}
+        cpuLabel={cpuLabel}
+        cpuText={cpuText}
+        lastError={state.lastError}
+        latencyLabel={latencyLabel}
+        latencyText={latencyText}
+        nodeCount={state.nodes.length}
+      />
     </div>
   )
 }
