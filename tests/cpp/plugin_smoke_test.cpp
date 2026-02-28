@@ -11,6 +11,7 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter();
 int main()
 {
     printf("=== Plugin Smoke Test ===\n");
+    constexpr int kEditorOpenCloseIterations = 200;
 
     juce::ScopedJuceInitialiser_GUI juceInit;
 
@@ -39,27 +40,31 @@ int main()
     }
     printf("PASS: processBlock executed\n");
 
-    auto* editor = plugin->createEditor();
-    if (editor == nullptr)
+    for (int i = 0; i < kEditorOpenCloseIterations; ++i)
     {
-        printf("FAIL: createEditor returned null\n");
-        return 1;
-    }
+        auto* editor = plugin->createEditor();
+        if (editor == nullptr)
+        {
+            printf("FAIL: createEditor returned null at iteration %d\n", i + 1);
+            return 1;
+        }
 
-    const auto editorBounds = editor->getBounds();
-    if (editorBounds.getWidth() <= 0 || editorBounds.getHeight() <= 0)
-    {
-        printf("FAIL: editor has invalid bounds (%d, %d)\n",
-               editorBounds.getWidth(),
-               editorBounds.getHeight());
+        const auto editorBounds = editor->getBounds();
+        if (editorBounds.getWidth() <= 0 || editorBounds.getHeight() <= 0)
+        {
+            printf("FAIL: editor has invalid bounds at iteration %d (%d, %d)\n",
+                   i + 1,
+                   editorBounds.getWidth(),
+                   editorBounds.getHeight());
+            delete editor;
+            return 1;
+        }
+
         delete editor;
-        return 1;
     }
-    printf("PASS: Editor created (%d x %d)\n",
-           editorBounds.getWidth(),
-           editorBounds.getHeight());
+    printf("PASS: Editor open/close stress (%d iterations)\n",
+           kEditorOpenCloseIterations);
 
-    delete editor;
     plugin->releaseResources();
 
     auto* typed = dynamic_cast<PluginProcessor*>(plugin.get());
