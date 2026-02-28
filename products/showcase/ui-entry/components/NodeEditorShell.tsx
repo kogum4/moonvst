@@ -52,6 +52,13 @@ const isEditableElement = (target: EventTarget | null) => {
   return target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
 }
 
+const hasJuceBridge = () => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  return (window as Window & { __JUCE__?: unknown }).__JUCE__ !== undefined
+}
+
 const hexToRgbChannels = (hex: string): string => {
   const normalized = hex.replace('#', '')
   const value = normalized.length === 3
@@ -442,6 +449,26 @@ function StatusBar({ connectionCount, lastError, nodeCount }: { connectionCount:
   )
 }
 
+function LoadingScreen() {
+  return (
+    <div aria-label="Loading Screen" className={styles.loadingShell} data-region-id="syYFs" role="status">
+      <div className={styles.loadingLogoGroup}>
+        <div className={styles.loadingLogoRow}>
+          <Moon className={styles.loadingLogoIcon} size={40} strokeWidth={2} />
+          <span className={styles.loadingLogoText}>MoonVST</span>
+        </div>
+        <span className={styles.loadingVersionText}>v1.0.0</span>
+      </div>
+      <div className={styles.loadingArea}>
+        <div className={styles.loadingBarBackground}>
+          <div className={styles.loadingBarFill} />
+        </div>
+        <span className={styles.loadingText}>Loading...</span>
+      </div>
+    </div>
+  )
+}
+
 export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | null }) {
   const interaction = useGraphInteraction()
   const { pendingFromNodeId, state } = interaction
@@ -456,6 +483,7 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const presetToggleRef = useRef<HTMLDivElement | null>(null)
   const presetDropdownRef = useRef<HTMLDivElement | null>(null)
   const hydratedRef = useRef(false)
+  const [isHydrationPending, setHydrationPending] = useState(() => runtime?.type === 'juce' || hasJuceBridge())
   const graphRuntimeBridge = useMemo(
     () =>
       createGraphRuntimeBridge((payload, revision) => {
@@ -517,11 +545,13 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   }, [graphRuntimeBridge, state])
 
   useEffect(() => {
+    let cancelled = false
+
     const hydrate = async () => {
       const storage = window.localStorage
-      const isJuceHost = (window as Window & { __JUCE__?: unknown }).__JUCE__ !== undefined
-      const shouldRestoreFromHost = runtime?.type === 'juce' || isJuceHost
+      const shouldRestoreFromHost = runtime?.type === 'juce' || hasJuceBridge()
       let initial: ReturnType<typeof loadGraphStateFromStorage> = null
+      setHydrationPending(shouldRestoreFromHost)
 
       if (shouldRestoreFromHost) {
         // In JUCE hosts, wait for runtime bridge and restore only from the host-owned instance state.
@@ -545,6 +575,10 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
         initial = loadGraphStateFromStorage(storage)
       }
 
+      if (cancelled) {
+        return
+      }
+
       const initialPresets = loadPresetsFromStorage(storage)
       setPresets(initialPresets)
 
@@ -553,9 +587,13 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
         setPresetName(initial.lastPresetName)
       }
       hydratedRef.current = true
+      setHydrationPending(false)
     }
 
     void hydrate()
+    return () => {
+      cancelled = true
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime])
 
@@ -764,6 +802,10 @@ export function NodeEditorShell({ runtime = null }: { runtime?: AudioRuntime | n
   const isOverwriteWarningVisible =
     overwriteCandidateName !== null &&
     saveDraftName.trim() === overwriteCandidateName
+
+  if (isHydrationPending) {
+    return <LoadingScreen />
+  }
 
   return (
     <div className={styles.shell} data-region-id="kvMK5">

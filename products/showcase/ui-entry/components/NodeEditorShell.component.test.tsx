@@ -215,6 +215,58 @@ describe('node editor shell layout', () => {
     expect(screen.queryByRole('menu', { name: 'Preset Dropdown Menu' })).not.toBeInTheDocument()
   })
 
+  test('shows loading screen and hides editor while JUCE hydration is pending', async () => {
+    let resolveUiState: (value: unknown) => void = () => {}
+    const pendingUiState = new Promise<unknown>((resolve) => {
+      resolveUiState = resolve
+    })
+    const runtime = {
+      type: 'juce' as const,
+      getParams: () => [],
+      setParam: () => {},
+      getParam: () => 0,
+      getLevel: () => 0,
+      onParamChange: () => () => {},
+      invokeNative: vi.fn(async (name: string) => (name === 'getUiState' ? pendingUiState : undefined)),
+      dispose: () => {},
+    }
+
+    render(<NodeEditorShell runtime={runtime} />)
+
+    expect(screen.getByRole('status', { name: 'Loading Screen' })).toHaveAttribute('data-region-id', 'syYFs')
+    expect(screen.queryByRole('banner', { name: 'Top Bar' })).not.toBeInTheDocument()
+
+    resolveUiState('')
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('status', { name: 'Loading Screen' })).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('banner', { name: 'Top Bar' })).toBeInTheDocument()
+  })
+
+  test('renders editor only after JUCE getUiState resolves', async () => {
+    const runtime = {
+      type: 'juce' as const,
+      getParams: () => [],
+      setParam: () => {},
+      getParam: () => 0,
+      getLevel: () => 0,
+      onParamChange: () => () => {},
+      invokeNative: vi.fn(async (name: string) => (name === 'getUiState' ? '' : undefined)),
+      dispose: () => {},
+    }
+
+    render(<NodeEditorShell runtime={runtime} />)
+
+    expect(screen.getByRole('status', { name: 'Loading Screen' })).toBeInTheDocument()
+
+    await vi.waitFor(() => {
+      expect(runtime.invokeNative).toHaveBeenCalledWith('getUiState')
+      expect(screen.getByRole('main', { name: 'Graph Canvas' })).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('status', { name: 'Loading Screen' })).not.toBeInTheDocument()
+  })
+
   test('does not bootstrap JUCE instance state from browser localStorage when host ui state is empty', async () => {
     let state = createDefaultGraphState()
     state = graphReducer(state, { type: 'addNode', kind: 'chorus', x: 220, y: 140, id: 'fx-1' })
@@ -236,6 +288,11 @@ describe('node editor shell layout', () => {
 
     render(<NodeEditorShell runtime={runtime} />)
 
+    await vi.waitFor(() => {
+      expect(runtime.invokeNative).toHaveBeenCalledWith('getUiState')
+      expect(screen.queryByRole('status', { name: 'Loading Screen' })).not.toBeInTheDocument()
+    })
+
     expect(screen.queryByRole('group', { name: 'Effect Node Chorus' })).not.toBeInTheDocument()
     expect(screen.getByText('Default Preset')).toBeInTheDocument()
   })
@@ -256,6 +313,11 @@ describe('node editor shell layout', () => {
 
     await vi.waitFor(() => {
       expect(runtime.invokeNative).toHaveBeenCalledWith('getUiState')
+    })
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole('status', { name: 'Loading Screen' })).not.toBeInTheDocument()
+      expect(screen.getByRole('main', { name: 'Graph Canvas' })).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Chorus' }))
