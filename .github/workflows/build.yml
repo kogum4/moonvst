@@ -25,7 +25,7 @@ jobs:
           echo "Discovered products: $products_json"
 
   build-macos:
-    runs-on: macos-14
+    runs-on: macos-26
     needs: discover-products
     env:
       MACOS_CERT_P12_B64: ${{ secrets.MACOS_CERT_P12_B64 }}
@@ -41,6 +41,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Log macOS toolchain info
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -a
+          xcodebuild -version
+          clang --version | head -n 1
 
       - name: Run macOS setup script
         run: bash scripts/setup-macos.sh
@@ -70,6 +79,11 @@ jobs:
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Building product: $product ==="
             target_suffix="${product//-/_}"
+            product_dir="ci-artifacts/$product"
+            diagnostics_dir="$product_dir/diagnostics"
+            mkdir -p "$product_dir/plugin" "$product_dir/tests" "$diagnostics_dir"
+            exec > >(tee -a "$diagnostics_dir/build.log")
+            exec 2>&1
 
             if [ "$product" = "template" ]; then
               npm run build:dsp
@@ -82,6 +96,17 @@ jobs:
             cmake -B build -DCMAKE_BUILD_TYPE=Release -DMOONVST_ENABLE_UNITY=ON -DBUILD_TESTS=ON -DMOONVST_PRODUCT="$product"
             npm run build:plugin
             artefacts_root="build/plugin/MoonVST_${target_suffix}_artefacts/Release"
+            plugin_binary="$artefacts_root/VST3/${product}.vst3/Contents/MacOS/${product}"
+
+            {
+              echo "=== System info ==="
+              sw_vers
+              uname -a
+              xcodebuild -version
+              echo "=== Plugin LC_BUILD_VERSION ==="
+              otool -l "$plugin_binary" | grep -A5 LC_BUILD_VERSION
+            } > "$diagnostics_dir/plugin_metadata.log"
+            grep -E "target:[[:space:]]|target triple:" "$diagnostics_dir/build.log" > "$diagnostics_dir/wamrc_target.log" || true
 
             if [ -n "${MACOS_SIGN_IDENTITY:-}" ]; then
               for bundle in \
@@ -95,8 +120,6 @@ jobs:
               done
             fi
 
-            product_dir="ci-artifacts/$product"
-            mkdir -p "$product_dir/plugin" "$product_dir/tests"
             cp -R "$artefacts_root/VST3" "$product_dir/plugin/VST3"
             cp -R "$artefacts_root/Standalone" "$product_dir/plugin/Standalone"
             cp -R "$artefacts_root/Unity" "$product_dir/plugin/Unity"
@@ -192,7 +215,7 @@ jobs:
           path: ci-artifacts/
 
   test-artifact-macos:
-    runs-on: macos-14
+    runs-on: macos-26
     needs: [discover-products, build-macos]
     steps:
       - name: Download product artifacts
@@ -249,7 +272,7 @@ jobs:
           }
 
   release:
-    runs-on: macos-14
+    runs-on: macos-26
     needs: [discover-products, test-artifact-macos, test-artifact-windows]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:

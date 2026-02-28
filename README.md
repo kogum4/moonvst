@@ -179,6 +179,7 @@ Windows is fully verified. macOS builds but has not been extensively tested in D
 | `WAMR runtime library not found` | Re-run the setup script |
 | `wamrc not found` | Re-run the setup script |
 | Standalone app hangs on exit (macOS rainbow spinner / high CPU) | Rebuild WAMR with `-DWAMR_DISABLE_HW_BOUND_CHECK=1`, then rebuild plugin |
+| CI-built macOS plugin crashes in DAW but local build is stable | Align CI runner OS/toolchain with target macOS generation (use `macos-26` for macOS 26 hosts), rebuild artifact, and compare `LC_BUILD_VERSION` + wamrc target logs |
 | UI shows `JUCE bridge not available` | Start Vite dev server (`npm run dev`) or run `npm run build:ui` before `npm run build:plugin` |
 | JUCE/WAMR build issues | Run `git submodule update --init --recursive` |
 | Downloaded macOS plugin/app is blocked (`damaged`, `cannot be opened`) during local development | Remove `com.apple.quarantine` from installed bundle paths (commands below). For distribution, use proper code signing and notarization. |
