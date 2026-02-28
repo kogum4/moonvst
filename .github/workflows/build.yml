@@ -209,10 +209,13 @@ jobs:
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Testing product: $product ==="
             test -d "products/$product/plugin/VST3/${product}.vst3"
-            test -x "products/$product/plugin/VST3/${product}.vst3/Contents/MacOS/${product}"
             test -f "products/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
+            chmod +x "products/$product/plugin/VST3/${product}.vst3/Contents/MacOS/${product}"
+            chmod +x "products/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
+            test -x "products/$product/plugin/VST3/${product}.vst3/Contents/MacOS/${product}"
             test -x "products/$product/plugin/Standalone/${product}.app/Contents/MacOS/${product}"
             if [ -d "products/$product/plugin/AU/${product}.component" ]; then
+              chmod +x "products/$product/plugin/AU/${product}.component/Contents/MacOS/${product}"
               test -x "products/$product/plugin/AU/${product}.component/Contents/MacOS/${product}"
             fi
             chmod +x "products/$product/tests/wasm_dsp_test" "products/$product/tests/plugin_smoke_test"
@@ -286,6 +289,11 @@ jobs:
           cp -R "windows-products/$product/plugin/." package/windows/
           test -d "package/macos/VST3/${product}.vst3"
           test -f "package/macos/Standalone/${product}.app/Contents/MacOS/${product}"
+          chmod +x "package/macos/VST3/${product}.vst3/Contents/MacOS/${product}"
+          chmod +x "package/macos/Standalone/${product}.app/Contents/MacOS/${product}"
+          if [ -d "package/macos/AU/${product}.component" ]; then
+            chmod +x "package/macos/AU/${product}.component/Contents/MacOS/${product}"
+          fi
           test -x "package/macos/VST3/${product}.vst3/Contents/MacOS/${product}"
           test -x "package/macos/Standalone/${product}.app/Contents/MacOS/${product}"
           test -d "package/windows/VST3/${product}.vst3"
