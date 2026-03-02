@@ -45,6 +45,31 @@ function copyDirRecursive(fromDir, toDir) {
   }
 }
 
+function sleepMs(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function removeDirWithRetry(targetPath) {
+  const maxAttempts = 30;
+  const retryDelayMs = 100;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      fs.rmSync(targetPath, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const retryable = error && (
+        error.code === 'EBUSY' ||
+        error.code === 'EPERM' ||
+        error.code === 'ENOTEMPTY'
+      );
+      if (!retryable || attempt === maxAttempts) {
+        throw error;
+      }
+      sleepMs(retryDelayMs);
+    }
+  }
+}
+
 function selectProduct(product) {
   ensureValidProduct(product);
 
@@ -58,7 +83,7 @@ function selectProduct(product) {
     throw new Error(`missing product dsp-entry: ${dspEntryDir}`);
   }
 
-  fs.rmSync(dspActiveDir, { recursive: true, force: true });
+  removeDirWithRetry(dspActiveDir);
   fs.mkdirSync(dspActiveSrcDir, { recursive: true });
 
   for (const segments of CORE_STATIC_FILES) {

@@ -1,16 +1,25 @@
-﻿const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const path = require('path');
 const { selectProduct } = require('./select-product');
 
-const product = process.env.MOONVST_PRODUCT || 'template';
-selectProduct(product);
+function runBuildDspProduct({
+  product = process.env.MOONVST_PRODUCT || 'template',
+  root = path.resolve(__dirname, '..'),
+  args = process.argv.slice(2),
+  selectProduct: select = selectProduct,
+  execFileSync: execFile = execFileSync,
+} = {}) {
+  select(product);
+  execFile(process.execPath, ['scripts/build-dsp-core.js', ...args], {
+    cwd: root,
+    stdio: 'inherit',
+  });
+}
 
-const root = path.resolve(__dirname, '..');
-const platformScript = process.platform === 'win32'
-  ? 'powershell -File scripts/build-dsp.ps1'
-  : 'bash scripts/build-dsp.sh';
+if (require.main === module) {
+  runBuildDspProduct();
+}
 
-execSync(platformScript, {
-  cwd: root,
-  stdio: 'inherit',
-});
+module.exports = {
+  runBuildDspProduct,
+};
