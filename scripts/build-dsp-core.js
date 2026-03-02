@@ -7,11 +7,22 @@ function resolveWasmPath(buildDir, release) {
   return path.join(buildDir, '_build', 'wasm', mode, 'build', 'src', 'src.wasm');
 }
 
-function resolveArchTargetArgs(arch) {
+function resolveArchTargetArgs({ platform, arch }) {
   if (arch === 'x64' || arch === 'amd64') {
     return ['--target=x86_64', '--cpu=x86-64'];
   }
+  if (platform === 'darwin' && (arch === 'arm64' || arch === 'aarch64')) {
+    return ['--target=aarch64-apple-darwin'];
+  }
   return [];
+}
+
+function resolveSizeLevel(arch) {
+  if (arch === 'arm64' || arch === 'aarch64') {
+    // WAMR/LLVM rejects the medium code model on AArch64.
+    return '3';
+  }
+  return '1';
 }
 
 function resolveWamrcPath({ rootDir, platform = process.platform, exists = existsSync }) {
@@ -55,7 +66,8 @@ function createBuildPlan({
     wasmDestPath: path.join(rootDir, 'packages', 'ui-core', 'public', 'wasm', 'moonvst_dsp.wasm'),
     aotDestDir: path.join(rootDir, 'plugin', 'resources'),
     aotDestPath: path.join(rootDir, 'plugin', 'resources', 'moonvst_dsp.aot'),
-    wamrcTargetArgs: resolveArchTargetArgs(arch),
+    wamrcSizeLevel: resolveSizeLevel(arch),
+    wamrcTargetArgs: resolveArchTargetArgs({ platform, arch }),
     platform,
   };
 }
@@ -93,7 +105,7 @@ function runBuildDspCore({
   mkdir(plan.aotDestDir, { recursive: true });
   exec(
     wamrcPath,
-    ['--opt-level=3', '--size-level=1', ...plan.wamrcTargetArgs, '-o', plan.aotDestPath, plan.wasmPath],
+    ['--opt-level=3', `--size-level=${plan.wamrcSizeLevel}`, ...plan.wamrcTargetArgs, '-o', plan.aotDestPath, plan.wasmPath],
     { stdio: 'inherit' },
   );
 
@@ -109,5 +121,6 @@ module.exports = {
   createBuildPlan,
   resolveWamrcPath,
   resolveWasmPath,
+  resolveSizeLevel,
   runBuildDspCore,
 };
