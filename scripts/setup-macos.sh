@@ -82,12 +82,20 @@ make -j$(sysctl -n hw.ncpu)
 # 6. Install UI dependencies
 echo "=== Installing UI dependencies ==="
 cd "$ROOT_DIR/packages/ui-core"
-npm install
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    npm ci
+else
+    npm install
+fi
 
 # 7. Install root dependencies
 echo "=== Installing root dependencies ==="
 cd "$ROOT_DIR"
-npm install
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    npm ci
+else
+    npm install
+fi
 
 echo ""
 echo "=== Setup complete! ==="

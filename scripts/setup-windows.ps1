@@ -167,12 +167,20 @@ if (-not (Test-Path $WebView2Dir)) {
 # 7. Install UI dependencies
 Write-Host "=== Installing UI dependencies ==="
 Set-Location "$RootDir/packages/ui-core"
-npm install
+if ($env:GITHUB_ACTIONS) {
+    npm ci
+} else {
+    npm install
+}
 
 # 8. Install root dependencies
 Write-Host "=== Installing root dependencies ==="
 Set-Location "$RootDir"
-npm install
+if ($env:GITHUB_ACTIONS) {
+    npm ci
+} else {
+    npm install
+}
 
 Write-Host ""
 Write-Host "=== Setup complete! ==="
