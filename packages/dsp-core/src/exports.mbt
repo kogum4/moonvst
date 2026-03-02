@@ -18,6 +18,11 @@ pub fn dsp_init() -> Unit {
   product_reset()
 }
 
+/// Explicit prepare for host to configure runtime-dependent values
+pub fn dsp_prepare(sample_rate : Float) -> Unit {
+  @utils.set_sample_rate(sample_rate)
+}
+
 /// Process audio block — main DSP loop
 pub fn process_block(num_samples : Int) -> Unit {
   process_audio(num_samples)

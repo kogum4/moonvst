@@ -103,6 +103,7 @@ int main()
     auto fn_init = wasm_runtime_lookup_function(inst, "init");
     if (!fn_init)
         fn_init = wasm_runtime_lookup_function(inst, "dsp_init");
+    auto fn_dsp_prepare = wasm_runtime_lookup_function(inst, "dsp_prepare");
     auto fn_get_param_count = wasm_runtime_lookup_function(inst, "get_param_count");
     auto fn_set_param = wasm_runtime_lookup_function(inst, "set_param");
     auto fn_get_param = wasm_runtime_lookup_function(inst, "get_param");
@@ -114,6 +115,7 @@ int main()
         printf("  process_block: %s\n", fn_process_block ? "ok" : "missing");
         printf("  get_param_count: %s\n", fn_get_param_count ? "ok" : "missing");
         printf("  init|dsp_init: %s\n", fn_init ? "ok" : "missing (optional)");
+        printf("  dsp_prepare: %s\n", fn_dsp_prepare ? "ok" : "missing (optional)");
         printf("  set_param/get_param: %s/%s (optional)\n",
                fn_set_param ? "ok" : "missing",
                fn_get_param ? "ok" : "missing");
@@ -146,6 +148,30 @@ int main()
     else
     {
         printf("PASS: init()/dsp_init() not exported (optional)\n");
+    }
+
+    // 6.1 Call dsp_prepare(sampleRate)
+    if (fn_dsp_prepare != nullptr)
+    {
+        float sampleRate = 44100.0f;
+        uint32_t prepareArgs[1] = { 0 };
+        std::memcpy(&prepareArgs[0], &sampleRate, sizeof(float));
+        if (!wasm_runtime_call_wasm(execEnv, fn_dsp_prepare, 1, prepareArgs))
+        {
+            const char* ex = wasm_runtime_get_exception(inst);
+            printf("FAIL: dsp_prepare() call failed%s%s\n", ex ? ": " : "", ex ? ex : "");
+            wasm_runtime_destroy_exec_env(execEnv);
+            wasm_runtime_deinstantiate(inst);
+            wasm_runtime_unload(module);
+            free(aotBuf);
+            wasm_runtime_destroy();
+            return 1;
+        }
+        printf("PASS: dsp_prepare() called\n");
+    }
+    else
+    {
+        printf("PASS: dsp_prepare() not exported (optional)\n");
     }
 
     // 7. Test get_param_count

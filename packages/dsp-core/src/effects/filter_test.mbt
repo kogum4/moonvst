@@ -33,3 +33,9 @@ test "svf mix at zero is dry and at one is filtered" {
   assert_eq(approx_eq_filter(dry_l, 0.4, 0.000001), true)
   assert_eq(approx_eq_filter(wet_l, 0.4, 0.000001), false)
 }
+
+test "svf default sample rate follows runtime configuration" {
+  @utils.set_sample_rate(44100.0)
+  assert_eq(approx_eq_filter(svf_default_sample_rate_hz(), 44100.0, 0.000001), true)
+  @utils.set_sample_rate(48000.0)
+}

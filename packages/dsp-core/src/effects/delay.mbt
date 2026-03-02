@@ -1,4 +1,3 @@
-let delay_sample_rate_hz : Float = 48000.0
 let delay_ref_sample_rate_hz : Float = 44100.0
 let delay_pi : Float = 3.141592653589793238
 let delay_two_pi : Float = delay_pi * 2.0
@@ -48,7 +47,7 @@ fn delay_tan(x : Float) -> Float {
 }
 
 fn delay_cycle_end() -> Int {
-  let mut cycle_end = (delay_sample_rate_hz / delay_ref_sample_rate_hz).to_int()
+  let mut cycle_end = (@utils.get_sample_rate() / delay_ref_sample_rate_hz).to_int()
   if cycle_end < 1 {
     cycle_end = 1
   } else if cycle_end > 4 {

@@ -2,7 +2,6 @@ let compressor_max_nodes : Int = 16
 let compressor_max_delay : Int = 1024
 let compressor_samples_per_update : Int = 32
 let compressor_spacing_db : Float = 5.0
-let compressor_sample_rate_hz : Float = 48000.0
 let compressor_ang_90 : Float = 1.57079633
 let compressor_ang_90_inv : Float = 0.63661977236
 let compressor_release_zone1 : Float = 0.090
@@ -131,11 +130,12 @@ fn compressor_delay_offset(node_index : Int, sample_index : Int) -> Int {
 
 fn ensure_compressor_state() -> Unit {
   for i = compressor_linearpregain.length(); i < compressor_max_nodes; i = i + 1 {
+    let sample_rate_hz = @utils.get_sample_rate()
     compressor_linearpregain.push(1.0)
     compressor_linearthreshold.push(compressor_db2lin(-24.0))
     compressor_slope.push(1.0 / 12.0)
-    compressor_attacksamplesinv.push(1.0 / (compressor_sample_rate_hz * 0.003))
-    compressor_satreleasesamplesinv.push(1.0 / (compressor_sample_rate_hz * 0.0025))
+    compressor_attacksamplesinv.push(1.0 / (sample_rate_hz * 0.003))
+    compressor_satreleasesamplesinv.push(1.0 / (sample_rate_hz * 0.0025))
     compressor_wet.push(1.0)
     compressor_dry.push(0.0)
     compressor_k.push(5.0)
@@ -201,13 +201,14 @@ fn compressor_reconfigure(
   wet : Float,
   reset_runtime : Bool,
 ) -> Unit {
+  let sample_rate_hz = @utils.get_sample_rate()
   let clamped_ratio : Float = if ratio < 1.0 { 1.0 } else { ratio }
   let clamped_attack_sec : Float = effect_clamp(attack_sec, 0.000001, 1.0)
   let clamped_release_sec : Float = effect_clamp(release_sec, 0.000001, 1.0)
   let clamped_predelay_sec : Float = effect_clamp(predelay_sec, 0.0, 1.0)
   let clamped_knee_db : Float = effect_clamp(knee_db, 0.0, 40.0)
   let clamped_wet : Float = effect_clamp(wet, 0.0, 1.0)
-  let mut delaybufsize = (compressor_sample_rate_hz * clamped_predelay_sec).to_int()
+  let mut delaybufsize = (sample_rate_hz * clamped_predelay_sec).to_int()
   if delaybufsize < 1 {
     delaybufsize = 1
   } else if delaybufsize > compressor_max_delay {
@@ -231,12 +232,12 @@ fn compressor_reconfigure(
   let linearpregain : Float = compressor_db2lin(pregain_db)
   let linearthreshold : Float = compressor_db2lin(threshold_db)
   let slope : Float = 1.0 / clamped_ratio
-  let attacksamples : Float = compressor_sample_rate_hz * clamped_attack_sec
-  let releasesamples : Float = compressor_sample_rate_hz * clamped_release_sec
+  let attacksamples : Float = sample_rate_hz * clamped_attack_sec
+  let releasesamples : Float = sample_rate_hz * clamped_release_sec
   let attacksamplesinv : Float = 1.0 / attacksamples
-  let satreleasesamplesinv : Float = 1.0 / (compressor_sample_rate_hz * 0.0025)
+  let satreleasesamplesinv : Float = 1.0 / (sample_rate_hz * 0.0025)
   let dry : Float = 1.0 - clamped_wet
-  let meterrelease : Float = 1.0 - @math.expf(-1.0 / (compressor_sample_rate_hz * 0.325))
+  let meterrelease : Float = 1.0 - @math.expf(-1.0 / (sample_rate_hz * 0.325))
 
   let mut k : Float = 5.0
   let mut kneedboffset : Float = 0.0

@@ -8,6 +8,7 @@
     "wasm": {
       "exports": [
         "dsp_init",
+        "dsp_prepare",
         "process_block",
         "get_param_count",
         "get_param_name",

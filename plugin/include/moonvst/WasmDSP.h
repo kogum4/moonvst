@@ -33,6 +33,7 @@ private:
 
     // Generic function pointers (looked up by name)
     wasm_function_inst_t fn_init_ = nullptr;
+    wasm_function_inst_t fn_dsp_prepare_ = nullptr;
     wasm_function_inst_t fn_process_block_ = nullptr;
     wasm_function_inst_t fn_get_param_count_ = nullptr;
     wasm_function_inst_t fn_get_param_name_ = nullptr;

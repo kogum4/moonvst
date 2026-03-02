@@ -1,6 +1,5 @@
 /// Dattorro-style stereo reverb network.
 /// Memory below heap start is reserved for fixed-size delay lines.
-let reverb_sample_rate_hz : Float = 48000.0
 let reverb_pre_delay_len : Int = 2400
 let reverb_in_ap1_len : Int = 142
 let reverb_in_ap2_len : Int = 107
@@ -222,7 +221,7 @@ fn reverb_allpass_process(base_ptr : Int, idx : Int, input : Float, g : Float) -
 }
 
 pub fn reverb_predelay_ms_to_samples(ms : Float) -> Int {
-  let raw = (reverb_clamp(ms, 0.0, 50.0) * (reverb_sample_rate_hz / 1000.0)).to_int()
+  let raw = (reverb_clamp(ms, 0.0, 50.0) * (@utils.get_sample_rate() / 1000.0)).to_int()
   if raw >= reverb_pre_delay_len { reverb_pre_delay_len - 1 } else { raw }
 }
 

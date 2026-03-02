@@ -32,6 +32,9 @@ class MoonVSTProcessor extends AudioWorkletProcessor {
         this.wasmInstance = instance
         this.wasmMemory = instance.exports.memory
         instance.exports.dsp_init()
+        if (typeof instance.exports.dsp_prepare === 'function') {
+          instance.exports.dsp_prepare(sampleRate)
+        }
         this.ready = true
         this.port.postMessage({ type: 'ready' })
       } catch (err) {
