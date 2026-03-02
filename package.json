@@ -4,6 +4,8 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
+    "gen:memory-layout": "node scripts/gen-memory-layout.js",
+    "gen:memory-layout:check": "node scripts/gen-memory-layout.js --check",
     "build:dsp": "cross-env MOONVST_PRODUCT=template node scripts/build-dsp-product.js",
     "build:dsp:showcase": "cross-env MOONVST_PRODUCT=showcase node scripts/build-dsp-product.js",
     "build:plugin": "cmake --build build --config Release",
@@ -31,7 +33,12 @@
     "test:ui": "cd packages/ui-core && npm run test:ui",
     "test:ui:component": "cd packages/ui-core && npm run test:component",
     "test:ui:e2e": "cd packages/ui-core && npm run test:e2e",
-    "test:ui:unit": "cd packages/ui-core && npm run test:unit"
+    "test:ui:unit": "cd packages/ui-core && npm run test:unit",
+    "prebuild:dsp": "npm run gen:memory-layout",
+    "prebuild:dsp:showcase": "npm run gen:memory-layout",
+    "prebuild:ui": "npm run gen:memory-layout",
+    "prebuild:ui:showcase": "npm run gen:memory-layout",
+    "prebuild:ui:web": "npm run gen:memory-layout"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5",
