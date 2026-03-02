@@ -1,7 +1,7 @@
 let chorus_total_samples : Int = 16386
 let chorus_loop_limit : Int = 8176
 let chorus_loop_limit_f : Float = 8176.0
-let chorus_mem_base_ptr : Int = 0x78000
+let chorus_mem_base_ptr : Int = @utils.chorus_mem_base_ptr
 let chorus_tiny_threshold : Float = 0.0000000000000000000000118
 let chorus_tiny_noise : Float = 0.0000000000000000118
 let chorus_pi : Float = 3.141592653589793238

@@ -1,0 +1,13 @@
+{
+  "bytes_per_sample": 4,
+  "max_buffer_samples": 16384,
+  "offsets": {
+    "input_left": 65536,
+    "input_right": 131072,
+    "output_left": 196608,
+    "output_right": 262144,
+    "string_buf": 327680,
+    "reverb_mem_base_ptr": 393216,
+    "chorus_mem_base_ptr": 491520
+  }
+}

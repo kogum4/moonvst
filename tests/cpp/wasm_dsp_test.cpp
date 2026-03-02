@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cmath>
 #include "wasm_export.h"
+#include "moonvst/memory_layout_gen.h"
 
 // Minimal test for WASM DSP integration
 // Tests: init, parameter get/set, process_block
@@ -242,8 +243,8 @@ int main()
 
     // 9. Test process_block
     constexpr int NUM_SAMPLES = 4;
-    constexpr int INPUT_LEFT_OFFSET = 0x10000;
-    constexpr int OUTPUT_LEFT_OFFSET = 0x30000;
+    constexpr int INPUT_LEFT_OFFSET = moonvst::memory_layout::INPUT_LEFT_OFFSET;
+    constexpr int OUTPUT_LEFT_OFFSET = moonvst::memory_layout::OUTPUT_LEFT_OFFSET;
 
     uint8_t* wasmMem = (uint8_t*)wasm_runtime_addr_app_to_native(inst, 0);
     if (!wasmMem)

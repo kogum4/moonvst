@@ -21,6 +21,9 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
+      - name: Check memory layout generated files are up to date
+        run: node scripts/gen-memory-layout.js --check
+
       - name: Install MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
@@ -43,6 +46,9 @@ jobs:
 
       - name: Install root dependencies
         run: npm ci
+
+      - name: Check memory layout generated files are up to date
+        run: node scripts/gen-memory-layout.js --check
 
       - name: Install MoonBit
         run: |
@@ -70,6 +76,9 @@ jobs:
 
       - name: Install root dependencies
         run: npm ci
+
+      - name: Check memory layout generated files are up to date
+        run: node scripts/gen-memory-layout.js --check
 
       - name: Install UI dependencies
         working-directory: packages/ui-core
@@ -129,6 +138,9 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: packages/ui-core/package-lock.json
+
+      - name: Check memory layout generated files are up to date
+        run: node scripts/gen-memory-layout.js --check
 
       - name: Install UI dependencies
         working-directory: packages/ui-core

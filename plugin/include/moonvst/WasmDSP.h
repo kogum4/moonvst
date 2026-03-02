@@ -4,6 +4,7 @@
 #include <string>
 #include <atomic>
 #include "wasm_export.h"
+#include "memory_layout_gen.h"
 
 class WasmDSP
 {
@@ -44,12 +45,11 @@ private:
     wasm_function_inst_t fn_set_param_ = nullptr;
     wasm_function_inst_t fn_get_param_ = nullptr;
 
-    // Memory layout offsets (must match packages/dsp-core/src/utils/constants.mbt)
-    static constexpr int INPUT_LEFT_OFFSET  = 0x10000;
-    static constexpr int INPUT_RIGHT_OFFSET = 0x20000;
-    static constexpr int OUTPUT_LEFT_OFFSET = 0x30000;
-    static constexpr int OUTPUT_RIGHT_OFFSET = 0x40000;
-    static constexpr int MAX_BUFFER_SAMPLES = 16384;
+    static constexpr int INPUT_LEFT_OFFSET = moonvst::memory_layout::INPUT_LEFT_OFFSET;
+    static constexpr int INPUT_RIGHT_OFFSET = moonvst::memory_layout::INPUT_RIGHT_OFFSET;
+    static constexpr int OUTPUT_LEFT_OFFSET = moonvst::memory_layout::OUTPUT_LEFT_OFFSET;
+    static constexpr int OUTPUT_RIGHT_OFFSET = moonvst::memory_layout::OUTPUT_RIGHT_OFFSET;
+    static constexpr int MAX_BUFFER_SAMPLES = moonvst::memory_layout::MAX_BUFFER_SAMPLES;
 
     std::atomic<bool> initialized_ { false };
     int cachedParamCount_ = 0;

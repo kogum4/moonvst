@@ -12,7 +12,7 @@ let reverb_tank_r_d1_len : Int = 4217
 let reverb_tank_r_ap2_len : Int = 2656
 let reverb_tank_r_d2_len : Int = 3163
 
-let reverb_mem_base_ptr : Int = 0x60000
+let reverb_mem_base_ptr : Int = @utils.reverb_mem_base_ptr
 let reverb_fallback_state_l_box : Array[Float] = [0.0]
 let reverb_fallback_state_r_box : Array[Float] = [0.0]
 
