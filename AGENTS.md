@@ -1,111 +1,78 @@
 # AGENTS.md
 
-This file defines working rules for AI or automation agents in the `moonvst` repository.
-
-## Goal
-
-- Deliver the requested change with minimal, focused edits
-- Preserve the current MoonBit DSP + React UI + JUCE/WAMR workflow
-- Run reproducible validation for each change
+Working rules for AI agents in the `moonvst` repository.
 
 ## Repository Map
 
 - `packages/dsp-core/`: MoonBit DSP source (WASM-first)
 - `packages/ui-core/`: React + Vite frontend
-- `plugin/`: JUCE plugin and host bridge
-- `scripts/`: setup and build helpers
+- `plugin/`: JUCE plugin and host bridge (shared, product-agnostic)
+- `products/`: product-specific wiring (dsp-entry, ui-entry)
+- `contracts/`: cross-layer contract definitions (JSON → code generation)
+- `scripts/`: setup, build, and code generation helpers
 - `tests/cpp/`: C++ integration tests
-- `libs/`: submodules (JUCE/WAMR). Do not edit unless explicitly requested.
+- `libs/`: git submodules (JUCE/WAMR) — do not edit
 
-## Core Rules
+## Workflow
 
-- Do not do unrelated refactors
+Work is tracked as GitHub Issues. Each issue gets its own branch and PR.
+
+1. Read the issue (`gh issue view <number>`).
+2. Create a branch from `main`: `<type>/#<issue-number>-<short-description>`
+   - Types: `feat/`, `fix/`, `chore/`, `docs/`, `test/`
+   - Example: `fix/#25-sample-rate`, `feat/#26-memory-layout-codegen`
+3. Write a failing test first (TDD: red → green → refactor).
+4. Implement with focused edits. Run validation for the touched area.
+5. **Stop and ask the user to review** before committing. Show changes and test results.
+6. After approval: commit, push, open a PR (`Closes #<number>` in body).
+7. After CI passes and user confirms: merge via `gh pr merge --squash --delete-branch`.
+
+## Commands
+
+| Area | Build | Test |
+|---|---|---|
+| DSP | `npm run build:dsp` | `npm run test:dsp` |
+| UI | `npm run build:ui` | `npm run test:ui:unit` / `test:ui:component` / `test:ui:e2e` |
+| Plugin | `npm run configure:plugin && npm run build:plugin` | `ctest --test-dir build -C Release --output-on-failure` |
+| Contracts | `node scripts/gen-memory-layout.js` / `gen-showcase-layout.js` | `--check` flag for CI staleness |
+| Full | `npm run release:vst` | — |
+| Dev | `npm run dev` | — |
+
+## Architecture Rules
+
+### Product Structure
+
+- `packages/*` = shared implementation, `products/*` = product wiring only
+- `plugin/` is product-agnostic — no product branching in C++
+- Product registration is automatic via `import.meta.glob` in `main.tsx` — do not add manual imports
+- Keep `App.tsx` thin (composition only). Product-specific UI goes in `products/<name>/ui-entry/components/`
+- Shared styles in `packages/ui-core`, theme overrides in `products/*/ui-entry`
+- Do not duplicate core logic into `products/*`; extract shared behavior back to `packages/*`
+
+### Cross-Layer Contracts
+
+Constants shared across MoonBit, C++, TypeScript, and JS are defined once in `contracts/*.json` and code-generated. Never hand-edit files marked `// AUTO-GENERATED`.
+
+- `contracts/memory-layout.json` → WASM linear memory offsets (DSP, plugin, worklet)
+- `contracts/showcase-graph-layout.json` → showcase parameter bank layout (offsets, strides, counts)
+- After changing a contract JSON, regenerate and commit the generated files
+
+### DSP Rules
+
+- Keep `exports.mbt` host API compatible unless bridge changes are intentional
+- Use `@utils.get_sample_rate()` for sample rate — never hardcode `48000.0`
+- When changing params in `products/*/dsp-entry/params.mbt`, verify matching UI references
+
+## Release
+
+- Keep `main` releasable at all times
+- Release tags: `v*` (e.g. `v0.1.0`) on `main` only
+- Prefer `git revert` for rollback; do not rewrite `main` history
+
+## Ground Rules
+
+- No unrelated refactors — change only what the issue requires
+- No speculative changes without explicit user approval
+- No committing or pushing without user approval
+- No committing generated outputs (`build/`, `node_modules/`)
 - Follow existing naming, file layout, and code style
-- Do not commit generated outputs (`build/`, `node_modules/`)
-- If requirements are unclear, keep scope narrow and avoid broad speculative changes
-- Do not implement speculative design changes without explicit user approval
-
-## Product Architecture Rules
-
-- Keep `plugin/` shared and product-agnostic. Do not add product branching in C++ unless explicitly requested.
-- Treat `packages/*` as shared implementation and `products/*` as product wiring only.
-- Keep DSP product-specific files in `products/*/dsp-entry/` and do not write generated entry files into tracked `packages/dsp-core/src`.
-- Keep UI product-specific composition in `products/*/ui-entry/App.tsx`; keep business logic/components in `packages/ui-core`.
-- Keep CSS split by responsibility: shared styles in `packages/ui-core`, product-specific theme overrides in `products/*/ui-entry`.
-- Keep `App.tsx` thin (composition and wiring only). If product-specific UI grows, create `products/<name>/ui-entry/components/*` instead of moving logic into `packages/ui-core` conditionals.
-- Do not duplicate core logic into `products/*`; when shared behavior appears, move it back to `packages/*`.
-
-## TDD Rules
-
-- Default to test-driven development for behavior changes
-- Add or update a failing test first (unit/component/E2E as appropriate), then implement the code change
-- Keep each change cycle small: red -> green -> refactor
-- If tests cannot be written first due to tooling constraints, document the reason in the change summary and add tests immediately after implementation
-
-## Recommended Workflow
-
-1. Identify the smallest relevant set of files.
-2. Apply focused edits.
-3. Run the minimum validation required for the touched area.
-4. Run extra validation when risk is high.
-
-## Main Commands
-
-- Dev mode: `npm run dev`
-- DSP build: `npm run build:dsp`
-- DSP tests: `npm run test:dsp`
-- UI build: `npm run build:ui`
-- UI tests (all): `npm run test:ui`
-- UI unit tests: `npm run test:ui:unit`
-- UI component tests: `npm run test:ui:component`
-- UI E2E tests: `npm run test:ui:e2e`
-- Plugin configure: `npm run configure:plugin`
-- Plugin build: `npm run build:plugin`
-- Full release pipeline: `npm run release:vst`
-
-## Validation Matrix
-
-- DSP-only changes:
-  - `npm run build:dsp`
-  - `npm run test:dsp`
-- UI-only changes:
-  - `npm run build:ui`
-  - `npm run test:ui:unit`
-  - `npm run test:ui:component`
-  - `npm run test:ui:e2e`
-- Plugin/C++ changes:
-  - `npm run configure:plugin`
-  - `npm run build:plugin`
-  - Optional: `ctest --test-dir build -C Release --output-on-failure`
-- Cross-cutting changes (DSP + UI + Plugin):
-  - `npm run release:vst`
-  - Add targeted tests as needed
-
-## Branch and Release Rules
-
-- Keep `main` in a releasable state at all times
-- Use short-lived working branches: `feat/*`, `fix/*`, `chore/*`
-- Merge to `main` via Pull Request (self-review is acceptable for solo development)
-- Require CI (`Build` workflow) to pass before merging to `main`
-- Create release tags as `v*` (example: `v0.1.0`) on `main` commits only
-- On tagged pushes, publish GitHub Release assets from CI; keep Artifacts for CI/debug use
-- Prefer `git revert` for rollback on shared history; avoid rewriting `main` history
-
-### Recommended GitHub Branch Protection for `main`
-
-- Require a pull request before merging
-- Require status checks to pass before merging (`Build`)
-- Require linear history
-- Disallow force pushes and branch deletion
-
-## DSP/API Compatibility Notes
-
-- Keep `packages/dsp-core/src/exports.mbt` host API compatible unless bridge changes are intentional
-- When changing parameters in `products/*/dsp-entry/params.mbt` or `packages/dsp-core/src/api/params.mbt`, verify matching behavior in `packages/ui-core/src`
-- If parameter names change, update UI references accordingly
-
-## Done Criteria
-
-- Requested behavior is implemented
-- Relevant validation completed, or skipped with clear reason
-- Diff contains no unnecessary unrelated changes
