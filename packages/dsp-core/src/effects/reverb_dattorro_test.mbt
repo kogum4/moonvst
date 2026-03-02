@@ -4,8 +4,15 @@ fn approx_eq_reverb(a : Float, b : Float, tol : Float) -> Bool {
 }
 
 test "reverb predelay conversion clamps to valid range" {
+  @utils.set_sample_rate(48000.0)
   assert_eq(reverb_predelay_ms_to_samples(-10.0), 0)
   assert_eq(reverb_predelay_ms_to_samples(50.0), 2399)
+}
+
+test "reverb predelay conversion follows configured sample rate" {
+  @utils.set_sample_rate(44100.0)
+  assert_eq(reverb_predelay_ms_to_samples(50.0), 2205)
+  @utils.set_sample_rate(48000.0)
 }
 
 test "reverb dry-wet mix helper returns endpoints" {

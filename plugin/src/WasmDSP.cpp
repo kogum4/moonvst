@@ -226,6 +226,7 @@ bool WasmDSP::lookupFunctions()
     fn_init_               = wasm_runtime_lookup_function (moduleInst_, "init");
     if (fn_init_ == nullptr)
         fn_init_ = wasm_runtime_lookup_function (moduleInst_, "dsp_init");
+    fn_dsp_prepare_        = wasm_runtime_lookup_function (moduleInst_, "dsp_prepare");
     fn_process_block_      = wasm_runtime_lookup_function (moduleInst_, "process_block");
     fn_get_param_count_    = wasm_runtime_lookup_function (moduleInst_, "get_param_count");
     fn_get_param_name_     = wasm_runtime_lookup_function (moduleInst_, "get_param_name");
@@ -240,9 +241,19 @@ bool WasmDSP::lookupFunctions()
     return fn_process_block_ != nullptr && fn_get_param_count_ != nullptr;
 }
 
-void WasmDSP::prepare (double /*sampleRate*/, int /*samplesPerBlock*/)
+void WasmDSP::prepare (double sampleRate, int /*samplesPerBlock*/)
 {
-    // Reserved for future use (e.g., passing sample rate to WASM)
+    if (! initialized_.load() || fn_dsp_prepare_ == nullptr)
+        return;
+
+    const ScopedThreadEnv threadEnv;
+    if (! threadEnv.isValid())
+        return;
+
+    wasm_val_t args[1];
+    args[0].kind = WASM_F32;
+    args[0].of.f32 = (float) sampleRate;
+    callVoid (execEnv_, fn_dsp_prepare_, args, 1);
 }
 
 void WasmDSP::processBlock (juce::AudioBuffer<float>& buffer)

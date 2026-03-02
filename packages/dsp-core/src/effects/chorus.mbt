@@ -1,4 +1,3 @@
-let chorus_sample_rate_hz : Float = 48000.0
 let chorus_total_samples : Int = 16386
 let chorus_loop_limit : Int = 8176
 let chorus_loop_limit_f : Float = 8176.0
@@ -114,7 +113,7 @@ fn chorus_sin(x : Float) -> Float {
 }
 
 fn chorus_speed_from_rate(rate : Float) -> Float {
-  let overallscale = chorus_sample_rate_hz / 44100.0
+  let overallscale = @utils.get_sample_rate() / 44100.0
   let a2 = rate * rate
   let a4 = a2 * a2
   a4 * 0.001 * overallscale

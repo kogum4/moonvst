@@ -1,12 +1,16 @@
-let filter_sample_rate_hz : Float = 48000.0
 let filter_pi : Float = 3.141592653589793
 
 pub fn svf_default_sample_rate_hz() -> Float {
-  filter_sample_rate_hz
+  @utils.get_sample_rate()
 }
 
 pub fn svf_compute_g_from_hz(freq_hz : Float, sample_rate_hz : Float) -> Float {
-  let sr = if sample_rate_hz <= 1000.0 { filter_sample_rate_hz } else { sample_rate_hz }
+  let sr =
+    if sample_rate_hz <= 1000.0 {
+      @utils.get_sample_rate()
+    } else {
+      sample_rate_hz
+    }
   let hz = effect_clamp(freq_hz, 5.0, sr * 0.49)
   @math.tanf(filter_pi * (hz / sr))
 }
@@ -70,7 +74,7 @@ fn svf_process_single_channel(
   mode_index : Int,
 ) -> (Float, Float, Float) {
   let cutoff_hz = filter_cutoff_to_hz(cutoff)
-  let g : Float = svf_compute_g_from_hz(cutoff_hz, filter_sample_rate_hz)
+  let g : Float = svf_compute_g_from_hz(cutoff_hz, @utils.get_sample_rate())
   let k : Float = effect_clamp(resonance, 0.0, 1.0) * 2.0
   let (a1, a2, a3) = svf_compute_a(g, k)
   let (v1, v2, next_ic1, next_ic2) = svf_step(input, ic1eq, ic2eq, a1, a2, a3)
