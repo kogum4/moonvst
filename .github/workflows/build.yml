@@ -4,7 +4,17 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   discover-products:
@@ -12,6 +22,7 @@ jobs:
     outputs:
       products: ${{ steps.discover.outputs.products }}
       default_product: ${{ steps.discover.outputs.default_product }}
+      selected_products: ${{ steps.discover.outputs.selected_products }}
     steps:
       - uses: actions/checkout@v4
 
@@ -20,9 +31,16 @@ jobs:
         run: |
           products_json="$(node -e "const fs=require('fs');const dirs=fs.readdirSync('products',{withFileTypes:true}).filter((d)=>d.isDirectory()).map((d)=>d.name).sort();if(dirs.length===0){throw new Error('no products found under products/');}process.stdout.write(JSON.stringify(dirs));")"
           default_product="$(node -e "const fs=require('fs');const dirs=fs.readdirSync('products',{withFileTypes:true}).filter((d)=>d.isDirectory()).map((d)=>d.name).sort();if(dirs.includes('template')){process.stdout.write('template');}else{process.stdout.write(dirs[0]);}")"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            selected_products="$(node -e "process.stdout.write(JSON.stringify([process.argv[1]]));" "$default_product")"
+          else
+            selected_products="$products_json"
+          fi
           echo "products=$products_json" >> "$GITHUB_OUTPUT"
           echo "default_product=$default_product" >> "$GITHUB_OUTPUT"
+          echo "selected_products=$selected_products" >> "$GITHUB_OUTPUT"
           echo "Discovered products: $products_json"
+          echo "Selected products for this run: $selected_products"
 
   build-macos:
     runs-on: macos-26
@@ -41,6 +59,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            packages/ui-core/package-lock.json
+
+      - name: Cache MoonBit
+        uses: actions/cache@v4
+        with:
+          path: ~/.moon
+          key: ${{ runner.os }}-moonbit-${{ hashFiles('scripts/setup-macos.sh') }}
 
       - name: Log macOS toolchain info
         shell: bash
@@ -70,11 +98,11 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
           security default-keychain -d user -s "$KEYCHAIN_PATH"
 
-      - name: Build all products
+      - name: Build selected products
         shell: bash
         run: |
           set -euo pipefail
-          products='${{ needs.discover-products.outputs.products }}'
+          products='${{ needs.discover-products.outputs.selected_products }}'
           mkdir -p ci-artifacts
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Building product: $product ==="
@@ -162,6 +190,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            packages/ui-core/package-lock.json
+
+      - name: Cache MoonBit
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.USERPROFILE }}\.moon
+          key: ${{ runner.os }}-moonbit-${{ hashFiles('scripts/setup-windows.ps1') }}
 
       - name: Cache LLVM deps
         id: cache-llvm
@@ -176,10 +214,10 @@ jobs:
         shell: pwsh
         run: powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1
 
-      - name: Build all products
+      - name: Build selected products
         shell: pwsh
         run: |
-          $products = '${{ needs.discover-products.outputs.products }}' | ConvertFrom-Json
+          $products = '${{ needs.discover-products.outputs.selected_products }}' | ConvertFrom-Json
           New-Item -ItemType Directory -Force -Path "ci-artifacts" | Out-Null
           foreach ($product in $products) {
             Write-Host "=== Building product: $product ==="
@@ -224,11 +262,11 @@ jobs:
           name: moonvst-macos-products
           path: products
 
-      - name: Validate and run smoke tests for all products
+      - name: Validate and run smoke tests for selected products
         shell: bash
         run: |
           set -euo pipefail
-          products='${{ needs.discover-products.outputs.products }}'
+          products='${{ needs.discover-products.outputs.selected_products }}'
           for product in $(node -e "const p=JSON.parse(process.argv[1]);console.log(p.join(' '));" "$products"); do
             echo "=== Testing product: $product ==="
             test -d "products/$product/plugin/VST3/${product}.vst3"
@@ -255,10 +293,10 @@ jobs:
           name: moonvst-windows-products
           path: products
 
-      - name: Validate and run smoke tests for all products
+      - name: Validate and run smoke tests for selected products
         shell: pwsh
         run: |
-          $products = '${{ needs.discover-products.outputs.products }}' | ConvertFrom-Json
+          $products = '${{ needs.discover-products.outputs.selected_products }}' | ConvertFrom-Json
           foreach ($product in $products) {
             Write-Host "=== Testing product: $product ==="
             if (-not (Test-Path "products/$product/plugin/VST3/$product.vst3")) { throw "VST3 artifact missing for $product" }

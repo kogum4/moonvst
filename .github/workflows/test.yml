@@ -3,7 +3,17 @@ name: Test
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   dsp-test-template:
@@ -17,6 +27,12 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: package-lock.json
+
+      - name: Cache MoonBit
+        uses: actions/cache@v4
+        with:
+          path: ~/.moon
+          key: ${{ runner.os }}-moonbit-${{ hashFiles('package-lock.json') }}
 
       - name: Install root dependencies
         run: npm ci
@@ -43,6 +59,12 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: package-lock.json
+
+      - name: Cache MoonBit
+        uses: actions/cache@v4
+        with:
+          path: ~/.moon
+          key: ${{ runner.os }}-moonbit-${{ hashFiles('package-lock.json') }}
 
       - name: Install root dependencies
         run: npm ci
@@ -73,6 +95,12 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: package-lock.json
+
+      - name: Cache MoonBit
+        uses: actions/cache@v4
+        with:
+          path: ~/.moon
+          key: ${{ runner.os }}-moonbit-${{ hashFiles('package-lock.json') }}
 
       - name: Install root dependencies
         run: npm ci
@@ -155,9 +183,11 @@ jobs:
         run: npm run test:component
 
       - name: Install Playwright browser
+        if: github.event_name != 'pull_request'
         working-directory: packages/ui-core
         run: npx playwright install --with-deps chromium
 
       - name: Run UI E2E tests
+        if: github.event_name != 'pull_request'
         working-directory: packages/ui-core
         run: npm run test:e2e
